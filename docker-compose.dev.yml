@@ -1,0 +1,59 @@
+services:
+
+  app:
+    image: node:22-alpine
+    container_name: joes-custom-flags-cms-dev
+    working_dir: /app
+    command: sh -c "apk add --no-cache libheif-tools && npm install && npm run dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "5173:5173"
+      - "8080:8080"
+    env_file: .development-env
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - ./dev-data/app:/app/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: joes-custom-flags-cms-dev-postgres
+    restart: unless-stopped
+    env_file: .development-env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./dev-data/postgres:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: joes-custom-flags-cms-dev-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file: .development-env
+    volumes:
+      - ./dev-data/minio:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: joes-custom-flags-cms-dev-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb -p local/joes-custom-flags-cms-media || true;
+      /usr/bin/mc anonymous set download local/joes-custom-flags-cms-media || true;
+      "
+    env_file: .development-env

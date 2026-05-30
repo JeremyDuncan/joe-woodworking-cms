@@ -11,8 +11,6 @@ import fs from 'fs';
 import path from 'path';
 import {fileURLToPath, pathToFileURL} from 'url';
 import os from 'os';
-import {createClient as createRedisClient} from 'redis';
-import {RedisStore} from 'connect-redis';
 import pkg from 'pg';
 import {S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand} from '@aws-sdk/client-s3';
 
@@ -124,6 +122,16 @@ function streamToBuffer(stream) {
     });
 }
 
+function buildDatabaseUrl(env = {}) {
+    const {POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB} = env;
+    if (!POSTGRES_USER || !POSTGRES_PASSWORD || !POSTGRES_DB) return '';
+    const host = env.POSTGRES_HOST || 'postgres';
+    const port = env.POSTGRES_PORT || '5432';
+    const user = encodeURIComponent(POSTGRES_USER);
+    const pass = encodeURIComponent(POSTGRES_PASSWORD);
+    return `postgresql://${user}:${pass}@${host}:${port}/${POSTGRES_DB}`;
+}
+
 export function createApp(options = {}) {
     const app = express();
     const PORT = Number(options.port ?? process.env.PORT ?? 8080);
@@ -133,8 +141,7 @@ export function createApp(options = {}) {
     const SESSION_SECRET = options.sessionSecret ?? process.env.SESSION_SECRET ?? 'change-this-session-secret';
     const NODE_ENV = options.nodeEnv ?? process.env.NODE_ENV ?? 'development';
 
-    const DATABASE_URL = options.databaseUrl ?? process.env.DATABASE_URL ?? '';
-    const REDIS_URL = options.redisUrl ?? process.env.REDIS_URL ?? '';
+    const DATABASE_URL = options.databaseUrl ?? process.env.DATABASE_URL ?? buildDatabaseUrl(process.env);
     const S3_ENDPOINT = options.s3Endpoint ?? process.env.S3_ENDPOINT ?? '';
     const S3_REGION = options.s3Region ?? process.env.S3_REGION ?? 'us-east-1';
     const S3_BUCKET = options.s3Bucket ?? process.env.S3_BUCKET ?? 'joes-custom-flags-cms-media';
@@ -167,91 +174,26 @@ export function createApp(options = {}) {
     async function initSql() {
         if (!pool) return;
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS cms_users
-            (
-                username
-                TEXT
-                PRIMARY
-                KEY,
-                password
-                TEXT
-                NOT
-                NULL,
-                updated_at
-                TIMESTAMPTZ
-                NOT
-                NULL
-                DEFAULT
-                NOW
-            (
-            )
-                );
-            CREATE TABLE IF NOT EXISTS cms_settings
-            (
-                id
-                INTEGER
-                PRIMARY
-                KEY,
-                payload
-                JSONB
-                NOT
-                NULL,
-                updated_at
-                TIMESTAMPTZ
-                NOT
-                NULL
-                DEFAULT
-                NOW
-            (
-            )
-                );
-            CREATE TABLE IF NOT EXISTS cms_works
-            (
-                id
-                UUID
-                PRIMARY
-                KEY,
-                title
-                TEXT
-                NOT
-                NULL,
-                price
-                TEXT
-                NOT
-                NULL
-                DEFAULT
-                '',
-                featured
-                BOOLEAN
-                NOT
-                NULL
-                DEFAULT
-                FALSE,
-                description
-                TEXT
-                NOT
-                NULL,
-                media
-                JSONB
-                NOT
-                NULL
-                DEFAULT
-                '[]'
-                :
-                :
-                jsonb,
-                created_at
-                TIMESTAMPTZ
-                NOT
-                NULL
-                DEFAULT
-                NOW
-            (
-            ),
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW
-            (
-            )
-                );
+            CREATE TABLE IF NOT EXISTS cms_users (
+                username   TEXT        PRIMARY KEY,
+                password   TEXT        NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS cms_settings (
+                id         INTEGER     PRIMARY KEY,
+                payload    JSONB       NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS cms_works (
+                id          UUID        PRIMARY KEY,
+                title       TEXT        NOT NULL,
+                price       TEXT        NOT NULL DEFAULT '',
+                featured    BOOLEAN     NOT NULL DEFAULT FALSE,
+                description TEXT        NOT NULL,
+                media       JSONB       NOT NULL DEFAULT '[]'::jsonb,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
         `);
 
         const uCount = Number((await pool.query('SELECT COUNT(*)::int AS c FROM cms_users')).rows[0].c || 0);
@@ -379,12 +321,12 @@ export function createApp(options = {}) {
     }
 
     function sanitizePlacement(input) {
-        const p = input && typeof input === 'object' ? input : {};
+        if (!input || typeof input !== 'object' || typeof input.width !== 'number') return null;
         return {
-            fit: p.fit === 'contain' ? 'contain' : 'cover',
-            x: clampNumber(p.x, 0, 100, 50),
-            y: clampNumber(p.y, 0, 100, 50),
-            scale: clampNumber(p.scale, 1, 3, 1)
+            x: clampNumber(input.x, 0, 100, 0),
+            y: clampNumber(input.y, 0, 100, 0),
+            width: clampNumber(input.width, 0.1, 100, 100),
+            height: clampNumber(input.height, 0.1, 100, 100),
         };
     }
 
@@ -393,7 +335,12 @@ export function createApp(options = {}) {
             const {placement: _ignored, ...withoutPlacement} = media || {};
             return withoutPlacement;
         }
-        return {...media, placement: sanitizePlacement(placement ?? media.placement)};
+        const sanitized = sanitizePlacement(placement ?? media.placement);
+        if (sanitized === null) {
+            const {placement: _ignored, ...withoutPlacement} = {...(media || {})};
+            return withoutPlacement;
+        }
+        return {...media, placement: sanitized};
     }
 
     function normalizeMedia(media = []) {
@@ -518,44 +465,17 @@ export function createApp(options = {}) {
 
     app.set('trust proxy', 1);
     app.use(express.json({limit: '2mb'}));
+    app.locals.init = initSql;
 
-    app.use(async (req, res, next) => {
-        if (!app.locals.ready) {
-            try {
-                await initSql();
-                app.locals.ready = true;
-            } catch (e) {
-                console.error('Startup init failed', e);
-                return res.status(500).json({error: 'Service initialization failed'});
-            }
-        }
-        next();
-    });
-
-    if (REDIS_URL) {
-        const redisClient = createRedisClient({url: REDIS_URL});
-        redisClient.on('error', err => console.error('Redis error', err.message));
-        redisClient.connect().catch(err => console.error('Redis connect failed', err.message));
-        app.locals.redisClient = redisClient;
-        app.use(session({
-            store: new RedisStore({client: redisClient, prefix: 'joes_flags:'}),
-            name: 'joes_flags_sid',
-            secret: SESSION_SECRET,
-            resave: false,
-            saveUninitialized: false,
-            cookie: {httpOnly: true, sameSite: 'lax', secure: NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 12}
-        }));
-    } else {
-        const FileStore = createFileStore(session);
-        app.use(session({
-            store: new FileStore({path: SESSION_DIR, retries: 0, ttl: 60 * 60 * 12}),
-            name: 'joes_flags_sid',
-            secret: SESSION_SECRET,
-            resave: false,
-            saveUninitialized: false,
-            cookie: {httpOnly: true, sameSite: 'lax', secure: NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 12}
-        }));
-    }
+    const FileStore = createFileStore(session);
+    app.use(session({
+        store: new FileStore({path: SESSION_DIR, retries: 0, ttl: 60 * 60 * 12}),
+        name: 'joes_flags_sid',
+        secret: SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {httpOnly: true, sameSite: 'lax', secure: NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 12}
+    }));
 
     const upload = multer({
         storage: multer.memoryStorage(),
@@ -570,7 +490,7 @@ export function createApp(options = {}) {
     app.get('/api/health', (_req, res) => res.json({
         ok: true,
         adminPath: ADMIN_PATH,
-        storage: {sql: Boolean(pool), redis: Boolean(REDIS_URL), s3: Boolean(s3)}
+        storage: {sql: Boolean(pool), s3: Boolean(s3)}
     }));
     app.get('/api/config', (req, res) => res.json({
         adminPath: ADMIN_PATH,
@@ -630,6 +550,17 @@ export function createApp(options = {}) {
         const next = deepMerge(await readSettings(), req.body || {});
         await writeSettings(next);
         res.json(next);
+    });
+
+    app.post('/api/admin/preview-convert', requireAdmin, upload.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No file provided'});
+        try {
+            const converted = await convertImageBuffer(req.file);
+            res.set('Content-Type', converted.mimetype);
+            res.send(converted.buffer);
+        } catch {
+            res.status(500).json({error: 'Conversion failed'});
+        }
     });
 
     app.post('/api/admin/works', requireAdmin, upload.array('media', 8), async (req, res) => {
@@ -705,5 +636,6 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv
 if (isMain) {
     const app = createApp();
     const {PORT, ADMIN_PATH} = app.locals.cmsConfig;
+    await app.locals.init();
     app.listen(PORT, '0.0.0.0', () => console.log(`Joe's Flags CMS listening on ${PORT}; admin path ${ADMIN_PATH}`));
 }

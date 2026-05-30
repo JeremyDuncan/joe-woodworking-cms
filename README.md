@@ -7,105 +7,162 @@ A Docker-deployable CMS website for Joe's custom flags / woodshop portfolio.
 - Multi-page SPA public website: Home, Work, Options, Process, Contact
 - Hidden admin page controlled by `ADMIN_PATH`
 - Admin login with one or more users from `ADMIN_USERS`
-- Admin password changes persisted in mapped storage
+- Admin password changes persisted in the database / mapped storage
 - Add/edit/delete portfolio items
-- Image and video uploads with pre-save confirmation previews
+- Image and video uploads with pre-save preview
+- Interactive image cropping/repositioning (drag + zoom) per portfolio image
+- Apple HEIC/HEIF uploads auto-converted to JPEG (via `libheif-tools`, with a `sharp` fallback)
 - Customizable website text/settings for each major page/section
-- Persistent JSON data, uploaded media, and file-backed sessions through Docker volumes
 - Built-in health check at `/api/health`
 
-## Quick start with Docker Compose
+## Architecture
 
-From this folder:
+The backend auto-detects which storage backends to use based on environment variables:
+
+| Concern        | When configured                          | Fallback when unset                         |
+| -------------- | ---------------------------------------- | ------------------------------------------- |
+| Structured data| PostgreSQL (`DATABASE_URL`)              | JSON files in `DATA_DIR` (`works.json`, etc.) |
+| Media storage  | S3 / MinIO (`S3_*`)                      | Local files in `UPLOAD_DIR`                 |
+| Sessions       | File-backed store in `DATA_DIR/sessions` | (always file-backed)                        |
+
+The committed Compose stacks run the full setup (app + PostgreSQL + MinIO). A single
+container with neither `DATABASE_URL` nor `S3_*` set will still work using JSON +
+local-file fallbacks.
+
+## Environment files
+
+Configuration is supplied via two **gitignored** env files you must create locally:
+
+- `.development-env` — used by the dev stack
+- `.production-env` — used by the production stack and the `./deploy` script
+
+Both are loaded through Compose `env_file:`. They share the same keys (grouped by
+section). Example layout:
+
+```dotenv
+# Deploy config (used by ./deploy and ${REGISTRY}/${IMAGE} in docker-compose.yml)
+REGISTRY=192.168.1.123:5000
+IMAGE=joes-custom-flags-cms
+
+# CMS config
+NODE_ENV=production
+PORT=8080
+ADMIN_PATH=/woodshop-admin-976bd496
+ADMIN_USERS=jeremy:change-me,uncle:change-me-too
+SESSION_SECRET=replace-with-a-long-random-string
+
+# MinIO / S3 media storage
+S3_ENDPOINT=http://minio:9000
+S3_REGION=us-east-1
+S3_BUCKET=joes-custom-flags-cms-media
+S3_ACCESS_KEY=miniojoecms
+S3_SECRET_KEY=super-secret-minio-password
+S3_FORCE_PATH_STYLE=true
+MAX_FILE_MB=500
+MINIO_ROOT_USER=miniojoecms
+MINIO_ROOT_PASSWORD=super-secret-minio-password
+
+# PostgreSQL (the app derives DATABASE_URL from these)
+POSTGRES_DB=joes_custom_flags
+POSTGRES_USER=cms
+POSTGRES_PASSWORD=super-secret-postgres-password
+```
+
+> **Important:** `S3_ACCESS_KEY` must match `MINIO_ROOT_USER` and `S3_SECRET_KEY` must
+> match `MINIO_ROOT_PASSWORD`, or media uploads fail with `InvalidAccessKeyId` /
+> `SignatureDoesNotMatch`. Hostnames `postgres` and `minio` are the Compose service
+> names.
+>
+> You don't normally set `DATABASE_URL` — the app builds it from `POSTGRES_USER`,
+> `POSTGRES_PASSWORD`, and `POSTGRES_DB` (host `postgres`, port `5432` by default,
+> overridable via `POSTGRES_HOST` / `POSTGRES_PORT`). Set `DATABASE_URL` explicitly only
+> to point at an external database.
+
+### Key reference
+
+- `REGISTRY` / `IMAGE` — image coordinates for the local registry (deploy + compose)
+- `PORT` — container HTTP port, default `8080`
+- `ADMIN_PATH` — secret admin URL path, e.g. `/woodshop-admin-976bd496`
+- `ADMIN_USERS` — comma-separated `user:password` pairs; seeds users when none exist
+- `SESSION_SECRET` — long random string for session signing
+- `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` — Postgres setup; the app derives `DATABASE_URL` from these. Omit all to use JSON files instead.
+- `POSTGRES_HOST` / `POSTGRES_PORT` — optional DB host/port overrides (default `postgres` / `5432`)
+- `DATABASE_URL` — optional explicit connection string; overrides the derived value (e.g. for an external database)
+- `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_FORCE_PATH_STYLE` — media storage; omit to use local files
+- `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` — MinIO container credentials
+- `MAX_FILE_MB` — max upload size in MB, default `500`
+- `DATA_DIR` / `UPLOAD_DIR` — in-container paths, default `/app/data` and `/app/data/uploads`
+
+## Compose files
+
+| File                       | Purpose                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `docker-compose.yml`       | Production/NAS stack. Pulls `${REGISTRY}/${IMAGE}:latest`. Uses `.production-env`. |
+| `docker-compose.build.yml` | Builds the image locally and tags it `joes-custom-flags-cms:latest`.    |
+| `docker-compose.dev.yml`   | Full local dev stack (app + Postgres + MinIO). Uses `.development-env`.  |
+
+## Local development
+
+Start the full dev stack (app, Postgres, MinIO) with live reload:
 
 ```bash
-docker compose up -d --build
+./start-dev
 ```
+
+This runs `docker compose -f docker-compose.dev.yml --env-file .development-env up`.
 
 Then open:
 
-```text
-http://localhost:3015
-```
+- App (Vite dev server): http://localhost:5173
+- API (Express): http://localhost:8080
+- MinIO console: http://localhost:9001
 
-Admin path defaults to:
+Admin page is at `http://localhost:5173<ADMIN_PATH>` (e.g. `/login` in dev).
 
-```text
-http://localhost:3015/woodshop-admin-976bd496
-```
+## Build & deploy
 
-## Required persistent volumes
-
-The app stores all mutable CMS data outside the container:
-
-- `/app/data` — CMS JSON database files:
-  - `works.json`
-  - `settings.json`
-  - `admin-users.json`
-  - `sessions/`
-- `/app/uploads` — uploaded images/videos
-
-The included `docker-compose.yml` maps those to:
-
-```text
-/home/jeremy/data/joes-custom-flags-cms/data:/app/data
-/home/jeremy/data/joes-custom-flags-cms/uploads:/app/uploads
-```
-
-For NAS deployment, use NAS-native bind mounts:
-
-```text
-/share/ZFS530_DATA/.qpkg/container-station/docker/joes-custom-flags-cms/data:/app/data
-/share/ZFS530_DATA/.qpkg/container-station/docker/joes-custom-flags-cms/uploads:/app/uploads
-```
-
-## Environment variables
-
-- `PORT` — container HTTP port, default `8080`
-- `ADMIN_PATH` — secret admin URL path, e.g. `/woodshop-admin-976bd496`
-- `ADMIN_USERS` — comma-separated username/password pairs, e.g. `jeremy:password1,uncle:password2`. Used only to seed `admin-users.json` when it does not exist.
-- `SESSION_SECRET` — long random string for session signing
-- `DATA_DIR` — data directory inside container, default `/app/data`
-- `UPLOAD_DIR` — uploads directory inside container, default `/app/uploads`
-- `MAX_FILE_MB` — max upload size in MB, default `500`
-
-## Build manually
+The production stack pulls a pre-built image from a local Docker registry
+(`192.168.1.123:5000`). Build and push with:
 
 ```bash
-docker build -t joes-custom-flags-cms:latest .
+./deploy
 ```
 
-Run manually:
+This sources `.production-env`, builds via `docker-compose.build.yml`, tags the image
+as `${REGISTRY}/${IMAGE}:latest`, and pushes it to the registry. Then pull and redeploy
+the stack in Portainer to roll out the new image.
 
-```bash
-docker run -d \
-  --name joes-custom-flags-cms \
-  --restart unless-stopped \
-  -p 3015:8080 \
-  -e NODE_ENV=production \
-  -e PORT=8080 \
-  -e ADMIN_PATH=/woodshop-admin-976bd496 \
-  -e 'ADMIN_USERS=jeremy:change-me,uncle:change-me-too' \
-  -e SESSION_SECRET='replace-with-a-long-random-string' \
-  -e DATA_DIR=/app/data \
-  -e UPLOAD_DIR=/app/uploads \
-  -e MAX_FILE_MB=500 \
-  -v /home/jeremy/data/joes-custom-flags-cms/data:/app/data \
-  -v /home/jeremy/data/joes-custom-flags-cms/uploads:/app/uploads \
-  joes-custom-flags-cms:latest
+> The registry is served over plain HTTP, so Docker must allow it as an insecure
+> registry. On Docker Desktop add to **Settings → Docker Engine**:
+>
+> ```json
+> { "insecure-registries": ["192.168.1.123:5000"] }
+> ```
+
+### Production stack
+
+`docker-compose.yml` runs the app on port `3015` and bind-mounts persistent data on the
+NAS:
+
+```text
+/share/Public/docker/joes-custom-flags-cms/app-data         -> /app/data
+/share/Public/docker/joes-custom-flags-cms/postgres-data-v2/db -> Postgres data
+/share/Public/docker/joes-custom-flags-cms/minio            -> MinIO data
 ```
 
-## Nginx Proxy Manager
+Because the image and other values use `${VAR}` substitution, Portainer must have the
+`.production-env` values available (point the stack at the env file or paste the
+variables into Portainer's environment editor).
 
-For Jeremy's normal public setup, proxy:
+Default admin path: `http://<host>:3015/woodshop-admin-976bd496`
 
-- Domain: `example1.jeremyd.net`
+## Reverse proxy
+
+For the public setup, proxy to the Docker host on port `3015`:
+
 - Scheme: `http`
-- Forward hostname/IP: Docker host IP
 - Forward port: `3015`
-- SSL: Let's Encrypt enabled
-- Force SSL: enabled
-- HTTP/2: enabled
+- SSL: Let's Encrypt, Force SSL + HTTP/2 enabled
 
 ## Health check
 
@@ -113,10 +170,10 @@ For Jeremy's normal public setup, proxy:
 curl http://localhost:3015/api/health
 ```
 
-Expected:
+Example response:
 
 ```json
-{"ok":true}
+{"ok":true,"adminPath":"/woodshop-admin-976bd496","storage":{"sql":true,"s3":true}}
 ```
 
 ## Tests

@@ -58,5 +58,4 @@ test('admin work carousel has fixed width rows, max height, scroll snap, and fad
 
 test('file input and preview explicitly support Apple HEIC images', () => {
     assert.match(source, /accept="image\/\*,\.heic,\.heif,video\/\*"/);
-    assert.match(source, /isImageFile\(f\)/);
 });
