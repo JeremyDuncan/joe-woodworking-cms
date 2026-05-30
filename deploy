@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+source .production-env
+
+echo "==> Building image..."
+docker compose -f docker-compose.build.yml build
+
+echo "==> Tagging image..."
+docker tag "$IMAGE:latest" "$REGISTRY/$IMAGE:latest"
+
+echo "==> Pushing to registry..."
+docker push "$REGISTRY/$IMAGE:latest"
+
+echo "==> Done. Pull and redeploy the stack to apply changes."

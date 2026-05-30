@@ -1,0 +1,53 @@
+services:
+
+  app:
+    image: node:22-alpine
+    container_name: joes-custom-flags-cms-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - postgres
+      - minio
+      - minio-init
+    ports:
+      - "5173:5173"
+      - "8080:8080"
+    env_file: .development-env
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - ./dev-data/app:/app/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: joes-custom-flags-cms-dev-postgres
+    restart: unless-stopped
+    env_file: .development-env
+    volumes:
+      - ./dev-data/postgres:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: joes-custom-flags-cms-dev-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file: .development-env
+    volumes:
+      - ./dev-data/minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: joes-custom-flags-cms-dev-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb -p local/joes-custom-flags-cms-media || true;
+      /usr/bin/mc anonymous set download local/joes-custom-flags-cms-media || true;
+      "
+    env_file: .development-env

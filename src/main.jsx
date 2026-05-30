@@ -676,8 +676,8 @@ function PasswordForm() {
 }
 
 function App() {
-    const [works, setWorks] = useState([]), [config, setConfig] = useState({adminPath: '/woodshop-admin'}), [settings, setSettings] = useState(defaultSettings), [route, setRoute] = useState(location.pathname);
-    const isAdminRoute = useMemo(() => route === config.adminPath || route.startsWith(config.adminPath + '/'), [route, config.adminPath]);
+    const [works, setWorks] = useState([]), [config, setConfig] = useState(null), [settings, setSettings] = useState(defaultSettings), [route, setRoute] = useState(location.pathname);
+    const isAdminRoute = useMemo(() => config && (route === config.adminPath || route.startsWith(config.adminPath + '/')), [route, config]);
     const reload = () => fetch('/api/works?ts=' + Date.now()).then(r => r.json()).then(setWorks);
     const reloadSettings = () => fetch('/api/settings?ts=' + Date.now()).then(r => r.json()).then(s => setSettings(mergeSettings(s)));
     useEffect(() => {
@@ -688,6 +688,7 @@ function App() {
         addEventListener('popstate', onPop);
         return () => removeEventListener('popstate', onPop);
     }, []);
+    if (!config) return null;
     return isAdminRoute ? <Admin works={works} settings={settings} reload={reload} reloadSettings={reloadSettings}/> :
         <PublicSite works={works} settings={settings} route={route}/>
 }

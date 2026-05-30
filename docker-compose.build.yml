@@ -1,0 +1,4 @@
+services:
+  joes-custom-flags-cms:
+    build: .
+    image: joes-custom-flags-cms:latest
