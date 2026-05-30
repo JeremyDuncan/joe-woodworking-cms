@@ -4,9 +4,10 @@ services:
     container_name: joes-custom-flags-cms
     restart: unless-stopped
     depends_on:
-      - postgres
-      - minio
-      - minio-init
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     ports:
       - "3015:8080"
     env_file: .production-env
@@ -18,11 +19,16 @@ services:
     container_name: joes-custom-flags-cms-postgres
     restart: unless-stopped
     env_file: .production-env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - /share/Public/docker/joes-custom-flags-cms/postgres-data-v2/db:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: joes-custom-flags-cms-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -31,7 +37,7 @@ services:
       - /share/Public/docker/joes-custom-flags-cms/minio:/data
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: joes-custom-flags-cms-minio-init
     restart: "no"
     depends_on:

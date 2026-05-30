@@ -1,7 +1,27 @@
 #!/bin/bash
 set -e
 
-source .production-env
+ENV_FILE=.production-env
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE" >&2
+  exit 1
+fi
+
+# Read only the values we need, without executing the file as shell.
+read_env() {
+  local val
+  val=$(grep -E "^$1=" "$ENV_FILE" | head -n1 | cut -d= -f2-)
+  val="${val%%#*}"          # strip any inline comment
+  echo "$val" | xargs       # trim surrounding whitespace
+}
+
+REGISTRY=$(read_env REGISTRY)
+IMAGE=$(read_env IMAGE)
+
+if [ -z "$REGISTRY" ] || [ -z "$IMAGE" ]; then
+  echo "REGISTRY and IMAGE must be set in $ENV_FILE" >&2
+  exit 1
+fi
 
 echo "==> Building image..."
 docker compose -f docker-compose.build.yml build

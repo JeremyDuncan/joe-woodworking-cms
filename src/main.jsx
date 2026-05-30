@@ -155,14 +155,24 @@ function useImageSrc(media) {
     const [src, setSrc] = useState(!isHeicFile(media?.file) ? (media?.url || null) : null);
     useEffect(() => {
         if (!isHeicFile(media?.file)) { setSrc(media?.url || null); return; }
+        let cancelled = false;
         let objectUrl = null;
+        const controller = new AbortController();
         const fd = new FormData();
         fd.append('file', media.file);
-        fetch('/api/admin/preview-convert', {method: 'POST', body: fd})
+        fetch('/api/admin/preview-convert', {method: 'POST', body: fd, signal: controller.signal})
             .then(r => r.ok ? r.blob() : Promise.reject())
-            .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
-            .catch(() => setSrc(null));
-        return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+            .then(blob => {
+                if (cancelled) return;
+                objectUrl = URL.createObjectURL(blob);
+                setSrc(objectUrl);
+            })
+            .catch(() => { if (!cancelled) setSrc(null); });
+        return () => {
+            cancelled = true;
+            controller.abort();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
     }, [media?.file, media?.url]);
     return src;
 }
