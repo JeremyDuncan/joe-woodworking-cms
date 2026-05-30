@@ -311,12 +311,12 @@ export function createApp(options = {}) {
     }
 
     function sanitizePlacement(input) {
-        const p = input && typeof input === 'object' ? input : {};
+        if (!input || typeof input !== 'object' || typeof input.width !== 'number') return null;
         return {
-            fit: p.fit === 'contain' ? 'contain' : 'cover',
-            x: clampNumber(p.x, 0, 100, 50),
-            y: clampNumber(p.y, 0, 100, 50),
-            scale: clampNumber(p.scale, 1, 3, 1)
+            x: clampNumber(input.x, 0, 100, 0),
+            y: clampNumber(input.y, 0, 100, 0),
+            width: clampNumber(input.width, 0.1, 100, 100),
+            height: clampNumber(input.height, 0.1, 100, 100),
         };
     }
 
@@ -325,7 +325,12 @@ export function createApp(options = {}) {
             const {placement: _ignored, ...withoutPlacement} = media || {};
             return withoutPlacement;
         }
-        return {...media, placement: sanitizePlacement(placement ?? media.placement)};
+        const sanitized = sanitizePlacement(placement ?? media.placement);
+        if (sanitized === null) {
+            const {placement: _ignored, ...withoutPlacement} = {...(media || {})};
+            return withoutPlacement;
+        }
+        return {...media, placement: sanitized};
     }
 
     function normalizeMedia(media = []) {

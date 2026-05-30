@@ -1,5 +1,6 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import Cropper from 'react-easy-crop';
 import {
     ArrowRight,
     BadgeCheck,
@@ -117,15 +118,12 @@ function normalizePhone(phone) {
     return String(phone || '').replace(/[^+\d]/g, '');
 }
 
-const defaultPlacement = {fit: 'cover', x: 50, y: 50, scale: 1};
+function placementFor(map, key) {
+    return map?.[key] ?? null;
+}
 
-function normalizePlacement(p) {
-    return {
-        fit: p?.fit === 'contain' ? 'contain' : 'cover',
-        x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
-        y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
-        scale: Number.isFinite(Number(p?.scale)) ? Number(p.scale) : 1
-    };
+function updatePlacementMap(setter, key, value) {
+    setter(prev => ({...prev, [key]: value}));
 }
 
 function isImageMedia(m) {
@@ -140,17 +138,37 @@ function isHeicFile(f) {
     return /\.hei[cf]$/i.test(f?.name || '') || f?.type === 'image/heic' || f?.type === 'image/heif';
 }
 
-function placementStyle(media) {
-    const p = normalizePlacement(media?.placement);
-    return {objectFit: p.fit, objectPosition: `${p.x}% ${p.y}%`, transform: `scale(${p.scale})`};
+function CropImage({src, alt, crop}) {
+    if (!src) return null;
+    if (!crop || typeof crop.width !== 'number' || crop.width <= 0) {
+        return <img src={src} alt={alt} className="work-media" style={{objectFit: 'cover'}}/>;
+    }
+    return <img
+        src={src}
+        alt={alt}
+        className="work-media"
+        style={{
+            objectFit: 'fill',
+            transformOrigin: '0 0',
+            transform: `scale(${(100 / crop.width).toFixed(4)}, ${(100 / crop.height).toFixed(4)}) translate(${(-crop.x).toFixed(2)}%, ${(-crop.y).toFixed(2)}%)`,
+        }}
+    />;
 }
 
-function updatePlacementMap(setter, key, patch) {
-    setter(prev => ({...prev, [key]: {...defaultPlacement, ...(prev?.[key] || {}), ...patch}}));
-}
-
-function placementFor(map, key) {
-    return {...defaultPlacement, ...(map?.[key] || {})};
+function useImageSrc(media) {
+    const [src, setSrc] = useState(!isHeicFile(media?.file) ? (media?.url || null) : null);
+    useEffect(() => {
+        if (!isHeicFile(media?.file)) { setSrc(media?.url || null); return; }
+        let objectUrl = null;
+        const fd = new FormData();
+        fd.append('file', media.file);
+        fetch('/api/admin/preview-convert', {method: 'POST', body: fd})
+            .then(r => r.ok ? r.blob() : Promise.reject())
+            .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
+            .catch(() => setSrc(null));
+        return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+    }, [media?.file, media?.url]);
+    return src;
 }
 
 function formatDate(value) {
@@ -204,9 +222,9 @@ function MediaPreview({media, compact = false, onImageOpen}) {
         <video className="work-media" src={first.url} controls muted playsInline/>
     </div>;
     return <button type="button" className="media-frame media-frame-button" aria-label="Open larger image"
-                   onClick={() => onImageOpen?.(first)}><img className="work-media" src={first.url}
-                                                             alt={first.originalName || 'Custom flag work'}
-                                                             style={placementStyle(first)}/></button>;
+                   onClick={() => onImageOpen?.(first)}>
+        <CropImage src={first.url} alt={first.originalName || 'Custom flag work'} crop={first.placement}/>
+    </button>;
 }
 
 function WorkCard({item, i, onImageOpen}) {
@@ -421,53 +439,46 @@ function WorkList({works, setEditing, reload, startEdit}) {
     </section>
 }
 
-function HeicPreview({file, className, style, alt}) {
-    const [src, setSrc] = useState(null);
-    const [loading, setLoading] = useState(true);
-    useEffect(() => {
-        let objectUrl = null;
-        const fd = new FormData();
-        fd.append('file', file);
-        fetch('/api/admin/preview-convert', {method: 'POST', body: fd})
-            .then(r => r.ok ? r.blob() : Promise.reject())
-            .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
-            .catch(() => {})
-            .finally(() => setLoading(false));
-        return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
-    }, [file]);
-    if (loading) return <div className="heic-preview-note">Converting HEIC preview…</div>;
-    if (!src) return <div className="heic-preview-note">HEIC preview unavailable</div>;
-    return <img className={className} src={src} alt={alt || file.name} style={style}/>;
+function HeicPreview({file, alt}) {
+    const src = useImageSrc({file, url: null});
+    if (!src) return <div className="heic-preview-note">Converting HEIC…</div>;
+    return <div className="preview-thumb"><img src={src} alt={alt || file.name}/></div>;
 }
 
-function PlacementControls({media, value, onChange}) {
+function PlacementEditor({media, value, onChange}) {
     if (!isImageMedia(media)) return null;
-    const p = normalizePlacement(value || media.placement);
-    const set = patch => onChange({...p, ...patch});
-    return <div className="media-placement-controls">
-        <div className="placement-preview media-frame">{isHeicFile(media.file) ?
-            <HeicPreview file={media.file} className="work-media" style={placementStyle({...media, placement: p})} alt={media.originalName || 'Image placement preview'}/> :
-            media.url ?
-            <img className="work-media" src={media.url} alt={media.originalName || 'Image placement preview'}
-                 style={placementStyle({...media, placement: p})}/> : null}</div>
-        <div className="placement-fields">
-            <p><strong>Image
-                placement</strong><span>Crop, resize, and move this image inside the public card box.</span></p>
-            <label>Crop mode<select value={p.fit} onChange={e => set({fit: e.target.value})}>
-                <option value="cover">Fill box / crop edges</option>
-                <option value="contain">Fit whole image</option>
-            </select></label>
-            <label>Resize / zoom <input type="range" min="1" max="3" step="0.05" value={p.scale}
-                                        onChange={e => set({scale: Number(e.target.value)})}/><span>{Math.round(p.scale * 100)}%</span></label>
-            <label>Move left/right <input type="range" min="0" max="100" step="1" value={p.x}
-                                          onChange={e => set({x: Number(e.target.value)})}/><span>{p.x}%</span></label>
-            <label>Move up/down <input type="range" min="0" max="100" step="1" value={p.y}
-                                       onChange={e => set({y: Number(e.target.value)})}/><span>{p.y}%</span></label>
-            <button type="button" className="button button-ghost" onClick={() => onChange(defaultPlacement)}>Reset image
-                placement
-            </button>
+    const imgSrc = useImageSrc(media);
+    const [crop, setCrop] = useState({x: 0, y: 0});
+    const [zoom, setZoom] = useState(1);
+    const onCropComplete = useCallback((pct) => onChange(pct), [onChange]);
+
+    if (!imgSrc) return <div className="heic-preview-note">Loading preview…</div>;
+
+    return (
+        <div className="placement-editor">
+            <div className="placement-canvas">
+                <Cropper
+                    image={imgSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={0.86}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    initialCroppedAreaPercentages={value?.width ? value : undefined}
+                    showGrid={false}
+                    style={{containerStyle: {background: '#050912'}}}
+                />
+            </div>
+            <div className="placement-editor-bar">
+                <span>Drag to reposition · Scroll or pinch to zoom</span>
+                <button type="button" className="button button-ghost"
+                        onClick={() => { setCrop({x: 0, y: 0}); setZoom(1); onChange(null); }}>
+                    Reset crop
+                </button>
+            </div>
         </div>
-    </div>;
+    );
 }
 
 function UploadPreview({files, title, price, description, placements, setPlacements}) {
@@ -476,20 +487,21 @@ function UploadPreview({files, title, price, description, placements, setPlaceme
         url: isHeicFile(f) ? null : URL.createObjectURL(f),
         type: f.type || (isHeicFile(f) ? 'image/heic' : ''),
         originalName: f.name,
-        placement: placementFor(placements, f.name)
-    })), [files, placements]);
+    })), [files]);
     useEffect(() => () => previews.forEach(p => p.url && URL.revokeObjectURL(p.url)), [previews]);
     if (!previews.length) return null;
-    return <div className="upload-preview"><p className="success"><BadgeCheck
-        size={16}/> {previews.length} file{previews.length > 1 ? 's' : ''} ready. Adjust image placement below, then
-        click save to publish.</p>
-        <div className="preview-grid">{previews.map(p => <div key={p.originalName}
-                                                              className="preview-frame">{p.type.startsWith('video/') ?
-            <video src={p.url} controls muted/> : isHeicFile(p.file) ?
-                <HeicPreview file={p.file} style={placementStyle(p)} alt={p.file.name}/> :
-                <img src={p.url} alt={p.file.name} style={placementStyle(p)}/>}<span>{p.file.name}</span>{isImageMedia(p) &&
-            <PlacementControls media={p} value={placementFor(placements, p.file.name)}
-                               onChange={next => updatePlacementMap(setPlacements, p.file.name, next)}/>}</div>)}</div>
+    return <div className="upload-preview">
+        <p className="success"><BadgeCheck size={16}/> {previews.length} file{previews.length > 1 ? 's' : ''} ready. Crop and reposition images below, then click save.</p>
+        <div className="preview-grid">{previews.map(p => <div key={p.originalName} className="preview-frame">
+            {p.type.startsWith('video/') ? <video src={p.url} controls muted/> : isHeicFile(p.file) ?
+                <HeicPreview file={p.file} alt={p.file.name}/> :
+                <div className="preview-thumb"><img src={p.url} alt={p.file.name}/></div>}
+            <span>{p.file.name}</span>
+            {isImageMedia(p) && <PlacementEditor
+                media={p}
+                value={placementFor(placements, p.file.name)}
+                onChange={next => updatePlacementMap(setPlacements, p.file.name, next)}/>}
+        </div>)}</div>
         <WorkCard i={0} item={{
             title: title || 'New work title',
             price: price || 'Price / quote text',
@@ -500,7 +512,8 @@ function UploadPreview({files, title, price, description, placements, setPlaceme
                 originalName: p.file.name,
                 placement: placementFor(placements, p.file.name)
             }))
-        }}/></div>
+        }}/>
+    </div>;
 }
 
 function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
@@ -511,7 +524,7 @@ function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
         setDescription(editing?.description || '');
         setFeatured(Boolean(editing?.featured));
         setKeep((editing?.media || []).map(m => m.url));
-        setMediaPlacement(Object.fromEntries((editing?.media || []).filter(isImageMedia).map(m => [m.url, normalizePlacement(m.placement)])));
+        setMediaPlacement(Object.fromEntries((editing?.media || []).filter(isImageMedia).map(m => [m.url, m.placement ?? null])));
         setNewMediaPlacement({});
         setFiles(null);
     }, [editing]);
@@ -570,15 +583,15 @@ function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
                 <label><input type="checkbox" checked={keep.includes(m.url)}
                               onChange={e => setKeep(e.target.checked ? [...keep, m.url] : keep.filter(x => x !== m.url))}/>{m.type?.startsWith('video/') ?
                     <Video/> : <ImagePlus/>}{m.originalName || m.url}</label>{keep.includes(m.url) && isImageMedia(m) &&
-                <PlacementControls media={{...m, placement: placementFor(mediaPlacement, m.url)}}
-                                   value={placementFor(mediaPlacement, m.url)}
+                <PlacementEditor media={{...m, placement: placementFor(mediaPlacement, m.url)}}
+                                   value={placementFor(mediaPlacement, m.url) ?? m.placement ?? null}
                                    onChange={next => updatePlacementMap(setMediaPlacement, m.url, next)}/>}</div>)}
             </div>}<label className="upload"><ImagePlus/> Upload images/videos, including Apple HEIC <input type="file"
                                                                                                             accept="image/*,.heic,.heif,video/*"
                                                                                                             multiple
                                                                                                             onChange={e => {
                                                                                                                 setFiles(e.target.files);
-                                                                                                                setNewMediaPlacement(Object.fromEntries(Array.from(e.target.files || []).filter(f => isImageFile(f)).map(f => [f.name, defaultPlacement])));
+                                                                                                                setNewMediaPlacement({});
                                                                                                             }}/></label><UploadPreview
             files={files} title={title} price={price} description={description} placements={newMediaPlacement}
             setPlacements={setNewMediaPlacement}/>

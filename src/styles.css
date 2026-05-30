@@ -795,8 +795,8 @@ input::placeholder, textarea::placeholder {
 
 .preview-grid {
     display: grid;
-    grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 18px;
     margin-bottom: 16px
 }
 
@@ -853,74 +853,66 @@ input::placeholder, textarea::placeholder {
     margin-top: 0
 }
 
-.media-placement-controls {
-    display: grid;
-    grid-template-columns:minmax(150px, 220px) 1fr;
-    gap: 16px;
-    align-items: start;
-    width: 100%;
-    padding: 14px;
+.placement-editor {
     margin-top: 12px;
     border: 1px solid rgba(255, 255, 255, .14);
     border-radius: 18px;
-    background: rgba(0, 0, 0, .2)
+    overflow: hidden;
+    background: rgba(0, 0, 0, .25)
 }
 
-.placement-preview {
-    width: 100%;
-    max-width: 220px;
-    aspect-ratio: .86;
-    min-height: 0
-}
-
-.placement-fields {
-    display: grid;
-    gap: 10px
-}
-
-.placement-fields p {
-    margin: 0
-}
-
-.placement-fields p strong {
-    display: block;
-    color: var(--cream)
-}
-
-.placement-fields p span {
-    display: block;
-    font-size: 13px;
-    color: var(--steel);
-    line-height: 1.4
-}
-
-.placement-fields label {
-    display: grid;
-    grid-template-columns:130px 1fr 54px;
-    gap: 10px;
+.placement-editor-bar {
+    display: flex;
     align-items: center;
-    color: var(--muted);
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
     font-size: 13px;
-    font-weight: 800
+    color: var(--muted);
+    font-weight: 700
 }
 
-.placement-fields select, .placement-fields input[type=range] {
+.placement-editor-bar > span:first-child {
+    flex: 1
+}
+
+.placement-zoom {
+    font-variant-numeric: tabular-nums;
+    color: var(--cream);
+    background: rgba(255, 255, 255, .1);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 900
+}
+
+.placement-editor-bar .button {
+    min-height: 34px;
+    padding-inline: 14px;
+    font-size: 12px
+}
+
+.placement-canvas {
+    position: relative;
     width: 100%;
-    margin: 0
+    height: 420px;
+    background: #050912;
+    overflow: hidden
 }
 
-.placement-fields select {
-    border: 1px solid var(--line);
-    background: #101827;
-    color: var(--white);
-    border-radius: 12px;
-    padding: 10px
+.preview-thumb {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #050912
 }
 
-.placement-fields .button {
-    justify-self: start;
-    min-height: 40px;
-    padding-inline: 16px
+.preview-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block
 }
 
 .work-media {
