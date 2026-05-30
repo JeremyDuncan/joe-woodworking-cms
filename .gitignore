@@ -28,6 +28,7 @@ pids/
 # Uploads / local data
 data/
 uploads/
+dev-data/
 
 # OS
 .DS_Store
