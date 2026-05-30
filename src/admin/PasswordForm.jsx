@@ -7,13 +7,18 @@ export function PasswordForm() {
     async function save(e) {
         e.preventDefault();
         if (form.newPassword !== form.confirm) return setMsg('New passwords do not match.');
-        const r = await fetch('/api/admin/change-password', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({currentPassword: form.currentPassword, newPassword: form.newPassword})
-        });
-        const j = await r.json();
-        setMsg(r.ok ? 'Password updated. Use it next time you log in.' : j.error || 'Password update failed.');
+        try {
+            const r = await fetch('/api/admin/change-password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({currentPassword: form.currentPassword, newPassword: form.newPassword})
+            });
+            const j = await r.json();
+            setMsg(r.ok ? 'Password updated. Use it next time you log in.' : j.error || 'Password update failed.');
+        } catch (err) {
+            setMsg('Network error. Please try again.');
+            console.error('Password change failed:', err);
+        }
     }
 
     return <form className="work-form" onSubmit={save}><p className="eyebrow"><Lock size={15}/> Change your password</p>
