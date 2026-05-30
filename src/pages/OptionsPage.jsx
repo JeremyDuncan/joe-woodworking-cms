@@ -11,9 +11,7 @@ export function OptionsPage({settings, featured, onImageOpen}) {
         <div className="split">
             <div><p className="eyebrow"><Sparkles size={15}/> {settings.options.eyebrow}</p>
                 <h2>{settings.options.title}</h2><p>{settings.options.body}</p></div>
-            <div className="option-list">{(settings.options.items || []).map(option => <div className="option-item"
-                                                                                            key={option}><Medal
-                size={20}/><span>{option}</span></div>)}</div>
+            <div className="option-list">{(settings.options.items || []).map((option, idx) => <div className="option-item" key={idx}><Medal size={20}/><span>{option}</span></div>)}</div>
         </div>
     </section>
 }
