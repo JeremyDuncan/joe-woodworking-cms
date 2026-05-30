@@ -537,6 +537,17 @@ export function createApp(options = {}) {
         res.json(next);
     });
 
+    app.post('/api/admin/preview-convert', requireAdmin, upload.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No file provided'});
+        try {
+            const converted = await convertImageBuffer(req.file);
+            res.set('Content-Type', converted.mimetype);
+            res.send(converted.buffer);
+        } catch {
+            res.status(500).json({error: 'Conversion failed'});
+        }
+    });
+
     app.post('/api/admin/works', requireAdmin, upload.array('media', 8), async (req, res) => {
         const works = await readWorks();
         const now = new Date().toISOString();

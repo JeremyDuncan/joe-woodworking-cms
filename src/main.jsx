@@ -421,15 +421,35 @@ function WorkList({works, setEditing, reload, startEdit}) {
     </section>
 }
 
+function HeicPreview({file, className, style, alt}) {
+    const [src, setSrc] = useState(null);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        let objectUrl = null;
+        const fd = new FormData();
+        fd.append('file', file);
+        fetch('/api/admin/preview-convert', {method: 'POST', body: fd})
+            .then(r => r.ok ? r.blob() : Promise.reject())
+            .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+        return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+    }, [file]);
+    if (loading) return <div className="heic-preview-note">Converting HEIC preview…</div>;
+    if (!src) return <div className="heic-preview-note">HEIC preview unavailable</div>;
+    return <img className={className} src={src} alt={alt || file.name} style={style}/>;
+}
+
 function PlacementControls({media, value, onChange}) {
     if (!isImageMedia(media)) return null;
     const p = normalizePlacement(value || media.placement);
     const set = patch => onChange({...p, ...patch});
     return <div className="media-placement-controls">
-        <div className="placement-preview media-frame">{media.url && !isHeicFile(media.file) ?
+        <div className="placement-preview media-frame">{isHeicFile(media.file) ?
+            <HeicPreview file={media.file} className="work-media" style={placementStyle({...media, placement: p})} alt={media.originalName || 'Image placement preview'}/> :
+            media.url ?
             <img className="work-media" src={media.url} alt={media.originalName || 'Image placement preview'}
-                 style={placementStyle({...media, placement: p})}/> :
-            <div className="heic-preview-note">HEIC will be converted to JPEG when saved.</div>}</div>
+                 style={placementStyle({...media, placement: p})}/> : null}</div>
         <div className="placement-fields">
             <p><strong>Image
                 placement</strong><span>Crop, resize, and move this image inside the public card box.</span></p>
@@ -465,10 +485,9 @@ function UploadPreview({files, title, price, description, placements, setPlaceme
         click save to publish.</p>
         <div className="preview-grid">{previews.map(p => <div key={p.originalName}
                                                               className="preview-frame">{p.type.startsWith('video/') ?
-            <video src={p.url} controls muted/> : p.url ?
-                <img src={p.url} alt={p.file.name} style={placementStyle(p)}/> :
-                <div className="heic-preview-note">Apple HEIC selected. It will become JPEG after
-                    save.</div>}<span>{p.file.name}</span>{isImageMedia(p) &&
+            <video src={p.url} controls muted/> : isHeicFile(p.file) ?
+                <HeicPreview file={p.file} style={placementStyle(p)} alt={p.file.name}/> :
+                <img src={p.url} alt={p.file.name} style={placementStyle(p)}/>}<span>{p.file.name}</span>{isImageMedia(p) &&
             <PlacementControls media={p} value={placementFor(placements, p.file.name)}
                                onChange={next => updatePlacementMap(setPlacements, p.file.name, next)}/>}</div>)}</div>
         <WorkCard i={0} item={{
@@ -499,6 +518,7 @@ function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
 
     async function submit(e) {
         e.preventDefault();
+        const form = e.currentTarget;
         const selectedFiles = Array.from(files || []);
         const existingKept = editing ? keep.length : 0;
         if (!title.trim() || !description.trim()) return setNotice({
@@ -531,7 +551,7 @@ function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
         setEditing(null);
         setFiles(null);
         setNewMediaPlacement({});
-        e.currentTarget.reset();
+        form.reset();
         await reload();
         formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
     }
