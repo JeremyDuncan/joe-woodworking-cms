@@ -10,7 +10,8 @@ import {ContactPage} from './ContactPage.jsx';
 
 export function PublicSite({works, settings, route}) {
     const [modalImage, setModalImage] = useState(null);
-    const gallery = works?.length ? works : fallbackGallery;
+    const gallery = works ?? fallbackGallery;
+
     const featured = gallery.find(w => w.featured) || gallery.find(w => w.media?.length) || gallery[0];
     let page = <HomePage settings={settings} gallery={gallery} featured={featured} onImageOpen={setModalImage}/>;
     if (route === '/work') page = <WorkPage settings={settings} gallery={gallery} onImageOpen={setModalImage}/>;
