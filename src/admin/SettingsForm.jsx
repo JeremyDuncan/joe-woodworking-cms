@@ -15,17 +15,21 @@ export function SettingsForm({settings, reloadSettings}) {
     async function save(e) {
         e.preventDefault();
         setMessage('Saving...');
-        const r = await fetch('/api/admin/settings', {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(draft)
-        });
-        if (!r.ok) {
-            setMessage('Save failed');
-            return;
+        try {
+            const r = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(draft)
+            });
+            if (!r.ok) {
+                setMessage('Save failed');
+                return;
+            }
+            setMessage('Website text saved.');
+            reloadSettings();
+        } catch {
+            setMessage('Network error. Save failed.');
         }
-        setMessage('Website text saved.');
-        reloadSettings();
     }
 
     return <form className="work-form settings-form" onSubmit={save}><p className="eyebrow"><Save size={15}/> Customize

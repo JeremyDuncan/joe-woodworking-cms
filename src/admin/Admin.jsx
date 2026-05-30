@@ -12,24 +12,32 @@ export function Admin({works, settings, reload, reloadSettings}) {
     }), [editing, setEditing] = useState(null), [msg, setMsg] = useState(''), [tab, setTab] = useState('work'), [notice, setNotice] = useState(null);
     const formRef = useRef(null);
     useEffect(() => {
-        fetch('/api/admin/me').then(r => r.json()).then(setMe)
+        fetch('/api/admin/me').then(r => r.json()).then(setMe).catch(() => setMe({isAdmin: false}));
     }, []);
 
     async function doLogin(e) {
         e.preventDefault();
         setMsg('');
-        const r = await fetch('/api/admin/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(login)
-        });
-        const j = await r.json();
-        if (!r.ok) return setMsg(j.error || 'Login failed');
-        setMe({isAdmin: true, user: j.user});
+        try {
+            const r = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(login)
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) return setMsg(j.error || 'Login failed');
+            setMe({isAdmin: true, user: j.user});
+        } catch {
+            setMsg('Network error. Please try again.');
+        }
     }
 
     async function logout() {
-        await fetch('/api/admin/logout', {method: 'POST'});
+        try {
+            await fetch('/api/admin/logout', {method: 'POST'});
+        } catch {
+            // Even if the request fails, drop the local admin state.
+        }
         setMe({isAdmin: false});
     }
 

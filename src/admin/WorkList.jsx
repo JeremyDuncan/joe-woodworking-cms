@@ -35,9 +35,17 @@ export function WorkList({works, reload, startEdit}) {
                         size={16}/> Edit
                     </button>
                     <button type="button" onClick={async () => {
-                        if (confirm('Delete this work?')) {
-                            await fetch('/api/admin/works/' + w.id, {method: 'DELETE'});
+                        if (!confirm('Delete this work?')) return;
+                        try {
+                            const r = await fetch('/api/admin/works/' + w.id, {method: 'DELETE'});
+                            if (!r.ok) {
+                                const j = await r.json().catch(() => ({}));
+                                alert(j.error || 'Delete failed.');
+                                return;
+                            }
                             await reload();
+                        } catch {
+                            alert('Network error. Delete failed.');
                         }
                     }} className="button danger"><Trash2 size={16}/> Delete
                     </button>
