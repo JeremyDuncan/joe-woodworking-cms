@@ -130,10 +130,6 @@ function isImageMedia(m) {
     return m?.type?.startsWith('image/') || /\.hei[cf]$/i.test(m?.originalName || m?.url || '');
 }
 
-function isImageFile(f) {
-    return f?.type?.startsWith('image/') || /\.hei[cf]$/i.test(f?.name || '');
-}
-
 function isHeicFile(f) {
     return /\.hei[cf]$/i.test(f?.name || '') || f?.type === 'image/heic' || f?.type === 'image/heif';
 }
@@ -245,7 +241,7 @@ function SiteHeader({settings}) {
     </header>
 }
 
-function HeroPage({settings, gallery, featured, onImageOpen}) {
+function HeroPage({settings, featured, onImageOpen}) {
     return <section className="page hero section-full">
         <div className="hero-bg"/>
         <div className="hero-content"><p className="eyebrow"><Star size={15}
@@ -395,7 +391,7 @@ function Admin({works, settings, reload, reloadSettings}) {
     </main>
 }
 
-function WorkList({works, setEditing, reload, startEdit}) {
+function WorkList({works, reload, startEdit}) {
     const [query, setQuery] = useState(''), [sortMode, setSortMode] = useState('newest');
     const visible = useMemo(() => works.filter(w => `${w.title} ${w.description} ${w.price}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => {
         if (sortMode === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);

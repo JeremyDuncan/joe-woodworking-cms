@@ -1,0 +1,39 @@
+################################################################################
+##  Deploy Config ##
+####################
+REGISTRY=registry.example.local:5000 #=>docker registry path
+IMAGE=joes-custom-flags-cms
+
+################################################################################
+##  CMS Config  ##
+##################
+NODE_ENV=development
+PORT=8080
+ADMIN_PATH=/login
+ADMIN_USERS=admin:change-me,second_admin:change-me-too
+SESSION_SECRET=replace-with-a-long-random-session-secret
+
+################################################################################
+##  MinIO Config  ##
+####################
+# S3_ACCESS_KEY must match MINIO_ROOT_USER
+# S3_SECRET_KEY must match MINIO_ROOT_PASSWORD
+S3_ENDPOINT=http://minio:9000
+S3_REGION=us-east-1
+S3_BUCKET=joes-custom-flags-cms-media
+S3_ACCESS_KEY=minio-access-user
+S3_SECRET_KEY=replace-with-a-strong-minio-password
+S3_FORCE_PATH_STYLE=true
+MAX_FILE_MB=500
+MINIO_ROOT_USER=minio-access-user
+MINIO_ROOT_PASSWORD=replace-with-a-strong-minio-password
+
+################################################################################
+##  PostGress Config  ##
+########################
+POSTGRES_DB=joes_custom_flags
+POSTGRES_USER=cms
+POSTGRES_PASSWORD=replace-with-a-strong-postgres-password
+# DATABASE_URL is derived from the POSTGRES_* values above by the app.
+# Set it explicitly only to point at an external database, e.g.:
+# DATABASE_URL=postgresql://user:pass@db-host:5432/dbname

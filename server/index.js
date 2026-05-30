@@ -122,6 +122,16 @@ function streamToBuffer(stream) {
     });
 }
 
+function buildDatabaseUrl(env = {}) {
+    const {POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB} = env;
+    if (!POSTGRES_USER || !POSTGRES_PASSWORD || !POSTGRES_DB) return '';
+    const host = env.POSTGRES_HOST || 'postgres';
+    const port = env.POSTGRES_PORT || '5432';
+    const user = encodeURIComponent(POSTGRES_USER);
+    const pass = encodeURIComponent(POSTGRES_PASSWORD);
+    return `postgresql://${user}:${pass}@${host}:${port}/${POSTGRES_DB}`;
+}
+
 export function createApp(options = {}) {
     const app = express();
     const PORT = Number(options.port ?? process.env.PORT ?? 8080);
@@ -131,7 +141,7 @@ export function createApp(options = {}) {
     const SESSION_SECRET = options.sessionSecret ?? process.env.SESSION_SECRET ?? 'change-this-session-secret';
     const NODE_ENV = options.nodeEnv ?? process.env.NODE_ENV ?? 'development';
 
-    const DATABASE_URL = options.databaseUrl ?? process.env.DATABASE_URL ?? '';
+    const DATABASE_URL = options.databaseUrl ?? process.env.DATABASE_URL ?? buildDatabaseUrl(process.env);
     const S3_ENDPOINT = options.s3Endpoint ?? process.env.S3_ENDPOINT ?? '';
     const S3_REGION = options.s3Region ?? process.env.S3_REGION ?? 'us-east-1';
     const S3_BUCKET = options.s3Bucket ?? process.env.S3_BUCKET ?? 'joes-custom-flags-cms-media';
