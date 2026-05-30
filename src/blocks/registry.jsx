@@ -58,7 +58,9 @@ function headingControls({block, setProp}) {
     </label>;
 }
 
-function buttonControls({block, setProp}) {
+function buttonControls({block, setProp, pages}) {
+    const opts = pages || [];
+    const known = opts.some(p => p.path === block.props.to);
     return <>
         <label className="block-ctl">Style
             <select value={block.props.variant || 'primary'} onChange={e => setProp('variant', e.target.value)}>
@@ -66,9 +68,11 @@ function buttonControls({block, setProp}) {
                 <option value="ghost">Ghost</option>
             </select>
         </label>
-        <label className="block-ctl">Link
-            <input value={block.props.to || ''} placeholder="/contact"
-                   onChange={e => setProp('to', e.target.value)}/>
+        <label className="block-ctl">Links to
+            <select value={block.props.to || ''} onChange={e => setProp('to', e.target.value)}>
+                {!known && <option value={block.props.to || ''}>{block.props.to || 'Select page'}</option>}
+                {opts.map(p => <option key={p.path} value={p.path}>{p.label}</option>)}
+            </select>
         </label>
     </>;
 }

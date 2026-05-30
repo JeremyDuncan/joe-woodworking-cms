@@ -66,6 +66,11 @@ const defaultSettings = {
             ]
         }
     },
+    theme: {
+        font: 'Inter',
+        colors: {accent: '#d7a64f', primary: '#e33445', background: '#08111f', text: '#fffaf0'}
+    },
+    themes: {},
     home: {
         eyebrow: 'Joe’s Custom Hand Crafted Flags',
         title: 'Hand-crafted American flags built to become family heirlooms.',

@@ -5,7 +5,7 @@ import {BlockFrame} from './BlockFrame.jsx';
 
 // Renders a page from a { columns, blocks:[{id,type,column,props}] } layout.
 // Blocks are grouped into columns; array order sets vertical order within a column.
-export function PageBuilder({route, layout, registry, featured, onImageOpen}) {
+export function PageBuilder({route, layout, registry, featured, onImageOpen, pages}) {
     const {editing, setField} = useEdit();
     const columns = Math.min(3, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
@@ -61,7 +61,7 @@ export function PageBuilder({route, layout, registry, featured, onImageOpen}) {
                            onUp={() => moveVertical(i, -1)} onDown={() => moveVertical(i, 1)}
                            onLeft={() => setColumn(i, col - 1)} onRight={() => setColumn(i, col + 1)}
                            onRemove={() => removeBlock(i)}
-                           extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v)}) : null}>
+                           extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages}) : null}>
             {content}
         </BlockFrame>;
     }

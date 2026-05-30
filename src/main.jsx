@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import './styles.css';
 import {defaultSettings, mergeSettings} from './data/defaults.js';
+import {applyTheme} from './lib/theme.js';
 import {PublicSite} from './pages/PublicSite.jsx';
 import {Admin} from './admin/Admin.jsx';
 
@@ -19,6 +20,9 @@ function App() {
         addEventListener('popstate', onPop);
         return () => removeEventListener('popstate', onPop);
     }, []);
+    useEffect(() => {
+        applyTheme(settings.theme);
+    }, [settings.theme]);
     if (!config) return null;
     return isAdminRoute ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/> :
         <PublicSite works={works} settings={settings} route={route}

@@ -3,7 +3,9 @@ import {fallbackGallery} from '../data/defaults.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
 import {EditBar} from '../components/EditBar.jsx';
+import {ThemePanel} from '../components/ThemePanel.jsx';
 import {EditProvider} from '../lib/edit.jsx';
+import {applyTheme} from '../lib/theme.js';
 import {HomePage} from './HomePage.jsx';
 import {WorkPage} from './WorkPage.jsx';
 import {OptionsPage} from './OptionsPage.jsx';
@@ -15,11 +17,18 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(settings);
     const [saveState, setSaveState] = useState(null);
+    const [themeOpen, setThemeOpen] = useState(false);
 
     // Keep the draft in sync with saved settings while not actively editing.
     useEffect(() => {
         if (!editing) setDraft(settings);
     }, [settings, editing]);
+
+    // Apply the active theme (draft while editing, saved otherwise) live via CSS vars.
+    const view = editing ? draft : settings;
+    useEffect(() => {
+        applyTheme(view.theme);
+    }, [view.theme]);
 
     const setField = useCallback((path, value) => {
         setDraft(d => {
@@ -57,7 +66,6 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         setSaveState(null);
     }
 
-    const view = editing ? draft : settings;
     const gallery = works ?? fallbackGallery;
     const featured = gallery.find(w => w.featured) || gallery.find(w => w.media?.length) || gallery[0];
 
@@ -73,7 +81,11 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             {page}
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin && <EditBar editing={editing} saveState={saveState} adminPath={adminPath} pages={view.nav}
-                                 onEnter={() => setEditing(true)} onSave={save} onDiscard={discard}/>}
+                                 onEnter={() => setEditing(true)} onSave={save} onDiscard={discard}
+                                 onTheme={() => setThemeOpen(o => !o)}/>}
+            {isAdmin && editing && themeOpen &&
+                <ThemePanel theme={view.theme} themes={view.themes} setField={setField}
+                            onClose={() => setThemeOpen(false)}/>}
         </main>
     </EditProvider>;
 }

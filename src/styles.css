@@ -26,7 +26,7 @@ html {
 
 body {
     margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+    font-family: var(--app-font, 'Inter', system-ui, -apple-system, Segoe UI, sans-serif);
     background: radial-gradient(circle at 15% 0%, rgba(181, 31, 43, .32), transparent 28%), radial-gradient(circle at 88% 12%, rgba(36, 88, 163, .28), transparent 24%), linear-gradient(180deg, #050912 0%, var(--navy) 45%, #050912 100%);
     color: var(--white);
     overflow-x: hidden
@@ -1529,4 +1529,84 @@ input::placeholder, textarea::placeholder {
     .page-grid.cols-2, .page-grid.cols-3 {
         grid-template-columns: 1fr
     }
+}
+
+/* ---- Theme panel ---- */
+.theme-panel {
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 121;
+    width: min(320px, calc(100vw - 36px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .97);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow)
+}
+
+.theme-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.theme-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1
+}
+
+.theme-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.theme-row select {
+    flex: 1;
+    max-width: 170px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit
+}
+
+.theme-row input[type=color] {
+    width: 46px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer
+}
+
+.theme-presets {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px
+}
+
+.theme-presets .button {
+    min-height: 38px
 }
