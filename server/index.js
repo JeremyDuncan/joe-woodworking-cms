@@ -52,7 +52,7 @@ const defaultSettings = {
         {label: 'Process', path: '/process'},
         {label: 'Contact', path: '/contact'}
     ],
-    hero: {
+    home: {
         eyebrow: 'Joe’s Custom Hand Crafted Flags',
         title: 'Hand-crafted American flags built to become family heirlooms.',
         body: 'Custom solid-wood American flag decor by Joe — hand-built, hand-painted, and personalized with logos, service branches, teams, memorials, patriotic themes, or your own image.',
