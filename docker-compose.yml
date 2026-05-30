@@ -1,0 +1,45 @@
+services:
+  joes-custom-flags-cms:
+    image: ${REGISTRY}/${IMAGE}:latest
+    container_name: joes-custom-flags-cms
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - minio
+      - minio-init
+    ports:
+      - "3015:8080"
+    env_file: .production-env
+    volumes:
+      - /share/Public/docker/joes-custom-flags-cms/app-data:/app/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: joes-custom-flags-cms-postgres
+    restart: unless-stopped
+    env_file: .production-env
+    volumes:
+      - /share/Public/docker/joes-custom-flags-cms/postgres-data-v2/db:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: joes-custom-flags-cms-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file: .production-env
+    volumes:
+      - /share/Public/docker/joes-custom-flags-cms/minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: joes-custom-flags-cms-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb -p local/joes-custom-flags-cms-media || true;
+      /usr/bin/mc anonymous set download local/joes-custom-flags-cms-media || true;
+      "
+    env_file: .production-env
