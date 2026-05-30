@@ -10,8 +10,9 @@ function App() {
     const isAdminRoute = useMemo(() => config && (route === config.adminPath || route.startsWith(config.adminPath + '/')), [route, config]);
     const reload = () => fetch('/api/works?ts=' + Date.now()).then(r => r.json()).then(setWorks);
     const reloadSettings = () => fetch('/api/settings?ts=' + Date.now()).then(r => r.json()).then(s => setSettings(mergeSettings(s)));
+    const reloadConfig = () => fetch('/api/config').then(r => r.json()).then(setConfig);
     useEffect(() => {
-        fetch('/api/config').then(r => r.json()).then(setConfig);
+        reloadConfig();
         reload();
         reloadSettings();
         const onPop = () => setRoute(location.pathname);
@@ -19,8 +20,9 @@ function App() {
         return () => removeEventListener('popstate', onPop);
     }, []);
     if (!config) return null;
-    return isAdminRoute ? <Admin works={works} settings={settings} reload={reload} reloadSettings={reloadSettings}/> :
-        <PublicSite works={works} settings={settings} route={route}/>
+    return isAdminRoute ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/> :
+        <PublicSite works={works} settings={settings} route={route}
+                    isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}/>
 }
 
 createRoot(document.getElementById('root')).render(<App/>);

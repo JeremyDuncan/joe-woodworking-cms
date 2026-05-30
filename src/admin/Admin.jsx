@@ -1,11 +1,11 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Edit3, ImagePlus, Lock, LogOut, Menu} from 'lucide-react';
+import {Edit3, ImagePlus, Lock, LogOut} from 'lucide-react';
+import {navigate} from '../lib/navigation.jsx';
 import {WorkForm} from './WorkForm.jsx';
 import {WorkList} from './WorkList.jsx';
-import {SettingsForm} from './SettingsForm.jsx';
 import {PasswordForm} from './PasswordForm.jsx';
 
-export function Admin({works, settings, reload, reloadSettings}) {
+export function Admin({works, reload, onAuthChange}) {
     const [me, setMe] = useState(null), [login, setLogin] = useState({
         username: '',
         password: ''
@@ -26,7 +26,8 @@ export function Admin({works, settings, reload, reloadSettings}) {
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok) return setMsg(j.error || 'Login failed');
-            setMe({isAdmin: true, user: j.user});
+            if (onAuthChange) await onAuthChange();
+            navigate('/'); // land on the editable home page with the admin edit bar
         } catch {
             setMsg('Network error. Please try again.');
         }
@@ -38,6 +39,7 @@ export function Admin({works, settings, reload, reloadSettings}) {
         } catch {
             // Even if the request fails, drop the local admin state.
         }
+        if (onAuthChange) await onAuthChange();
         setMe({isAdmin: false});
     }
 
@@ -50,9 +52,9 @@ export function Admin({works, settings, reload, reloadSettings}) {
 
     if (!me?.isAdmin) return <main className="admin-shell">
         <form className="login-card" onSubmit={doLogin}><p className="eyebrow"><Lock size={15}/> Private CMS</p>
-            <h1>Joe’s Flags Admin</h1><p>Hidden login for adding/removing photos, videos, descriptions, prices, and
-                website text.</p><input placeholder="Username" value={login.username}
-                                        onChange={e => setLogin({...login, username: e.target.value})}/><input
+            <h1>Joe’s Flags Admin</h1><p>Hidden login for managing photos, videos, descriptions, prices, and website
+                text.</p><input placeholder="Username" value={login.username}
+                                onChange={e => setLogin({...login, username: e.target.value})}/><input
                 placeholder="Password" type="password" value={login.password}
                 onChange={e => setLogin({...login, password: e.target.value})}/>{msg && <p className="error">{msg}</p>}
             <button className="button button-primary">Login</button>
@@ -61,15 +63,15 @@ export function Admin({works, settings, reload, reloadSettings}) {
     return <main className="admin-shell admin-dashboard">
         <header>
             <div><p className="eyebrow"><Edit3 size={15}/> CMS Dashboard</p><h1>Manage Joe’s website</h1></div>
-            <button onClick={logout} className="button button-ghost"><LogOut size={17}/> Logout</button>
+            <div className="admin-header-actions">
+                <a className="button button-ghost" href="/">View &amp; edit site</a>
+                <button onClick={logout} className="button button-ghost"><LogOut size={17}/> Logout</button>
+            </div>
         </header>
         {notice && <div className={`admin-notice admin-notice--${notice.type}`}>{notice.text}</div>}
         <div className="admin-tabs">
             <button className={tab === 'work' ? 'active' : ''} onClick={() => setTab('work')}><ImagePlus
                 size={16}/> Work
-            </button>
-            <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}><Menu
-                size={16}/> Text & Pages
             </button>
             <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
                 size={16}/> Password
@@ -77,8 +79,7 @@ export function Admin({works, settings, reload, reloadSettings}) {
         </div>
         {tab === 'work' && <><WorkForm formRef={formRef} editing={editing} setEditing={setEditing} reload={reload}
                                        setNotice={setNotice}/><WorkList works={works} setEditing={setEditing}
-                                                                        reload={reload}
-                                                                        startEdit={startEdit}/></>}{tab === 'settings' &&
-        <SettingsForm settings={settings} reloadSettings={reloadSettings}/>} {tab === 'password' && <PasswordForm/>}
+                                                                        reload={reload} startEdit={startEdit}/></>}
+        {tab === 'password' && <PasswordForm/>}
     </main>
 }
