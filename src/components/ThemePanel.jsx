@@ -1,5 +1,6 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {FONTS, defaultTheme} from '../lib/theme.js';
+import {useDragPanel} from '../lib/useDragPanel.js';
 
 // Not a <label>: wrapping the text in a label made clicking the text open the
 // native colour picker. Only the swatch input should trigger it.
@@ -29,37 +30,7 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
         setField(['theme', 'name'], '');
     };
 
-    // Draggable panel
-    const panelRef = useRef(null);
-    const dragRef = useRef(null);
-    const [pos, setPos] = useState(null);
-
-    function onHeadDown(e) {
-        if (e.button !== 0 || e.target.closest('.theme-close')) return;
-        const rect = panelRef.current.getBoundingClientRect();
-        dragRef.current = {dx: e.clientX - rect.left, dy: e.clientY - rect.top};
-        e.preventDefault();
-    }
-
-    useEffect(() => {
-        function move(e) {
-            if (!dragRef.current) return;
-            setPos({x: e.clientX - dragRef.current.dx, y: e.clientY - dragRef.current.dy});
-        }
-
-        function up() {
-            dragRef.current = null;
-        }
-
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', up);
-        return () => {
-            window.removeEventListener('mousemove', move);
-            window.removeEventListener('mouseup', up);
-        };
-    }, []);
-
-    const style = pos ? {left: pos.x, top: pos.y, right: 'auto', bottom: 'auto', transform: 'none'} : undefined;
+    const {panelRef, onHeadDown, style} = useDragPanel();
 
     function applyPreset(name) {
         if (name && themes[name]) setField(['theme'], {...JSON.parse(JSON.stringify(themes[name])), name});

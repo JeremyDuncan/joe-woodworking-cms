@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
+import {useDragPanel} from '../lib/useDragPanel.js';
 
 function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
@@ -34,6 +35,7 @@ function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, o
 export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onSaveTemplate, onApplyTemplate, onClose}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
+    const {panelRef, onHeadDown, style} = useDragPanel();
 
     async function saveTemplate() {
         const name = prompt('Save this page’s layout as a template named:');
@@ -47,8 +49,8 @@ export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, on
         }
     }
 
-    return <div className="pages-panel">
-        <div className="theme-panel-head">
+    return <div className="pages-panel" ref={panelRef} style={style}>
+        <div className="theme-panel-head theme-drag" onMouseDown={onHeadDown}>
             <strong>Pages</strong>
             <button type="button" className="theme-close" onClick={onClose}>×</button>
         </div>

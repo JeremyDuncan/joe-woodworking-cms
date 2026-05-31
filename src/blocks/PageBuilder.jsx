@@ -35,6 +35,8 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
 
     const setProp = (idx, key, value) => setBlocks(blocks.map((b, i) =>
         i === idx ? {...b, props: {...b.props, [key]: value}} : b));
+    const setProps = (idx, patch) => setBlocks(blocks.map((b, i) =>
+        i === idx ? {...b, props: {...b.props, ...patch}} : b));
 
     function addBlock(type) {
         const def = registry[type];
@@ -90,14 +92,15 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
                         const def = registry[b.type];
                         return <SortableBlock key={b.id} block={b} columns={columns} label={def?.label || b.type}
                                               onRemove={() => removeBlock(i)}
-                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages, columns, works}) : null}>
+                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), setProps: patch => setProps(i, patch), pages, columns, works}) : null}>
                             {content(b, i)}
                         </SortableBlock>;
                     })}
                     <div className="block-add" style={{gridColumn: '1 / -1'}}>
                         <span><Plus size={14}/> Add:</span>
-                        {Object.keys(registry).map(type => <button key={type} type="button"
-                                                                   onClick={() => addBlock(type)}>{registry[type].label}</button>)}
+                        {Object.keys(registry).filter(type => !registry[type].legacy).map(type =>
+                            <button key={type} type="button"
+                                    onClick={() => addBlock(type)}>{registry[type].label}</button>)}
                     </div>
                 </div>
             </SortableContext>

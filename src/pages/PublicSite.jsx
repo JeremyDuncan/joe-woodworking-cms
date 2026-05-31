@@ -14,7 +14,7 @@ function newId() {
     return `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSettings}) {
+export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSettings, reloadWorks}) {
     const [modalImage, setModalImage] = useState(null);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(settings);
@@ -62,6 +62,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                 return;
             }
             await reloadSettings();
+            if (reloadWorks) await reloadWorks();
             setEditing(false);
             setSaveState(null);
         } catch {

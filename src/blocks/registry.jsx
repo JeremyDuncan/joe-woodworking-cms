@@ -3,13 +3,16 @@ import {Link} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {WorkCard} from '../components/WorkCard.jsx';
 import {InlineText} from '../lib/edit.jsx';
-import {DynamicIcon} from '../lib/icons.jsx';
-import {IconControl} from '../components/IconPicker.jsx';
+import {EditableIcon} from '../components/IconPicker.jsx';
 
 function Eyebrow({block, setProp, editing}) {
-    return <p className="eyebrow"><DynamicIcon className="ui-icon" name={block.props.icon || 'Star'} size={15}/> {editing
-        ? <InlineText value={block.props.text} placeholder="Eyebrow" onChange={v => setProp('text', v)}/>
-        : block.props.text}</p>;
+    return <p className="eyebrow">
+        <EditableIcon className="ui-icon" name={block.props.icon} fallback="Star" size={15} editing={editing}
+                      onChange={v => setProp('icon', v)}/>{' '}
+        {editing
+            ? <InlineText value={block.props.text} placeholder="Eyebrow" onChange={v => setProp('text', v)}/>
+            : block.props.text}
+    </p>;
 }
 
 function Heading({block, setProp, editing}) {
@@ -28,26 +31,34 @@ function Text({block, setProp, editing}) {
 function ButtonBlock({block, setProp, editing}) {
     const variant = block.props.variant || 'primary';
     const cls = variant === 'link' ? 'text-link' : `button button-${variant === 'ghost' ? 'ghost' : 'primary'}`;
-    const icon = block.props.icon ? <DynamicIcon className="ui-icon" name={block.props.icon} size={18}/> : null;
-    if (!editing) return <Link to={block.props.to || '/'} className={cls}>{block.props.label}{icon}</Link>;
+    const iconEl = <EditableIcon className="ui-icon" name={block.props.icon} fallback="ArrowRight" size={18}
+                                 editing={editing} allowNone onChange={v => setProp('icon', v)}/>;
+    if (!editing) return <Link to={block.props.to || '/'} className={cls}>{block.props.label}{iconEl}</Link>;
     return <span className={cls}><InlineText value={block.props.label} placeholder="Button text"
-                                             onChange={v => setProp('label', v)}/>{icon}</span>;
+                                             onChange={v => setProp('label', v)}/>{iconEl}</span>;
 }
 
+// List items may be strings (legacy) or {text, icon}. Each item's icon is click-to-edit.
 function ListBlock({block, setProp, editing}) {
     const items = block.props.items || [];
     const bullet = block.props.icon || 'BadgeCheck';
+    const norm = raw => (typeof raw === 'string' ? {text: raw} : (raw || {}));
+    const update = (i, patch) => setProp('items', items.map((x, j) => j === i ? {...norm(x), ...patch} : x));
     return <div className="proof-strip">
-        {items.map((it, i) => <span key={i}><DynamicIcon className="ui-icon" name={bullet} size={16}/>
-            {editing
-                ? <InlineText value={it} placeholder="Item"
-                              onChange={v => setProp('items', items.map((x, j) => j === i ? v : x))}/>
-                : it}
-            {editing && <button type="button" className="chip-remove" title="Remove"
-                                onClick={() => setProp('items', items.filter((_, j) => j !== i))}>×</button>}
-        </span>)}
+        {items.map((raw, i) => {
+            const it = norm(raw);
+            return <span key={i}>
+                <EditableIcon className="ui-icon" name={it.icon} fallback={bullet} size={16} editing={editing}
+                              onChange={v => update(i, {icon: v})}/>
+                {editing
+                    ? <InlineText value={it.text} placeholder="Item" onChange={v => update(i, {text: v})}/>
+                    : it.text}
+                {editing && <button type="button" className="chip-remove" title="Remove"
+                                    onClick={() => setProp('items', items.filter((_, j) => j !== i))}>×</button>}
+            </span>;
+        })}
         {editing && <button type="button" className="chip-add"
-                            onClick={() => setProp('items', [...items, 'New item'])}>+ Add</button>}
+                            onClick={() => setProp('items', [...items, {text: 'New item'}])}>+ Add</button>}
     </div>;
 }
 
@@ -97,12 +108,14 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
     </div>;
 }
 
-// A single portfolio item, self-contained (own title/description/price/image). Image required.
-function WorkItemBlock({block, setProp, editing, onImageOpen}) {
-    const {title, description, price, image} = block.props;
+// An "Item": fill it in to create a new saved item, or load an existing one from
+// the collection. Either way it syncs to the Works DB and shows in the dashboard.
+function ItemBlock({block, setProp, editing, onImageOpen}) {
+    const {title, description, price, image, to} = block.props;
     const media = image ? [{url: image, type: 'image/*'}] : [];
-    return <article className="gallery-card work-card">
-        <MediaPreview media={media} compact onImageOpen={onImageOpen}/>
+    const card = <article className="gallery-card work-card">
+        <MediaPreview media={media} compact plain={!editing && !!to}
+                      onImageOpen={(editing || to) ? undefined : onImageOpen}/>
         <div className="card-copy">
             {editing
                 ? <InlineText as="h3" value={title} placeholder="Title" onChange={v => setProp('title', v)}/>
@@ -119,14 +132,20 @@ function WorkItemBlock({block, setProp, editing, onImageOpen}) {
         {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
         {editing && !image && <p className="work-img-required">A picture is required before saving.</p>}
     </article>;
+    if (!editing && to) return <Link to={to} className="work-card-link">{card}</Link>;
+    return card;
 }
 
-// Displays a portfolio item chosen from the dashboard "Works" list.
-function SavedWorkBlock({block, works, onImageOpen}) {
+// Legacy: displays a portfolio item chosen from the Works DB (kept so old pages render).
+function SavedWorkBlock({block, works, editing, onImageOpen}) {
     const list = works || [];
     const work = list.find(w => w.id === block.props.workId) || list[0];
-    if (!work) return <p className="work-img-required">No saved works yet — add them in the dashboard Work tab.</p>;
-    return <WorkCard item={work} i={0} onImageOpen={onImageOpen}/>;
+    if (!work) return <p className="work-img-required">No saved items yet — add them in the dashboard Work tab.</p>;
+    const to = block.props.to;
+    const card = <WorkCard item={work} i={0} plain={!editing && !!to}
+                           onImageOpen={(editing || to) ? undefined : onImageOpen}/>;
+    if (!editing && to) return <Link to={to} className="work-card-link">{card}</Link>;
+    return card;
 }
 
 function WidthCtl({block, setProp, columns}) {
@@ -166,7 +185,7 @@ function headingControls({block, setProp, columns, pages}) {
     </>;
 }
 
-function textControls({block, setProp, columns}) {
+function widthControls({block, setProp, columns}) {
     return <WidthCtl block={block} setProp={setProp} columns={columns}/>;
 }
 
@@ -187,49 +206,66 @@ function buttonControls({block, setProp, pages}) {
             </select>
         </label>
         <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <IconControl label="Icon" value={block.props.icon} fallback="ArrowRight" allowNone
-                     onChange={v => setProp('icon', v)}/>
     </>;
 }
 
-function eyebrowControls({block, setProp}) {
-    return <IconControl label="Icon" value={block.props.icon} fallback="Star"
-                        onChange={v => setProp('icon', v)}/>;
-}
+function itemControls({block, setProp, setProps, works, columns, pages}) {
+    const list = works || [];
 
-function listControls({block, setProp, columns}) {
+    function onLoad(e) {
+        const id = e.target.value;
+        if (!id) return;
+        if (id === '__new__') {
+            setProps({workId: '', title: 'New item', description: 'Describe this item.', price: '', image: ''});
+            return;
+        }
+        const w = list.find(x => x.id === id);
+        if (w) setProps({
+            workId: w.id, title: w.title || '', description: w.description || '',
+            price: w.price || '', image: w.media?.[0]?.url || ''
+        });
+    }
+
     return <>
-        <IconControl label="Bullet" value={block.props.icon} fallback="BadgeCheck"
-                     onChange={v => setProp('icon', v)}/>
+        <label className="block-ctl">Load
+            <select value="" onChange={onLoad}>
+                <option value="">Load saved item…</option>
+                <option value="__new__">— Blank new item —</option>
+                {list.map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
+            </select>
+        </label>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
         <WidthCtl block={block} setProp={setProp} columns={columns}/>
     </>;
 }
 
-function savedWorkControls({block, setProp, works, columns}) {
+function savedWorkControls({block, setProp, works, columns, pages}) {
     return <>
-        <label className="block-ctl">Work
+        <label className="block-ctl">Item
             <select value={block.props.workId || ''} onChange={e => setProp('workId', e.target.value)}>
                 <option value="">— choose —</option>
                 {(works || []).map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
             </select>
         </label>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
         <WidthCtl block={block} setProp={setProp} columns={columns}/>
     </>;
 }
 
 // Each block type is self-contained: it carries its own content in `props`, so a
-// page can hold any number of them. `defaults` seeds a freshly-added block.
+// page can hold any number of them. `legacy` types still render but aren't offered
+// in the Add palette.
 export const blockRegistry = {
-    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: eyebrowControls},
+    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
-    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: textControls},
+    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthControls},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
-    list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck'}, render: ListBlock, controls: listControls},
+    list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck'}, render: ListBlock, controls: widthControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},
     work: {
-        label: 'Work item',
-        defaults: {title: 'New work', description: 'Describe this piece.', price: '', image: ''},
-        render: WorkItemBlock
+        label: 'Item',
+        defaults: {title: 'New item', description: 'Describe this item.', price: '', image: ''},
+        render: ItemBlock, controls: itemControls
     },
-    savedwork: {label: 'Saved work', defaults: {}, render: SavedWorkBlock, controls: savedWorkControls},
+    savedwork: {label: 'Saved item', defaults: {}, render: SavedWorkBlock, controls: savedWorkControls, legacy: true},
 };

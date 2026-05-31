@@ -26,7 +26,8 @@ function App() {
     if (!config) return null;
     return isAdminRoute ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/> :
         <PublicSite works={works} settings={settings} route={route}
-                    isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}/>
+                    isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
+                    reloadWorks={reload}/>
 }
 
 createRoot(document.getElementById('root')).render(<App/>);

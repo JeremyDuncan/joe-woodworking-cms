@@ -613,8 +613,44 @@ export function createApp(options = {}) {
     });
 
     app.get('/api/admin/settings', requireAdmin, async (_req, res) => res.json(await readSettings()));
+    // Sync self-contained "work" blocks in the page layout into the Works DB, so
+    // pieces created on a page also appear in the dashboard. New blocks get a workId
+    // written back into the layout; existing ones are updated in place.
+    async function syncWorkBlocks(settings) {
+        if (!settings || !settings.layout) return;
+        const works = await readWorks();
+        const byId = new Map(works.map(w => [w.id, w]));
+        for (const route of Object.keys(settings.layout)) {
+            const pg = settings.layout[route];
+            for (const b of (pg?.blocks || [])) {
+                if (b.type !== 'work' || !b.props || !b.props.image) continue;
+                const {title, description, price, image, workId} = b.props;
+                const media = [{url: image, type: 'image/jpeg', originalName: title || 'work'}];
+                const now = new Date().toISOString();
+                if (workId && byId.has(workId)) {
+                    const w = byId.get(workId);
+                    Object.assign(w, {
+                        title: title || '', description: description || '',
+                        price: price || '', media, updatedAt: now
+                    });
+                } else {
+                    const id = randomUUID();
+                    const w = {
+                        id, title: title || '', price: price || '', featured: false,
+                        description: description || '', media, createdAt: now, updatedAt: now
+                    };
+                    works.unshift(w);
+                    byId.set(id, w);
+                    b.props.workId = id;
+                }
+            }
+        }
+        await writeWorks(works);
+    }
+
     app.put('/api/admin/settings', requireAdmin, async (req, res) => {
         const next = deepMerge(await readSettings(), req.body || {});
+        if (req.body && req.body.layout) await syncWorkBlocks(next);
         await writeSettings(next);
         res.json(next);
     });
