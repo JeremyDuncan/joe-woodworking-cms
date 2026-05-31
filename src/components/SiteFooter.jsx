@@ -13,6 +13,6 @@ export function SiteFooter({settings, works, onImageOpen}) {
     const layout = raw && Array.isArray(raw.blocks) ? raw : {columns: 1, blocks: []};
     return <footer className="site-footer section">
         <PageBuilder route={FOOTER_KEY} layout={layout} registry={blockRegistry}
-                     works={works} onImageOpen={onImageOpen} pages={settings.nav}/>
+                     works={works} onImageOpen={onImageOpen} pages={settings.nav} context="footer"/>
     </footer>;
 }

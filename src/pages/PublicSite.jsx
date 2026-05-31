@@ -219,8 +219,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     return <EditProvider editing={editing} setField={setField}>
         <main className={editing ? 'is-editing' : undefined}>
             <SiteHeader settings={view}/>
-            <BuilderPage route={route} settings={view} featured={featured} works={gallery}
-                         onImageOpen={setModalImage}/>
+            <BuilderPage route={route} settings={view} featured={featured} works={gallery} onImageOpen={setModalImage}/>
             <SiteFooter settings={view} works={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin && <EditBar editing={editing} saveState={saveState} adminPath={adminPath}

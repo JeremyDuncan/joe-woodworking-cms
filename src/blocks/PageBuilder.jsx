@@ -24,7 +24,7 @@ function SortableBlock({block, columns, label, extra, onRemove, children}) {
     </div>;
 }
 
-export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages}) {
+export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages, context = 'page'}) {
     const {editing, setField} = useEdit();
     const columns = Math.min(3, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
@@ -75,9 +75,12 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     const activeIndex = blocks.findIndex(b => b.id === activeId);
     const activeBlock = activeIndex >= 0 ? blocks[activeIndex] : null;
 
+
+    const isFooter = context === 'footer';
+    const columnsLabel = isFooter ? 'Footer Columns:' : 'Main Page Columns:';
     return <div className="page-builder">
         <div className="builder-toolbar">
-            <span>Columns:</span>
+            <span>{columnsLabel}</span>
             {[1, 2, 3].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
                                         onClick={() => setLayout({columns: n})}>{n}</button>)}
             <span className="builder-hint">Drag the ⠿ handle to reorder · set a block’s Width to span columns</span>
