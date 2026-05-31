@@ -2494,3 +2494,31 @@ main.is-editing {
         display: inline-flex
     }
 }
+
+/* ---- Top-level error / loading fallback (ErrorBoundary + config gate) ---- */
+.app-fallback {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 40px
+}
+
+.app-fallback h1 {
+    font-size: 32px;
+    margin: 0
+}
+
+.app-fallback p {
+    margin: 0;
+    max-width: 460px;
+    color: var(--t-paragraph)
+}
+
+.app-loading {
+    opacity: .7;
+    letter-spacing: .04em
+}
