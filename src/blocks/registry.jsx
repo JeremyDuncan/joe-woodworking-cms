@@ -112,14 +112,32 @@ function WorkItemBlock({block, setProp, editing, onImageOpen}) {
     </article>;
 }
 
-function headingControls({block, setProp}) {
-    return <label className="block-ctl">Size
-        <select value={block.props.level || 2} onChange={e => setProp('level', Number(e.target.value))}>
-            <option value={1}>H1</option>
-            <option value={2}>H2</option>
-            <option value={3}>H3</option>
+function WidthCtl({block, setProp, columns}) {
+    if (columns < 2) return null;
+    const span = Math.min(block.props.span || 1, columns);
+    return <label className="block-ctl">Width
+        <select value={span} onChange={e => setProp('span', Number(e.target.value))}>
+            {Array.from({length: columns}, (_, i) => i + 1).map(n =>
+                <option key={n} value={n}>{n === columns ? `${n} · full` : n}</option>)}
         </select>
     </label>;
+}
+
+function headingControls({block, setProp, columns}) {
+    return <>
+        <label className="block-ctl">Size
+            <select value={block.props.level || 2} onChange={e => setProp('level', Number(e.target.value))}>
+                <option value={1}>H1</option>
+                <option value={2}>H2</option>
+                <option value={3}>H3</option>
+            </select>
+        </label>
+        <WidthCtl block={block} setProp={setProp} columns={columns}/>
+    </>;
+}
+
+function widthOnlyControls({block, setProp, columns}) {
+    return <WidthCtl block={block} setProp={setProp} columns={columns}/>;
 }
 
 function buttonControls({block, setProp, pages}) {
@@ -148,9 +166,12 @@ function eyebrowControls({block, setProp}) {
                         onChange={v => setProp('icon', v)}/>;
 }
 
-function listControls({block, setProp}) {
-    return <IconControl label="Bullet" value={block.props.icon} fallback="BadgeCheck"
-                        onChange={v => setProp('icon', v)}/>;
+function listControls({block, setProp, columns}) {
+    return <>
+        <IconControl label="Bullet" value={block.props.icon} fallback="BadgeCheck"
+                     onChange={v => setProp('icon', v)}/>
+        <WidthCtl block={block} setProp={setProp} columns={columns}/>
+    </>;
 }
 
 // Each block type is self-contained: it carries its own content in `props`, so a
@@ -158,10 +179,10 @@ function listControls({block, setProp}) {
 export const blockRegistry = {
     eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: eyebrowControls},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
-    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text},
+    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthOnlyControls},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck'}, render: ListBlock, controls: listControls},
-    image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock},
+    image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: widthOnlyControls},
     work: {
         label: 'Work item',
         defaults: {title: 'New work', description: 'Describe this piece.', price: '', image: ''},

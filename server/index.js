@@ -57,13 +57,13 @@ const defaultSettings = {
         '/': {
             columns: 2,
             blocks: [
-                {id: 'home-eyebrow', type: 'eyebrow', column: 0, props: {text: 'Joe’s Custom Hand Crafted Flags'}},
-                {id: 'home-heading', type: 'heading', column: 0, props: {text: 'Hand-crafted American flags built to become family heirlooms.', level: 1}},
-                {id: 'home-body', type: 'text', column: 0, props: {text: 'Custom solid-wood American flag decor by Joe — hand-built, hand-painted, and personalized with logos, service branches, teams, memorials, patriotic themes, or your own image.'}},
-                {id: 'home-cta1', type: 'button', column: 0, props: {label: 'Request a custom flag', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
-                {id: 'home-cta2', type: 'button', column: 0, props: {label: 'View recent work', to: '/work', variant: 'ghost'}},
-                {id: 'home-proof', type: 'list', column: 0, props: {items: ['48 inches tall', 'Solid 2x12 wood', 'Hand-painted finish', 'State-shaped flags available']}},
-                {id: 'home-image', type: 'image', column: 1, props: {source: 'featured'}}
+                {id: 'home-eyebrow', type: 'eyebrow', props: {text: 'Joe’s Custom Hand Crafted Flags', icon: 'Star', span: 2}},
+                {id: 'home-heading', type: 'heading', props: {text: 'Hand-crafted American flags built to become family heirlooms.', level: 1, span: 2}},
+                {id: 'home-body', type: 'text', props: {text: 'Custom solid-wood American flag decor by Joe — hand-built, hand-painted, and personalized with logos, service branches, teams, memorials, patriotic themes, or your own image.', span: 2}},
+                {id: 'home-cta1', type: 'button', props: {label: 'Request a custom flag', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
+                {id: 'home-cta2', type: 'button', props: {label: 'View recent work', to: '/work', variant: 'ghost'}},
+                {id: 'home-proof', type: 'list', props: {items: ['48 inches tall', 'Solid 2x12 wood', 'Hand-painted finish', 'State-shaped flags available'], icon: 'BadgeCheck', span: 2}},
+                {id: 'home-image', type: 'image', props: {source: 'featured', span: 2}}
             ]
         }
     },

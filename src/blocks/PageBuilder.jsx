@@ -1,32 +1,47 @@
-import React, {useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {Plus} from 'lucide-react';
+import {DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors} from '@dnd-kit/core';
+import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
 import {useEdit} from '../lib/edit.jsx';
 import {BlockFrame} from './BlockFrame.jsx';
 
-// Renders a page from a { columns, blocks:[{id,type,column,props}] } layout.
-// Blocks are grouped into columns; array order sets vertical order within a column.
-// In edit mode blocks are drag-reorderable (drop on a block to place before it,
-// drop on empty column space to append to that column).
+function spanOf(block, columns) {
+    return Math.min(Math.max(1, block.props?.span || 1), columns);
+}
+
+// One sortable block. The grip handle carries the drag listeners so editable text
+// inside the block isn't hijacked by the drag.
+function SortableBlock({block, columns, label, extra, onRemove, children}) {
+    // No transform/transition: on a variable-span grid those animations break.
+    // We reorder the array live on drag-over instead, so blocks reflow cleanly.
+    const {attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging} = useSortable({id: block.id});
+    const style = {
+        gridColumn: `span ${spanOf(block, columns)}`,
+        opacity: isDragging ? 0.4 : 1,
+    };
+    return <div className="page-block" ref={setNodeRef} style={style}>
+        <BlockFrame label={label} handleRef={setActivatorNodeRef} handleProps={{...attributes, ...listeners}}
+                    onRemove={onRemove} extra={extra}>
+            {children}
+        </BlockFrame>
+    </div>;
+}
+
 export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages}) {
     const {editing, setField} = useEdit();
     const columns = Math.min(3, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
     const setLayout = patch => setField(['layout', route], {...layout, ...patch});
     const setBlocks = next => setLayout({blocks: next});
-    const colOf = b => Math.min(columns - 1, Math.max(0, b.column || 0));
-
-    const dragId = useRef(null);
-    const [overId, setOverId] = useState(null);
+    const [activeId, setActiveId] = useState(null);
+    const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
 
     const setProp = (idx, key, value) => setBlocks(blocks.map((b, i) =>
         i === idx ? {...b, props: {...b.props, [key]: value}} : b));
 
-    function addBlock(type, column) {
+    function addBlock(type) {
         const def = registry[type];
-        const block = {
-            id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            type, column, props: {...def.defaults}
-        };
+        const block = {id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, props: {...def.defaults}};
         setBlocks([...blocks, block]);
     }
 
@@ -34,91 +49,69 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
         setBlocks(blocks.filter((_, i) => i !== idx));
     }
 
-    function moveBefore(fromId, targetId) {
-        if (!fromId || fromId === targetId) return;
-        const arr = blocks.slice();
-        const fromI = arr.findIndex(b => b.id === fromId);
-        if (fromI < 0) return;
-        const [moved] = arr.splice(fromI, 1);
-        const ti = arr.findIndex(b => b.id === targetId);
-        if (ti < 0) arr.push(moved);
-        else arr.splice(ti, 0, {...moved, column: arr[ti].column});
-        setBlocks(arr);
+    // Reorder live as the pointer moves over another block, so the grid reflows
+    // out of the way without relying on (buggy on spanning grids) sortable tweens.
+    function onDragOver(e) {
+        const {active, over} = e;
+        if (!over || active.id === over.id) return;
+        const oldI = blocks.findIndex(b => b.id === active.id);
+        const newI = blocks.findIndex(b => b.id === over.id);
+        if (oldI < 0 || newI < 0 || oldI === newI) return;
+        setBlocks(arrayMove(blocks, oldI, newI));
     }
 
-    function moveToColumn(fromId, col) {
-        if (!fromId) return;
-        const arr = blocks.slice();
-        const fromI = arr.findIndex(b => b.id === fromId);
-        if (fromI < 0) return;
-        const [moved] = arr.splice(fromI, 1);
-        arr.push({...moved, column: col});
-        setBlocks(arr);
+    function content(b, i) {
+        const Comp = registry[b.type]?.render;
+        return Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
+                            featured={featured} works={works} onImageOpen={onImageOpen}/> : null;
     }
 
-    const columnBlocks = Array.from({length: columns}, (_, c) =>
-        blocks.map((b, i) => ({b, i})).filter(o => colOf(o.b) === c));
-
-    function renderBlock(b, i) {
-        const def = registry[b.type];
-        const Comp = def?.render;
-        const content = Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
-                                     featured={featured} works={works} onImageOpen={onImageOpen}/> : null;
-        if (!editing) return <React.Fragment key={b.id}>{content}</React.Fragment>;
-        return <BlockFrame key={b.id} label={def?.label || b.type} isOver={overId === b.id}
-                           onDragStart={e => {
-                               dragId.current = b.id;
-                               e.dataTransfer.effectAllowed = 'move';
-                               e.dataTransfer.setData('text/plain', b.id);
-                           }}
-                           onDragEnd={() => {
-                               dragId.current = null;
-                               setOverId(null);
-                           }}
-                           onDragOver={e => {
-                               e.preventDefault();
-                               if (overId !== b.id) setOverId(b.id);
-                           }}
-                           onDrop={e => {
-                               e.preventDefault();
-                               e.stopPropagation();
-                               moveBefore(dragId.current, b.id);
-                               setOverId(null);
-                               dragId.current = null;
-                           }}
-                           onRemove={() => removeBlock(i)}
-                           extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages}) : null}>
-            {content}
-        </BlockFrame>;
+    if (!editing) {
+        return <div className={`page-grid cols-${columns}`}>
+            {blocks.map((b, i) => <div className="page-block" style={{gridColumn: `span ${spanOf(b, columns)}`}}
+                                       key={b.id}>{content(b, i)}</div>)}
+        </div>;
     }
 
-    const grid = <div className={`page-grid cols-${columns}`}>
-        {columnBlocks.map((col, c) => <div className="page-col" key={c}
-                                           onDragOver={editing ? (e => e.preventDefault()) : undefined}
-                                           onDrop={editing ? (e => {
-                                               e.preventDefault();
-                                               moveToColumn(dragId.current, c);
-                                               dragId.current = null;
-                                               setOverId(null);
-                                           }) : undefined}>
-            {col.map(o => renderBlock(o.b, o.i))}
-            {editing && <div className="block-add">
-                <span><Plus size={14}/> Add:</span>
-                {Object.keys(registry).map(type => <button key={type} type="button"
-                                                           onClick={() => addBlock(type, c)}>{registry[type].label}</button>)}
-            </div>}
-        </div>)}
-    </div>;
-
-    if (!editing) return grid;
+    const activeIndex = blocks.findIndex(b => b.id === activeId);
+    const activeBlock = activeIndex >= 0 ? blocks[activeIndex] : null;
 
     return <div className="page-builder">
         <div className="builder-toolbar">
             <span>Columns:</span>
             {[1, 2, 3].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
                                         onClick={() => setLayout({columns: n})}>{n}</button>)}
-            <span className="builder-hint">Drag the ⠿ handle to reorder blocks</span>
+            <span className="builder-hint">Drag the ⠿ handle to reorder · set a block’s Width to span columns</span>
         </div>
-        {grid}
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter}
+                    onDragStart={e => setActiveId(e.active.id)} onDragOver={onDragOver}
+                    onDragEnd={() => setActiveId(null)} onDragCancel={() => setActiveId(null)}>
+            <SortableContext items={blocks.map(b => b.id)} strategy={rectSortingStrategy}>
+                <div className={`page-grid cols-${columns}`}>
+                    {blocks.map((b, i) => {
+                        const def = registry[b.type];
+                        return <SortableBlock key={b.id} block={b} columns={columns} label={def?.label || b.type}
+                                              onRemove={() => removeBlock(i)}
+                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages, columns}) : null}>
+                            {content(b, i)}
+                        </SortableBlock>;
+                    })}
+                    <div className="block-add" style={{gridColumn: '1 / -1'}}>
+                        <span><Plus size={14}/> Add:</span>
+                        {Object.keys(registry).map(type => <button key={type} type="button"
+                                                                   onClick={() => addBlock(type)}>{registry[type].label}</button>)}
+                    </div>
+                </div>
+            </SortableContext>
+
+            <DragOverlay>
+                {activeBlock ? <div className="page-block">
+                    <BlockFrame label={registry[activeBlock.type]?.label || activeBlock.type} dragOverlay>
+                        {content(activeBlock, activeIndex)}
+                    </BlockFrame>
+                </div> : null}
+            </DragOverlay>
+        </DndContext>
     </div>;
 }

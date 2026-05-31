@@ -1354,7 +1354,6 @@ input::placeholder, textarea::placeholder {
 .block-frame {
     position: relative;
     width: 100%;
-    max-width: 760px;
     border: 1px dashed rgba(255, 255, 255, .2);
     border-radius: 14px;
     padding: 12px;
@@ -1404,7 +1403,6 @@ input::placeholder, textarea::placeholder {
     align-items: center;
     gap: 8px;
     width: 100%;
-    max-width: 760px;
     padding: 14px;
     border: 1px dashed rgba(215, 166, 79, .4);
     border-radius: 14px
@@ -1804,4 +1802,27 @@ input::placeholder, textarea::placeholder {
     font-size: 12px;
     font-weight: 800;
     margin: 8px 0 0
+}
+
+/* Grid block items (column spanning via inline grid-column) */
+.page-block {
+    min-width: 0
+}
+
+.page-block > .home-visual {
+    width: 100%;
+    max-width: none
+}
+
+/* dnd-kit drag handle + lifted overlay */
+.block-frame-grip {
+    touch-action: none
+}
+
+.block-frame.is-overlay {
+    border-color: var(--gold);
+    background: rgba(8, 17, 31, .96);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    transform: scale(1.02);
+    cursor: grabbing
 }
