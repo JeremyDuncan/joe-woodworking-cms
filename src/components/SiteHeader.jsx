@@ -1,36 +1,38 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {Link} from '../lib/navigation.jsx';
 import {InlineText, useEdit} from '../lib/edit.jsx';
 import {DynamicIcon} from '../lib/icons.jsx';
-import {IconPicker} from './IconPicker.jsx';
+import {EditableIcon} from './IconPicker.jsx';
 import {defaultSettings} from '../data/defaults.js';
 
 export function SiteHeader({settings}) {
     const {editing, setField} = useEdit();
-    const [pickIcon, setPickIcon] = useState(false);
     const nav = settings.nav || defaultSettings.nav;
     const menu = nav.filter(n => !n.hidden);
     const brandText = settings.brandShort || settings.brandName;
     const brandIcon = settings.brandIcon || 'Flag';
+    const setNav = (path, patch) => setField(['nav'], nav.map(m => m.path === path ? {...m, ...patch} : m));
+
     return <header className="site-header">
         {editing
             ? <span className="brand">
-                <button type="button" className="brand-mark brand-mark-btn" title="Choose icon"
-                        onClick={() => setPickIcon(true)}><DynamicIcon className="ui-icon" name={brandIcon} size={18}/>
-                </button>
+                <span className="brand-mark"><EditableIcon className="ui-icon" name={brandIcon} fallback="Flag"
+                                                           size={18} editing
+                                                           onChange={v => setField(['brandIcon'], v)}/></span>
                 <InlineText value={brandText} placeholder="Brand" onChange={v => setField(['brandShort'], v)}/>
-                {pickIcon && <IconPicker value={brandIcon}
-                                         onSelect={n => {
-                                             setField(['brandIcon'], n);
-                                             setPickIcon(false);
-                                         }} onClose={() => setPickIcon(false)}/>}
               </span>
             : <Link to="/" className="brand" aria-label={`${brandText || 'Brand'} home`}>
-                <span className="brand-mark"><DynamicIcon className="ui-icon" name={brandIcon} size={18}/></span><span>{brandText}</span>
+                <span className="brand-mark"><DynamicIcon className="ui-icon" name={brandIcon} size={18}/></span>
+                <span>{brandText}</span>
               </Link>}
         <nav>{menu.map(n => editing
-            ? <InlineText key={n.path} className={n.cta ? 'nav-cta' : ''} value={n.label} placeholder="Label"
-                          onChange={v => setField(['nav'], nav.map(m => m.path === n.path ? {...m, label: v} : m))}/>
-            : <Link key={n.path} to={n.path} className={n.cta ? 'nav-cta' : ''}>{n.label}</Link>)}</nav>
+            ? <span key={n.path} className={`nav-item${n.cta ? ' nav-cta' : ''}`}>
+                <EditableIcon className="ui-icon" name={n.icon} fallback="Star" size={15} editing allowNone
+                              onChange={v => setNav(n.path, {icon: v})}/>
+                <InlineText value={n.label} placeholder="Label" onChange={v => setNav(n.path, {label: v})}/>
+              </span>
+            : <Link key={n.path} to={n.path} className={`nav-item${n.cta ? ' nav-cta' : ''}`}>
+                {n.icon ? <DynamicIcon className="ui-icon" name={n.icon} size={15}/> : null}<span>{n.label}</span>
+              </Link>)}</nav>
     </header>
 }

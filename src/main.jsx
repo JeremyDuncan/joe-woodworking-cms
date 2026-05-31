@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import './styles.css';
 import {defaultSettings, mergeSettings} from './data/defaults.js';
 import {applyTheme} from './lib/theme.js';
+import {DialogHost} from './lib/dialog.jsx';
 import {PublicSite} from './pages/PublicSite.jsx';
 import {Admin} from './admin/Admin.jsx';
 
@@ -24,10 +25,14 @@ function App() {
         applyTheme(settings.theme);
     }, [settings.theme]);
     if (!config) return null;
-    return isAdminRoute ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/> :
-        <PublicSite works={works} settings={settings} route={route}
-                    isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
-                    reloadWorks={reload}/>
+    return <>
+        {isAdminRoute
+            ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/>
+            : <PublicSite works={works} settings={settings} route={route}
+                          isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
+                          reloadWorks={reload}/>}
+        <DialogHost/>
+    </>;
 }
 
 createRoot(document.getElementById('root')).render(<App/>);

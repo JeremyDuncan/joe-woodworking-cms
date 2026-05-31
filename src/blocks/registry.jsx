@@ -1,9 +1,11 @@
 import React, {useState} from 'react';
-import {Link} from '../lib/navigation.jsx';
+import {Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {WorkCard} from '../components/WorkCard.jsx';
+import {ImageAdjust} from '../components/ImageAdjust.jsx';
 import {InlineText} from '../lib/edit.jsx';
 import {EditableIcon} from '../components/IconPicker.jsx';
+import {notify} from '../lib/dialog.jsx';
 
 function Eyebrow({block, setProp, editing}) {
     return <p className="eyebrow">
@@ -75,9 +77,9 @@ function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
             const r = await fetch('/api/admin/upload', {method: 'POST', body: fd});
             const j = await r.json().catch(() => ({}));
             if (r.ok && j.url) onUploaded(j.url);
-            else alert(j.error || 'Upload failed.');
+            else notify(j.error || 'Upload failed.', 'error');
         } catch {
-            alert('Network error. Upload failed.');
+            notify('Network error. Upload failed.', 'error');
         } finally {
             setBusy(false);
             e.target.value = '';
@@ -93,29 +95,38 @@ function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
 }
 
 function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
+    const [adjust, setAdjust] = useState(false);
     const url = block.props.url;
-    const media = url ? [{url, type: 'image/*'}] : (featured?.media || []);
+    const placement = block.props.placement;
+    const media = url ? [{url, type: 'image/*', placement}] : (featured?.media || []);
     const to = !editing ? block.props.to : null;
     const caption = block.props.caption;
+    // In edit mode, clicking the image opens the crop adjuster instead of the lightbox.
+    const onImg = editing ? (url ? () => setAdjust(true) : undefined) : (to ? undefined : onImageOpen);
     return <div className="home-visual">
-        <MediaPreview media={media} linkTo={to} onImageOpen={to ? undefined : onImageOpen}/>
+        <MediaPreview media={media} linkTo={to} onImageOpen={onImg}/>
         {editing
             ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
                           onChange={v => setProp('caption', v)}/>
             : (caption ? <p className="image-caption">{caption}</p> : null)}
         {editing && <ImageUpload hasImage={!!url} clearLabel="Use featured" onUploaded={u => setProp('url', u)}
                                  onClear={() => setProp('url', '')}/>}
+        {editing && url && <button type="button" className="button button-ghost adjust-trigger"
+                                   onClick={() => setAdjust(true)}>Adjust image</button>}
+        {adjust && url && <ImageAdjust src={url} value={placement} onApply={p => setProp('placement', p)}
+                                       onClose={() => setAdjust(false)}/>}
     </div>;
 }
 
 // An "Item": fill it in to create a new saved item, or load an existing one from
 // the collection. Either way it syncs to the Works DB and shows in the dashboard.
 function ItemBlock({block, setProp, editing, onImageOpen}) {
-    const {title, description, price, image, to} = block.props;
-    const media = image ? [{url: image, type: 'image/*'}] : [];
+    const [adjust, setAdjust] = useState(false);
+    const {title, description, price, image, to, placement} = block.props;
+    const media = image ? [{url: image, type: 'image/*', placement}] : [];
+    const onImg = editing ? (image ? () => setAdjust(true) : undefined) : onImageOpen;
     const card = <article className="gallery-card work-card">
-        <MediaPreview media={media} compact plain={!editing && !!to}
-                      onImageOpen={(editing || to) ? undefined : onImageOpen}/>
+        <MediaPreview media={media} compact onImageOpen={onImg}/>
         <div className="card-copy">
             {editing
                 ? <InlineText as="h3" value={title} placeholder="Title" onChange={v => setProp('title', v)}/>
@@ -130,10 +141,15 @@ function ItemBlock({block, setProp, editing, onImageOpen}) {
                 : <p>{description}</p>}
         </div>
         {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
+        {editing && image && <button type="button" className="button button-ghost adjust-trigger"
+                                     onClick={() => setAdjust(true)}>Adjust image</button>}
         {editing && !image && <p className="work-img-required">A picture is required before saving.</p>}
     </article>;
-    if (!editing && to) return <Link to={to} className="work-card-link">{card}</Link>;
-    return card;
+    return <>
+        {(!editing && to) ? <div className="work-card-clickable" onClick={() => navigate(to)}>{card}</div> : card}
+        {adjust && image && <ImageAdjust src={image} value={placement} onApply={p => setProp('placement', p)}
+                                         onClose={() => setAdjust(false)}/>}
+    </>;
 }
 
 // Legacy: displays a portfolio item chosen from the Works DB (kept so old pages render).
@@ -142,9 +158,8 @@ function SavedWorkBlock({block, works, editing, onImageOpen}) {
     const work = list.find(w => w.id === block.props.workId) || list[0];
     if (!work) return <p className="work-img-required">No saved items yet — add them in the dashboard Work tab.</p>;
     const to = block.props.to;
-    const card = <WorkCard item={work} i={0} plain={!editing && !!to}
-                           onImageOpen={(editing || to) ? undefined : onImageOpen}/>;
-    if (!editing && to) return <Link to={to} className="work-card-link">{card}</Link>;
+    const card = <WorkCard item={work} i={0} onImageOpen={editing ? undefined : onImageOpen}/>;
+    if (!editing && to) return <div className="work-card-clickable" onClick={() => navigate(to)}>{card}</div>;
     return card;
 }
 

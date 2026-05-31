@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {useDragPanel} from '../lib/useDragPanel.js';
+import {promptDialog} from '../lib/dialog.jsx';
 
 function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
@@ -38,7 +39,7 @@ export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, on
     const {panelRef, onHeadDown, style} = useDragPanel();
 
     async function saveTemplate() {
-        const name = prompt('Save this page’s layout as a template named:');
+        const name = await promptDialog('Save this page’s layout as a template named:');
         if (!name || !name.trim()) return;
         setMsg('Saving…');
         try {

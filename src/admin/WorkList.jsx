@@ -2,6 +2,7 @@ import React, {useMemo, useState} from 'react';
 import {Edit3, Trash2} from 'lucide-react';
 import {formatDate} from '../lib/format.js';
 import {MediaPreview} from '../components/MediaPreview.jsx';
+import {confirmDialog, notify} from '../lib/dialog.jsx';
 
 export function WorkList({works, reload, startEdit}) {
     const [query, setQuery] = useState(''), [sortMode, setSortMode] = useState('newest');
@@ -35,17 +36,17 @@ export function WorkList({works, reload, startEdit}) {
                         size={16}/> Edit
                     </button>
                     <button type="button" onClick={async () => {
-                        if (!confirm('Delete this work?')) return;
+                        if (!(await confirmDialog('Delete this item?', {danger: true, okLabel: 'Delete'}))) return;
                         try {
                             const r = await fetch('/api/admin/works/' + w.id, {method: 'DELETE'});
                             if (!r.ok) {
                                 const j = await r.json().catch(() => ({}));
-                                alert(j.error || 'Delete failed.');
+                                notify(j.error || 'Delete failed.', 'error');
                                 return;
                             }
                             await reload();
                         } catch {
-                            alert('Network error. Delete failed.');
+                            notify('Network error. Delete failed.', 'error');
                         }
                     }} className="button danger"><Trash2 size={16}/> Delete
                     </button>

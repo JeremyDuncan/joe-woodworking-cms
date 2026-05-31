@@ -8,6 +8,7 @@ import {PagesPanel} from '../components/PagesPanel.jsx';
 import {EditProvider} from '../lib/edit.jsx';
 import {applyTheme} from '../lib/theme.js';
 import {navigate} from '../lib/navigation.jsx';
+import {confirmDialog, notify, promptDialog} from '../lib/dialog.jsx';
 import {BuilderPage} from './BuilderPage.jsx';
 
 function newId() {
@@ -47,7 +48,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         const workNeedsImage = Object.values(draft.layout || {}).some(pg =>
             (pg?.blocks || []).some(b => b.type === 'work' && !(b.props && b.props.image)));
         if (workNeedsImage) {
-            alert('Each Work item needs a picture before the page can be saved.');
+            notify('Each Item needs a picture before the page can be saved.', 'error');
             return;
         }
         setSaveState('saving');
@@ -94,8 +95,8 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     }
 
     // ---- Page management ----
-    function addPage() {
-        const name = prompt('New page name:');
+    async function addPage() {
+        const name = await promptDialog('New page name');
         if (!name || !name.trim()) return;
         const label = name.trim();
         const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -103,10 +104,11 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         if (!slug) return;
         const nav = draft.nav || [];
         if (nav.some(n => n.path === path)) {
-            alert('A page with that address already exists.');
+            notify('A page with that address already exists.', 'error');
             return;
         }
-        const inNav = confirm('Show this page in the top navigation menu?\n\nOK = show in menu\nCancel = hidden (you can still link to it from buttons)');
+        const inNav = await confirmDialog('Show this page in the top navigation menu? You can still link to it from buttons either way.',
+            {okLabel: 'Show in menu', cancelLabel: 'Keep hidden'});
         setField(['nav'], [...nav, {label, path, hidden: !inNav}]);
         setField(['layout', path], {columns: 1, blocks: []});
         setPagesOpen(false);
@@ -133,7 +135,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         if (np === oldPath || np === '/') return;
         const nav = draft.nav || [];
         if (nav.some(n => n.path === np)) {
-            alert('That address is already used by another page.');
+            notify('That address is already used by another page.', 'error');
             return;
         }
         // Move the layout to the new key and repoint any links that pointed at the old path.
@@ -149,9 +151,9 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         if (route === oldPath) navigate(np);
     }
 
-    function deletePage(path) {
+    async function deletePage(path) {
         if (path === '/') return;
-        if (!confirm('Delete this page? (Applies when you Save.)')) return;
+        if (!(await confirmDialog('Delete this page? It’s removed when you Save.', {danger: true, okLabel: 'Delete'}))) return;
         setField(['nav'], (draft.nav || []).filter(n => n.path !== path));
         const nextLayout = {...(draft.layout || {})};
         delete nextLayout[path];
