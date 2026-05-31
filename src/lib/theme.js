@@ -46,6 +46,7 @@ export const defaultTheme = {
         icon: '#d7a64f',        // icon color
         hover: '#d7a64f',       // card hover border / highlight
         header: '#0b1626',      // header bar color (used when headerSolid)
+        divider: '#d7a64f',     // divider line color
     },
     text: {
         heading: '#fffaf0',
@@ -115,7 +116,7 @@ export function applyTheme(theme) {
     root.setProperty('--grad3-rgb', rgbOf(hx(c.gradient3, defaultTheme.colors.gradient3)));
     root.setProperty('--grad4-rgb', rgbOf(hx(c.gradient4, defaultTheme.colors.gradient4)));
 
-    // Buttons (legacy --red* kept in sync for any remaining references)
+    // Buttons
     root.setProperty('--btn', button);
     root.setProperty('--btn-deep', shade(button, -0.4));
     root.setProperty('--btn-rgb', rgbOf(button));
@@ -125,7 +126,10 @@ export function applyTheme(theme) {
     root.setProperty('--icon-color', hx(c.icon, defaultTheme.colors.icon));
     root.setProperty('--hover-border', hx(c.hover, defaultTheme.colors.hover));
 
-    // Header: solid color, or the default translucent (blurred) gradient.
+    // Divider
+    root.setProperty('--divider', hx(c.divider, defaultTheme.colors.divider));
+
+    // Header: solid color, or the default translucent blurred gradient.
     if (theme?.headerSolid) {
         const header = hx(c.header, defaultTheme.colors.header);
         root.setProperty('--header-bg', header);

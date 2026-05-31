@@ -111,6 +111,9 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
             <Color label="Card hover border" value={colors.hover} fallback="#d7a64f"
                    onChange={v => setColor('hover', v)}/>
 
+            <p className="theme-section">Dividers</p>
+            <Color label="Line divider" value={colors.divider} fallback="#d7a64f" onChange={v => setColor('divider', v)}/>
+
             <p className="theme-section">Text</p>
             <Color label="Heading" value={text.heading} fallback="#fffaf0" onChange={v => setText('heading', v)}/>
             <Color label="Paragraph" value={text.paragraph} fallback="#b8c2d6" onChange={v => setText('paragraph', v)}/>

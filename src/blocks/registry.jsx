@@ -17,9 +17,7 @@ function Eyebrow({block, setProp, editing}) {
     </p>;
 }
 
-function Line({block}) {
-    return <hr className="line" />;
-}
+function Divider() {return <hr className="divider" />;}
 
 function Heading({block, setProp, editing}) {
     const Tag = `h${block.props.level || 2}`;
@@ -290,7 +288,7 @@ function savedWorkControls({block, setProp, works, columns, pages}) {
 // in the Add palette.
 export const blockRegistry = {
     spacer: {label: 'Spacer', defaults: {text: 'Spacer'},  controls: widthControls},
-    line: {label: 'Line', defaults: {}, render: Line, controls: widthControls},
+    divider: {label: 'Divider', defaults: {}, render: Divider, controls: widthControls},
     eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: widthControls},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
     text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthControls},
