@@ -104,14 +104,30 @@ const defaultSettings = {
                 {id: 'con-body', type: 'text', props: {text: 'Tell us the design you have in mind, who the flag is for, and whether you have artwork or a logo to include.'}},
                 {id: 'con-list', type: 'list', props: {items: ['Email: Smokingjoe38@yahoo.com', 'Phone / text: 706.299.8309'], icon: 'Mail'}}
             ]
+        },
+        '__footer__': {
+            columns: 3,
+            blocks: [
+                {id: 'foot-brand', type: 'heading', props: {text: 'Joe’s Custom Flags', level: 3}},
+                {id: 'foot-tag', type: 'text', props: {text: 'Hand-crafted solid-wood American flags, built to order.'}},
+                {id: 'foot-explore-h', type: 'heading', props: {text: 'Explore', level: 3}},
+                {id: 'foot-link1', type: 'button', props: {label: 'Work', to: '/work', variant: 'link', icon: ''}},
+                {id: 'foot-link2', type: 'button', props: {label: 'Options', to: '/options', variant: 'link', icon: ''}},
+                {id: 'foot-link3', type: 'button', props: {label: 'Contact', to: '/contact', variant: 'link', icon: ''}},
+                {id: 'foot-contact-h', type: 'heading', props: {text: 'Get in touch', level: 3}},
+                {id: 'foot-contact', type: 'list', props: {items: [{text: 'Smokingjoe38@yahoo.com', icon: 'Mail'}, {text: '706.299.8309', icon: 'Phone'}], icon: 'Mail'}},
+                {id: 'foot-copy', type: 'copyright', props: {text: 'Joe’s Custom Flags. All rights reserved.', span: 3}}
+            ]
         }
     },
     layouts: {},
     theme: {
         font: 'Inter',
+        headerSolid: false,
         colors: {
             background: '#08111f', gradient1: '#b51f2b', gradient2: '#2458a3',
-            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f', hover: '#d7a64f'
+            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f', hover: '#d7a64f',
+            header: '#0b1626'
         },
         text: {
             heading: '#fffaf0', paragraph: '#b8c2d6', nav: '#fffaf0', button: '#ffffff',

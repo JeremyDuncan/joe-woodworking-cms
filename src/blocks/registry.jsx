@@ -17,6 +17,10 @@ function Eyebrow({block, setProp, editing}) {
     </p>;
 }
 
+function Line({block}) {
+    return <hr className="line" />;
+}
+
 function Heading({block, setProp, editing}) {
     const Tag = `h${block.props.level || 2}`;
     if (editing) return <InlineText as={Tag} value={block.props.text} placeholder="Heading"
@@ -153,6 +157,18 @@ function ItemBlock({block, setProp, editing, onImageOpen}) {
     </>;
 }
 
+// Footer copyright line. The year is always the current year (computed at render),
+// so it never goes stale. The editable text is whatever follows the year.
+function CopyrightBlock({block, setProp, editing}) {
+    const year = new Date().getFullYear();
+    return <p className="copyright">© {year}{' '}
+        {editing
+            ? <InlineText value={block.props.text} placeholder="Company · All rights reserved."
+                          onChange={v => setProp('text', v)}/>
+            : block.props.text}
+    </p>;
+}
+
 // Legacy: displays a portfolio item chosen from the Works DB (kept so old pages render).
 function SavedWorkBlock({block, works, editing, onImageOpen}) {
     const list = works || [];
@@ -212,7 +228,7 @@ function imageControls({block, setProp, columns, pages}) {
     </>;
 }
 
-function buttonControls({block, setProp, pages}) {
+function buttonControls({block, setProp, pages, columns}) {
     return <>
         <label className="block-ctl">Style
             <select value={block.props.variant || 'primary'} onChange={e => setProp('variant', e.target.value)}>
@@ -222,6 +238,7 @@ function buttonControls({block, setProp, pages}) {
             </select>
         </label>
         <LinkCtl block={block} setProp={setProp} pages={pages}/>
+        <WidthCtl block={block} setProp={setProp} columns={columns}/>
     </>;
 }
 
@@ -272,7 +289,9 @@ function savedWorkControls({block, setProp, works, columns, pages}) {
 // page can hold any number of them. `legacy` types still render but aren't offered
 // in the Add palette.
 export const blockRegistry = {
-    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow},
+    spacer: {label: 'Spacer', defaults: {text: 'Spacer'},  controls: widthControls},
+    line: {label: 'Line', defaults: {}, render: Line, controls: widthControls},
+    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: widthControls},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
     text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthControls},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
@@ -284,4 +303,9 @@ export const blockRegistry = {
         render: ItemBlock, controls: itemControls
     },
     savedwork: {label: 'Saved item', defaults: {}, render: SavedWorkBlock, controls: savedWorkControls, legacy: true},
+    copyright: {
+        label: 'Copyright',
+        defaults: {text: 'All rights reserved.'},
+        render: CopyrightBlock, controls: widthControls
+    },
 };

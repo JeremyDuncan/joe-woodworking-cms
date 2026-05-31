@@ -35,6 +35,7 @@ const FONT_HREF = {
 
 export const defaultTheme = {
     font: 'Inter',
+    headerSolid: false,         // false = translucent (blurred); true = solid header color
     colors: {
         background: '#08111f',  // base page color
         gradient1: '#b51f2b',   // top-left glow
@@ -44,6 +45,7 @@ export const defaultTheme = {
         button: '#e33445',      // button fill
         icon: '#d7a64f',        // icon color
         hover: '#d7a64f',       // card hover border / highlight
+        header: '#0b1626',      // header bar color (used when headerSolid)
     },
     text: {
         heading: '#fffaf0',
@@ -122,6 +124,17 @@ export function applyTheme(theme) {
 
     root.setProperty('--icon-color', hx(c.icon, defaultTheme.colors.icon));
     root.setProperty('--hover-border', hx(c.hover, defaultTheme.colors.hover));
+
+    // Header: solid color, or the default translucent (blurred) gradient.
+    if (theme?.headerSolid) {
+        const header = hx(c.header, defaultTheme.colors.header);
+        root.setProperty('--header-bg', header);
+        root.setProperty('--header-blur', 'none');
+    } else {
+        root.setProperty('--header-bg',
+            `linear-gradient(180deg, rgba(${rgbOf(bgDeep)}, .92), rgba(${rgbOf(bgDeep)}, .5))`);
+        root.setProperty('--header-blur', 'blur(14px)');
+    }
 
     // Per-element text colors
     root.setProperty('--t-heading', hx(tx.heading, defaultTheme.text.heading));

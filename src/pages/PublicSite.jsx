@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
+import {SiteFooter} from '../components/SiteFooter.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
 import {EditBar} from '../components/EditBar.jsx';
 import {ThemePanel} from '../components/ThemePanel.jsx';
@@ -220,6 +221,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             <SiteHeader settings={view}/>
             <BuilderPage route={route} settings={view} featured={featured} works={gallery}
                          onImageOpen={setModalImage}/>
+            <SiteFooter settings={view} works={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin && <EditBar editing={editing} saveState={saveState} adminPath={adminPath}
                                  pages={(view.nav || []).filter(n => !n.hidden)} route={route}

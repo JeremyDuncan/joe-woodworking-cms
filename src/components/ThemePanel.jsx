@@ -94,6 +94,15 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
             <Color label="Gradient 4 · bottom-right" value={colors.gradient4} fallback="#08111f"
                    onChange={v => setColor('gradient4', v)}/>
 
+            <p className="theme-section">Header</p>
+            <label className="theme-row theme-check"><span>Solid header (not translucent)</span>
+                <input type="checkbox" checked={!!t.headerSolid}
+                       onChange={e => setField(['theme', 'headerSolid'], e.target.checked)}/>
+            </label>
+            {t.headerSolid &&
+                <Color label="Header color" value={colors.header} fallback="#0b1626"
+                       onChange={v => setColor('header', v)}/>}
+
             <p className="theme-section">Buttons & icons</p>
             <Color label="Button fill" value={colors.button} fallback="#e33445"
                    onChange={v => setColor('button', v)}/>
