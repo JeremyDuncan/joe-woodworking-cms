@@ -29,9 +29,8 @@ export function SiteHeader({settings}) {
                 <span className="brand-mark"><DynamicIcon className="ui-icon" name={brandIcon} size={18}/></span><span>{brandText}</span>
               </Link>}
         <nav>{menu.map(n => editing
-            ? <InlineText key={n.path} value={n.label} placeholder="Label"
+            ? <InlineText key={n.path} className={n.cta ? 'nav-cta' : ''} value={n.label} placeholder="Label"
                           onChange={v => setField(['nav'], nav.map(m => m.path === n.path ? {...m, label: v} : m))}/>
-            : <Link key={n.path} to={n.path}
-                    className={n.path === '/contact' ? 'nav-cta' : ''}>{n.label}</Link>)}</nav>
+            : <Link key={n.path} to={n.path} className={n.cta ? 'nav-cta' : ''}>{n.label}</Link>)}</nav>
     </header>
 }

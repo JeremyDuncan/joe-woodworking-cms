@@ -90,7 +90,7 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
                         const def = registry[b.type];
                         return <SortableBlock key={b.id} block={b} columns={columns} label={def?.label || b.type}
                                               onRemove={() => removeBlock(i)}
-                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages, columns}) : null}>
+                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), pages, columns, works}) : null}>
                             {content(b, i)}
                         </SortableBlock>;
                     })}

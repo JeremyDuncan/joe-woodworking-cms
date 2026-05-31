@@ -51,7 +51,7 @@ const defaultSettings = {
         {label: 'Work', path: '/work'},
         {label: 'Options', path: '/options'},
         {label: 'Process', path: '/process'},
-        {label: 'Contact', path: '/contact'}
+        {label: 'Contact', path: '/contact', cta: true}
     ],
     layout: {
         '/': {

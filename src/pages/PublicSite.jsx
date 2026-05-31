@@ -117,6 +117,10 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, hidden: !n.hidden} : n));
     }
 
+    function toggleCta(path) {
+        setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, cta: !n.cta} : n));
+    }
+
     function deletePage(path) {
         if (path === '/') return;
         if (!confirm('Delete this page? (Applies when you Save.)')) return;
@@ -165,7 +169,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             {isAdmin && editing && pagesOpen &&
                 <PagesPanel pages={view.nav} route={route} templates={view.layouts}
                             onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}
-                            onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
+                            onToggleCta={toggleCta} onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
                             onClose={() => setPagesOpen(false)}/>}
         </main>
     </EditProvider>;

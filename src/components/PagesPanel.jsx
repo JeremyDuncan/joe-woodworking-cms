@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {navigate} from '../lib/navigation.jsx';
 
-export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, onToggleNav, onSaveTemplate, onApplyTemplate, onClose}) {
+export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, onToggleNav, onToggleCta, onSaveTemplate, onApplyTemplate, onClose}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
 
@@ -30,6 +30,9 @@ export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, on
                 <label className="pages-navtoggle" title="Show in the top navigation menu">
                     <input type="checkbox" checked={!p.hidden} disabled={p.path === '/'}
                            onChange={() => onToggleNav(p.path)}/> Nav
+                </label>
+                <label className="pages-navtoggle" title="Style this nav link as a button">
+                    <input type="checkbox" checked={!!p.cta} onChange={() => onToggleCta(p.path)}/> Btn
                 </label>
                 {p.path !== '/' &&
                     <button type="button" className="pages-del" title="Delete page"

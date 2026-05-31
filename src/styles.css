@@ -2012,3 +2012,34 @@ input::placeholder, textarea::placeholder {
     width: auto;
     cursor: pointer
 }
+
+/* Text-link button variant + heading links */
+.text-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--btn);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer
+}
+
+.text-link:hover {
+    opacity: .8
+}
+
+.block-link {
+    display: block;
+    color: inherit;
+    text-decoration: none
+}
+
+.block-link:hover {
+    color: var(--btn)
+}
+
+/* Keep the fixed edit bar from covering the bottom of the page (the Add palette) */
+main.is-editing {
+    padding-bottom: 170px
+}
