@@ -15,11 +15,8 @@ function SortableBlock({block, columns, label, extra, onRemove, children}) {
     // No transform/transition: on a variable-span grid those animations break.
     // We reorder the array live on drag-over instead, so blocks reflow cleanly.
     const {attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging} = useSortable({id: block.id});
-    const style = {
-        gridColumn: `span ${spanOf(block, columns)}`,
-        opacity: isDragging ? 0.4 : 1,
-    };
-    return <div className="page-block" ref={setNodeRef} style={style}>
+    const style = {opacity: isDragging ? 0.4 : 1};
+    return <div className={`page-block span-${spanOf(block, columns)}`} ref={setNodeRef} style={style}>
         <BlockFrame label={label} handleRef={setActivatorNodeRef} handleProps={{...attributes, ...listeners}}
                     onRemove={onRemove} extra={extra}>
             {children}
@@ -68,7 +65,7 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
 
     if (!editing) {
         return <div className={`page-grid cols-${columns}`}>
-            {blocks.map((b, i) => <div className="page-block" style={{gridColumn: `span ${spanOf(b, columns)}`}}
+            {blocks.map((b, i) => <div className={`page-block span-${spanOf(b, columns)}`}
                                        key={b.id}>{content(b, i)}</div>)}
         </div>;
     }

@@ -1318,10 +1318,7 @@ input::placeholder, textarea::placeholder {
 /* ---- Block-based page layout ---- */
 .home-page {
     position: relative;
-    min-height: 88vh;
-    overflow: hidden;
-    display: flex;
-    align-items: center
+    min-height: 60vh
 }
 
 .block-stack {
@@ -1457,6 +1454,19 @@ input::placeholder, textarea::placeholder {
     grid-template-columns: 1fr 1fr 1fr
 }
 
+/* Block column-span (class-based so media queries can cap it on small screens) */
+.span-1 {
+    grid-column: span 1
+}
+
+.span-2 {
+    grid-column: span 2
+}
+
+.span-3 {
+    grid-column: span 3
+}
+
 .page-col {
     display: flex;
     flex-direction: column;
@@ -1526,9 +1536,29 @@ input::placeholder, textarea::placeholder {
     justify-content: flex-end
 }
 
-@media (max-width: 860px) {
+/* Responsive page grid: 3-col -> 2-col on tablets, everything -> 1-col on phones,
+   with block spans capped so nothing overflows the viewport. */
+@media (max-width: 1000px) {
+    .page-grid.cols-3 {
+        grid-template-columns: 1fr 1fr
+    }
+
+    .span-3 {
+        grid-column: span 2
+    }
+}
+
+@media (max-width: 680px) {
+    .page-grid {
+        gap: 18px
+    }
+
     .page-grid.cols-2, .page-grid.cols-3 {
         grid-template-columns: 1fr
+    }
+
+    .span-2, .span-3 {
+        grid-column: span 1
     }
 }
 
@@ -1825,4 +1855,38 @@ input::placeholder, textarea::placeholder {
     box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
     transform: scale(1.02);
     cursor: grabbing
+}
+
+/* ---- Mobile polish for the builder + editing chrome ---- */
+@media (max-width: 680px) {
+    .builder-toolbar {
+        flex-wrap: wrap
+    }
+
+    .block-frame-bar {
+        flex-wrap: wrap;
+        gap: 8px
+    }
+
+    .edit-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+        bottom: 12px;
+        border-radius: 18px;
+        gap: 8px
+    }
+
+    .edit-bar-label {
+        width: 100%;
+        justify-content: center
+    }
+
+    .theme-panel {
+        bottom: 12px;
+        width: calc(100vw - 24px)
+    }
+
+    .section, .section-full {
+        padding-top: 104px
+    }
 }
