@@ -1,5 +1,5 @@
 import React from 'react';
-import {Edit3, Files, Palette, Save, Undo2} from 'lucide-react';
+import {Edit3, Files, Palette, Save, Undo2} from 'lucide-react'; // <-- ICONS
 import {navigate} from '../lib/navigation.jsx';
 
 export function EditBar({editing, saveState, adminPath, pages, route, onEnter, onSave, onDiscard, onTheme, onPages}) {
@@ -25,6 +25,7 @@ export function EditBar({editing, saveState, adminPath, pages, route, onEnter, o
                 disabled={saveState === 'saving'}>
             <Save size={16}/> {saveState === 'saving' ? 'Saving…' : 'Save'}
         </button>
+        {/* TODO: ICON USED HERE #######################################################################*/}
         <button type="button" className="button danger edit-icon-btn" onClick={onDiscard}><Undo2 size={16}/> Discard
         </button>
         {saveState === 'error' && <span className="error">Save failed</span>}

@@ -3,6 +3,7 @@ import {ArrowUpRight} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {promptDialog} from '../lib/dialog.jsx';
+import {Files, Save, Trash2} from 'lucide-react'; // <-- ICONS
 
 function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
@@ -75,7 +76,7 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
 
     return <div className="pages-panel" ref={panelRef} style={style}>
         <div className="theme-panel-head theme-drag" onMouseDown={onHeadDown}>
-            <strong>Pages</strong>
+            <strong><Save size={18}/> Pages</strong>
             <button type="button" className="theme-close" onClick={onClose}>×</button>
         </div>
 
@@ -99,12 +100,12 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
                 </select>
             </div>
             <div className="theme-preset-actions">
-                <button type="button" className="button button-ghost" onClick={saveTemplate}>Save as new</button>
+                <button type="button" className="button button-ghost" onClick={saveTemplate}><Save size={16}/>Save as new</button>
                 {isTemplate &&
-                    <button type="button" className="button button-primary" onClick={updateTemplate}>Update
+                    <button type="button" className="button button-primary" onClick={updateTemplate}><Save size={16}/>Update
                         “{currentTemplate}”</button>}
                 {isTemplate &&
-                    <button type="button" className="button danger" onClick={deleteTemplate}>Delete</button>}
+                    <button type="button" className="button danger" onClick={deleteTemplate}><Trash2 size={16}/>Delete</button>}
             </div>
             {msg && <span className="theme-msg">{msg}</span>}
         </div>

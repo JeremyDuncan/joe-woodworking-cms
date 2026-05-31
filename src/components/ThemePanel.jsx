@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import {FONTS, defaultTheme} from '../lib/theme.js';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {confirmDialog, promptDialog} from '../lib/dialog.jsx';
+import {Palette, Save, Trash2, PaintRoller} from 'lucide-react'; // <-- ICONS
+
 
 // Not a <label>: wrapping the text in a label made clicking the text open the
 // native colour picker. Only the swatch input should trigger it.
@@ -71,7 +73,8 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
 
     return <div className="theme-panel" ref={panelRef} style={style}>
         <div className="theme-panel-head theme-drag" onMouseDown={onHeadDown}>
-            <strong>Theme</strong>
+
+            <strong><Palette size={18}/> Theme</strong>
             <button type="button" className="theme-close" onClick={onClose}>×</button>
         </div>
 
@@ -127,19 +130,18 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
         <div className="theme-presets">
             <p className="theme-current">Current: <strong>{t.name || 'Custom (unsaved)'}</strong>
                 {isPreset && modified ? <span className="theme-edited"> · edited</span> : null}</p>
-            <div className="theme-row"><span>Apply preset</span>
+            <div className="theme-row"><span><PaintRoller size={12}/> Apply preset</span>
                 <select value={isPreset ? t.name : ''} onChange={e => applyPreset(e.target.value)}>
                     <option value="">— choose —</option>
                     {presetNames.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
             </div>
             <div className="theme-preset-actions">
-                <button type="button" className="button button-ghost" onClick={saveAs}>Save as new</button>
+                <button type="button" className="button button-ghost" onClick={saveAs}><Save size={16}/>Save as new</button>
                 {isPreset &&
-                    <button type="button" className="button button-primary" onClick={updatePreset}>Update
-                        “{t.name}”</button>}
+                    <button type="button" className="button button-primary" onClick={updatePreset}><Save size={16}/>Update “{t.name}”</button>}
                 {isPreset &&
-                    <button type="button" className="button danger" onClick={deletePreset}>Delete</button>}
+                    <button type="button" className="button danger" onClick={deletePreset}><Trash2 size={16}/>Delete</button>}
             </div>
             {msg && <span className="theme-msg">{msg}</span>}
         </div>
