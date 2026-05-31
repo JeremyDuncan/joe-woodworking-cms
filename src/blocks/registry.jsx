@@ -1,11 +1,11 @@
 import React, {useState} from 'react';
-import {Link, navigate} from '../lib/navigation.jsx';
+import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {WorkCard} from '../components/WorkCard.jsx';
 import {ImageAdjust} from '../components/ImageAdjust.jsx';
-import {InlineText} from '../lib/edit.jsx';
+import {InlineText, RichHtml, RichText} from '../lib/edit.jsx';
 import {EditableIcon} from '../components/IconPicker.jsx';
-import {notify} from '../lib/dialog.jsx';
+import {notify, promptDialog} from '../lib/dialog.jsx';
 
 function Eyebrow({block, setProp, editing}) {
     return <p className="eyebrow">
@@ -19,17 +19,24 @@ function Eyebrow({block, setProp, editing}) {
 
 function Divider() {return <hr className="divider" />;}
 
-function Heading({block, setProp, editing}) {
-    const Tag = `h${block.props.level || 2}`;
-    if (editing) return <InlineText as={Tag} value={block.props.text} placeholder="Heading"
-                                    onChange={v => setProp('text', v)}/>;
-    const el = <Tag>{block.props.text}</Tag>;
+// `level` is 1–6 for h1–h6, or 'p' to render as a paragraph.
+function Heading({block, setProp, editing, pages}) {
+    const lvl = block.props.level || 2;
+    const Tag = lvl === 'p' ? 'p' : `h${lvl}`;
+    if (editing) return <RichText as={Tag} html={block.props.html} text={block.props.text} pages={pages}
+                                  placeholder="Heading" onChange={h => setProp('html', h)}/>;
+    const el = block.props.html != null
+        ? <RichHtml as={Tag} html={block.props.html}/>
+        : <Tag>{block.props.text}</Tag>;
     return block.props.to ? <Link to={block.props.to} className="block-link">{el}</Link> : el;
 }
 
-function Text({block, setProp, editing}) {
-    if (!editing) return <p>{block.props.text}</p>;
-    return <InlineText as="p" value={block.props.text} placeholder="Paragraph" onChange={v => setProp('text', v)}/>;
+function Text({block, setProp, editing, pages}) {
+    if (editing) return <RichText as="p" html={block.props.html} text={block.props.text} pages={pages}
+                                  placeholder="Paragraph" onChange={h => setProp('html', h)}/>;
+    return block.props.html != null
+        ? <RichHtml as="p" html={block.props.html}/>
+        : <p>{block.props.text}</p>;
 }
 
 function ButtonBlock({block, setProp, editing}) {
@@ -191,12 +198,26 @@ function WidthCtl({block, setProp, columns}) {
 
 function LinkCtl({block, setProp, pages}) {
     const opts = pages || [];
-    const known = opts.some(p => p.path === block.props.to);
+    const to = block.props.to || '';
+    const external = isExternalUrl(to);
+    const known = opts.some(p => p.path === to);
+
+    async function onChange(e) {
+        const v = e.target.value;
+        if (v === '__external__') {
+            const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
+            if (url && url.trim()) setProp('to', url.trim());
+            return;
+        }
+        setProp('to', v);
+    }
+
     return <label className="block-ctl">Links to
-        <select value={block.props.to || ''} onChange={e => setProp('to', e.target.value)}>
+        <select value={external ? '__external__' : to} onChange={onChange}>
             <option value="">— none —</option>
-            {!known && block.props.to && <option value={block.props.to}>{block.props.to}</option>}
+            {!known && !external && to && <option value={to}>{to}</option>}
             {opts.map(p => <option key={p.path} value={p.path}>{p.label}</option>)}
+            <option value="__external__">{external ? `External: ${to}` : 'External URL…'}</option>
         </select>
     </label>;
 }
@@ -204,10 +225,15 @@ function LinkCtl({block, setProp, pages}) {
 function headingControls({block, setProp, columns, pages}) {
     return <>
         <label className="block-ctl">Size
-            <select value={block.props.level || 2} onChange={e => setProp('level', Number(e.target.value))}>
-                <option value={1}>H1</option>
-                <option value={2}>H2</option>
-                <option value={3}>H3</option>
+            <select value={String(block.props.level || 2)}
+                    onChange={e => setProp('level', e.target.value === 'p' ? 'p' : Number(e.target.value))}>
+                <option value="1">H1</option>
+                <option value="2">H2</option>
+                <option value="3">H3</option>
+                <option value="4">H4</option>
+                <option value="5">H5</option>
+                <option value="6">H6</option>
+                <option value="p">Paragraph</option>
             </select>
         </label>
         <LinkCtl block={block} setProp={setProp} pages={pages}/>

@@ -2522,3 +2522,167 @@ main.is-editing {
     opacity: .7;
     letter-spacing: .04em
 }
+
+/* ---- Admin backup & restore ---- */
+.backup-panel {
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-self: center;
+}
+
+.backup-panel h2 {
+    margin: 0
+}
+
+.backup-panel p {
+    margin: 0
+}
+
+.backup-panel code {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .08);
+    font-size: 13px
+}
+
+.backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px
+}
+
+.backup-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid rgba(227, 52, 69, .35);
+    border-radius: 12px;
+    background: rgba(227, 52, 69, .08);
+    color: var(--t-paragraph);
+    font-size: 14px
+}
+
+.backup-warning svg {
+    flex: 0 0 auto;
+    color: var(--red-bright)
+}
+
+/* ---- Heading block: H4–H6 (H1–H3 already styled above) ---- */
+h4, h5, h6 {
+    margin-top: 0;
+    color: var(--t-heading);
+    letter-spacing: -.01em
+}
+
+h4 {
+    font-size: 19px;
+    margin-bottom: 9px
+}
+
+h5 {
+    font-size: 16px;
+    margin-bottom: 8px
+}
+
+h6 {
+    font-size: 14px;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: .06em
+}
+
+/* ---- Inline links inside rich heading/paragraph text ---- */
+.rich-text a, .inline-edit a {
+    display: inline;
+    color: var(--btn);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer
+}
+
+.rich-text a:hover, .inline-edit a:hover {
+    opacity: .8
+}
+
+/* ---- Floating "link to page" toolbar shown over a text selection ---- */
+.rich-linkbar {
+    position: absolute;
+    z-index: 1200;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    max-width: min(92vw, 560px);
+    padding: 7px 9px;
+    border-radius: 12px;
+    background: #0d1c31;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .5)
+}
+
+.rich-linkbar-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: var(--muted);
+    text-transform: uppercase
+}
+
+.rich-linkbar button {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer
+}
+
+.rich-linkbar button:hover {
+    background: rgba(255, 255, 255, .14)
+}
+
+.rich-linkbar .rich-unlink {
+    border-color: rgba(227, 52, 69, .4);
+    color: #ffb4bd
+}
+
+.rich-linkbar .rich-external {
+    border-color: rgba(120, 170, 255, .4);
+    color: #bcd4ff
+}
+
+/* ---- Pages panel: nav reorder up/down ---- */
+.pages-reorder {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 6px
+}
+
+.pages-reorder button {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .06);
+    color: var(--white);
+    cursor: pointer
+}
+
+.pages-reorder button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .14)
+}
+
+.pages-reorder button:disabled {
+    opacity: .3;
+    cursor: default
+}

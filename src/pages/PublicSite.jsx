@@ -126,6 +126,16 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         navigate(path);
     }
 
+    // Reorder a nav link by swapping it with its neighbour (dir = -1 up / +1 down).
+    function moveNav(path, dir) {
+        const nav = [...(draft.nav || [])];
+        const i = nav.findIndex(n => n.path === path);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= nav.length) return;
+        [nav[i], nav[j]] = [nav[j], nav[i]];
+        setField(['nav'], nav);
+    }
+
     function toggleNav(path) {
         if (path === '/') return;
         setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, hidden: !n.hidden} : n));
@@ -235,6 +245,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                             currentTemplate={view.layout?.[route]?.templateName}
                             onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}
                             onToggleCta={toggleCta} onRename={renamePage} onChangePath={changePath}
+                            onMove={moveNav}
                             onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
                             onUpdateTemplate={updateTemplate} onDeleteTemplate={deleteTemplate}
                             onClose={() => setPagesOpen(false)}/>}

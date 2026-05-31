@@ -62,7 +62,7 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     function content(b, i) {
         const Comp = registry[b.type]?.render;
         return Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
-                            featured={featured} works={works} onImageOpen={onImageOpen}/> : null;
+                            featured={featured} works={works} onImageOpen={onImageOpen} pages={pages}/> : null;
     }
 
     if (!editing) {

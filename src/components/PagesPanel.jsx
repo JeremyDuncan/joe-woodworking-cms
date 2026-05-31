@@ -1,16 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import {ArrowUpRight} from 'lucide-react';
+import {ArrowUpRight, ChevronDown, ChevronUp, Save, Trash2} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {promptDialog} from '../lib/dialog.jsx';
-import {Files, Save, Trash2} from 'lucide-react'; // <-- ICONS
 
-function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
+function PageRow({p, route, index, total, onMove, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
     const [path, setPath] = useState(p.path);
     useEffect(() => setPath(p.path), [p.path]);
 
     return <div className={`pages-row${p.path === route ? ' current' : ''}`}>
+        <div className="pages-reorder">
+            <button type="button" title="Move up" disabled={index === 0}
+                    onClick={() => onMove(p.path, -1)}><ChevronUp size={15}/></button>
+            <button type="button" title="Move down" disabled={index === total - 1}
+                    onClick={() => onMove(p.path, 1)}><ChevronDown size={15}/></button>
+        </div>
         <div className="pages-fields">
             <input className="pages-label-input" value={p.label} placeholder="Page name" maxLength={12}
                    onChange={e => onRename(p.path, e.target.value)}/>
@@ -34,7 +39,7 @@ function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, o
     </div>;
 }
 
-export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose}) {
+export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onMove, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
     const isTemplate = !!(currentTemplate && templateNames.includes(currentTemplate));
@@ -81,9 +86,10 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
         </div>
 
         <div className="pages-list">
-            {(pages || []).map(p => <PageRow key={p.path} p={p} route={route} onRename={onRename}
-                                             onChangePath={onChangePath} onDeletePage={onDeletePage}
-                                             onToggleNav={onToggleNav} onToggleCta={onToggleCta}/>)}
+            {(pages || []).map((p, i) => <PageRow key={p.path} p={p} route={route} index={i} total={(pages || []).length}
+                                                  onMove={onMove} onRename={onRename}
+                                                  onChangePath={onChangePath} onDeletePage={onDeletePage}
+                                                  onToggleNav={onToggleNav} onToggleCta={onToggleCta}/>)}
         </div>
 
         <button type="button" className="button button-primary pages-add" onClick={onAddPage}>+ Add page</button>
