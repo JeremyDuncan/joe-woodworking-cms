@@ -98,11 +98,12 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
     const [adjust, setAdjust] = useState(false);
     const url = block.props.url;
     const placement = block.props.placement;
-    const media = url ? [{url, type: 'image/*', placement}] : (featured?.media || []);
+    const src = url || featured?.media?.[0]?.url || '';
+    const media = src ? [{url: src, type: 'image/*', placement}] : [];
     const to = !editing ? block.props.to : null;
     const caption = block.props.caption;
     // In edit mode, clicking the image opens the crop adjuster instead of the lightbox.
-    const onImg = editing ? (url ? () => setAdjust(true) : undefined) : (to ? undefined : onImageOpen);
+    const onImg = editing ? (src ? () => setAdjust(true) : undefined) : (to ? undefined : onImageOpen);
     return <div className="home-visual">
         <MediaPreview media={media} linkTo={to} onImageOpen={onImg}/>
         {editing
@@ -111,9 +112,9 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
             : (caption ? <p className="image-caption">{caption}</p> : null)}
         {editing && <ImageUpload hasImage={!!url} clearLabel="Use featured" onUploaded={u => setProp('url', u)}
                                  onClear={() => setProp('url', '')}/>}
-        {editing && url && <button type="button" className="button button-ghost adjust-trigger"
+        {editing && src && <button type="button" className="button button-ghost adjust-trigger"
                                    onClick={() => setAdjust(true)}>Adjust image</button>}
-        {adjust && url && <ImageAdjust src={url} value={placement} onApply={p => setProp('placement', p)}
+        {adjust && src && <ImageAdjust src={src} value={placement} onApply={p => setProp('placement', p)}
                                        onClose={() => setAdjust(false)}/>}
     </div>;
 }

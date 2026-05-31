@@ -25,6 +25,7 @@
     --btn-deep: #9a1624;
     --btn-rgb: 227, 52, 69;
     --icon-color: #d7a64f;
+    --hover-border: #d7a64f;
     --accent-rgb: 215, 166, 79;
     --t-heading: #fffaf0;
     --t-paragraph: #b8c2d6;
@@ -46,7 +47,10 @@ html {
 body {
     margin: 0;
     font-family: var(--app-font, 'Inter', system-ui, -apple-system, Segoe UI, sans-serif);
+    min-height: 100vh;
     background: radial-gradient(circle at 0% 0%, rgba(var(--grad1-rgb), .32), transparent 45%), radial-gradient(circle at 100% 0%, rgba(var(--grad2-rgb), .28), transparent 42%), radial-gradient(circle at 0% 100%, rgba(var(--grad3-rgb), .28), transparent 45%), radial-gradient(circle at 100% 100%, rgba(var(--grad4-rgb), .28), transparent 42%), linear-gradient(180deg, var(--bg-deep) 0%, var(--navy) 45%, var(--bg-deep) 100%);
+    background-attachment: fixed;
+    background-size: cover;
     color: var(--white);
     overflow-x: hidden
 }
@@ -2161,7 +2165,7 @@ main.is-editing {
 }
 
 .work-card-link:hover .gallery-card {
-    border-color: var(--gold)
+    border-color: var(--hover-border)
 }
 
 /* List item icon picker sits tight next to its text */
@@ -2193,13 +2197,14 @@ main.is-editing {
 /* ---- Toasts ---- */
 .toast-stack {
     position: fixed;
-    bottom: 96px;
-    right: 22px;
+    top: 88px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 300;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    align-items: flex-end;
+    align-items: center;
     pointer-events: none
 }
 
@@ -2333,7 +2338,7 @@ main.is-editing {
 }
 
 .work-card-clickable:hover .gallery-card {
-    border-color: var(--gold)
+    border-color: var(--hover-border)
 }
 
 /* ---- Nav items with icons ---- */
@@ -2341,4 +2346,46 @@ main.is-editing {
     display: inline-flex;
     align-items: center;
     gap: 6px
+}
+
+/* Theme preset action buttons */
+.theme-preset-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px
+}
+
+.theme-preset-actions .button {
+    min-height: 40px;
+    flex: 1 1 auto;
+    padding-inline: 14px
+}
+
+/* ---- Admin chrome buttons: fixed colors, NOT the themeable button fill ---- */
+.edit-bar .button-primary,
+.theme-panel .button-primary,
+.pages-panel .button-primary,
+.dialog .button-primary,
+.icon-modal .button-primary,
+.adjust-modal .button-primary,
+.admin-shell .button-primary {
+    background: linear-gradient(135deg, #2f6fe0, #1e49a0);
+    box-shadow: 0 16px 50px rgba(47, 111, 224, .3);
+    color: #fff
+}
+
+/* Save = always green */
+.btn-save {
+    background: linear-gradient(135deg, #2bbf76, #1c8a55);
+    box-shadow: 0 16px 50px rgba(43, 191, 118, .32);
+    color: #fff
+}
+
+.btn-save:disabled {
+    opacity: .7
+}
+
+.theme-edited {
+    color: var(--gold);
+    font-weight: 700
 }

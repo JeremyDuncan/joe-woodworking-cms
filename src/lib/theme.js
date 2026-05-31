@@ -43,6 +43,7 @@ export const defaultTheme = {
         gradient4: '#08111f',   // bottom-right glow (off by default)
         button: '#e33445',      // button fill
         icon: '#d7a64f',        // icon color
+        hover: '#d7a64f',       // card hover border / highlight
     },
     text: {
         heading: '#fffaf0',
@@ -120,6 +121,7 @@ export function applyTheme(theme) {
     root.setProperty('--red', shade(button, -0.18));
 
     root.setProperty('--icon-color', hx(c.icon, defaultTheme.colors.icon));
+    root.setProperty('--hover-border', hx(c.hover, defaultTheme.colors.hover));
 
     // Per-element text colors
     root.setProperty('--t-heading', hx(tx.heading, defaultTheme.text.heading));

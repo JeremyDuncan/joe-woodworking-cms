@@ -66,6 +66,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             if (reloadWorks) await reloadWorks();
             setEditing(false);
             setSaveState(null);
+            notify('Changes saved', 'success');
         } catch {
             setSaveState('error');
         }
@@ -92,6 +93,14 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         const themeCopy = JSON.parse(JSON.stringify(draft.theme || {}));
         setField(['themes', name], themeCopy);
         await persistKey('themes', {...(draft.themes || {}), [name]: themeCopy});
+    }
+
+    async function deleteThemePreset(name) {
+        const nextThemes = {...(draft.themes || {})};
+        delete nextThemes[name];
+        setField(['themes'], nextThemes);
+        setField(['theme', 'name'], '');
+        await persistKey('themes', nextThemes);
     }
 
     // ---- Page management ----
@@ -195,7 +204,8 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                                  onTheme={() => setThemeOpen(o => !o)} onPages={() => setPagesOpen(o => !o)}/>}
             {isAdmin && editing && themeOpen &&
                 <ThemePanel theme={view.theme} themes={view.themes} setField={setField}
-                            onSavePreset={saveThemePreset} onClose={() => setThemeOpen(false)}/>}
+                            onSavePreset={saveThemePreset} onDeletePreset={deleteThemePreset}
+                            onClose={() => setThemeOpen(false)}/>}
             {isAdmin && editing && pagesOpen &&
                 <PagesPanel pages={view.nav} route={route} templates={view.layouts}
                             onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}

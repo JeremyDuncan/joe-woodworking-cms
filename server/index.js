@@ -111,7 +111,7 @@ const defaultSettings = {
         font: 'Inter',
         colors: {
             background: '#08111f', gradient1: '#b51f2b', gradient2: '#2458a3',
-            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f'
+            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f', hover: '#d7a64f'
         },
         text: {
             heading: '#fffaf0', paragraph: '#b8c2d6', nav: '#fffaf0', button: '#ffffff',
@@ -649,8 +649,13 @@ export function createApp(options = {}) {
     }
 
     app.put('/api/admin/settings', requireAdmin, async (req, res) => {
-        const next = deepMerge(await readSettings(), req.body || {});
-        if (req.body && req.body.layout) await syncWorkBlocks(next);
+        const body = req.body || {};
+        const next = deepMerge(await readSettings(), body);
+        // Preset collections must be replaceable (deepMerge can't delete keys), so a
+        // removed theme/layout actually persists.
+        if (body.themes) next.themes = body.themes;
+        if (body.layouts) next.layouts = body.layouts;
+        if (body.layout) await syncWorkBlocks(next);
         await writeSettings(next);
         res.json(next);
     });

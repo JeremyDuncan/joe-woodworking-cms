@@ -21,7 +21,7 @@ export function EditBar({editing, saveState, adminPath, pages, route, onEnter, o
         </button>
         <button type="button" className="button button-ghost edit-icon-btn" onClick={onTheme}><Palette size={16}/> Theme
         </button>
-        <button type="button" className="button button-primary edit-icon-btn" onClick={onSave}
+        <button type="button" className="button btn-save edit-icon-btn" onClick={onSave}
                 disabled={saveState === 'saving'}>
             <Save size={16}/> {saveState === 'saving' ? 'Saving…' : 'Save'}
         </button>
