@@ -41,6 +41,12 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     }, []);
 
     async function save() {
+        const workNeedsImage = Object.values(draft.layout || {}).some(pg =>
+            (pg?.blocks || []).some(b => b.type === 'work' && !(b.props && b.props.image)));
+        if (workNeedsImage) {
+            alert('Each Work item needs a picture before the page can be saved.');
+            return;
+        }
         setSaveState('saving');
         try {
             const r = await fetch('/api/admin/settings', {
@@ -67,7 +73,9 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     }
 
     // Persist a named theme preset immediately (merges only `themes` on the server,
-    // so it doesn't commit other in-progress page edits).
+    // so it doesn't commit other in-progress page edits). We intentionally do NOT
+    // reloadSettings() here — that would re-apply the last-saved theme over the
+    // active draft and visibly revert the colors.
     async function saveThemePreset(name) {
         const themeCopy = JSON.parse(JSON.stringify(draft.theme || {}));
         setField(['themes', name], themeCopy);
@@ -77,13 +85,12 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({themes: nextThemes})
         });
-        await reloadSettings();
     }
 
     const gallery = works ?? fallbackGallery;
     const featured = gallery.find(w => w.featured) || gallery.find(w => w.media?.length) || gallery[0];
 
-    let page = <HomePage settings={view} featured={featured} onImageOpen={setModalImage}/>;
+    let page = <HomePage settings={view} featured={featured} works={gallery} onImageOpen={setModalImage}/>;
     if (route === '/work') page = <WorkPage settings={view} gallery={gallery} onImageOpen={setModalImage}/>;
     if (route === '/options') page = <OptionsPage settings={view} featured={featured} onImageOpen={setModalImage}/>;
     if (route === '/process') page = <ProcessPage settings={view}/>;

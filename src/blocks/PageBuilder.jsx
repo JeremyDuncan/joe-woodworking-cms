@@ -7,7 +7,7 @@ import {BlockFrame} from './BlockFrame.jsx';
 // Blocks are grouped into columns; array order sets vertical order within a column.
 // In edit mode blocks are drag-reorderable (drop on a block to place before it,
 // drop on empty column space to append to that column).
-export function PageBuilder({route, layout, registry, featured, onImageOpen, pages}) {
+export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages}) {
     const {editing, setField} = useEdit();
     const columns = Math.min(3, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
@@ -63,7 +63,7 @@ export function PageBuilder({route, layout, registry, featured, onImageOpen, pag
         const def = registry[b.type];
         const Comp = def?.render;
         const content = Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
-                                     featured={featured} onImageOpen={onImageOpen}/> : null;
+                                     featured={featured} works={works} onImageOpen={onImageOpen}/> : null;
         if (!editing) return <React.Fragment key={b.id}>{content}</React.Fragment>;
         return <BlockFrame key={b.id} label={def?.label || b.type} isOver={overId === b.id}
                            onDragStart={e => {

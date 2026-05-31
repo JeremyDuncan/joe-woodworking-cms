@@ -590,6 +590,17 @@ export function createApp(options = {}) {
         }
     });
 
+    // Store a standalone image (used by image blocks in the page builder).
+    app.post('/api/admin/upload', requireAdmin, upload.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No file provided'});
+        try {
+            const saved = await saveMedia(req.file);
+            res.json({url: saved.url, key: saved.key, type: saved.type});
+        } catch {
+            res.status(500).json({error: 'Upload failed'});
+        }
+    });
+
     app.post('/api/admin/works', requireAdmin, upload.array('media', 8), async (req, res) => {
         const works = await readWorks();
         const now = new Date().toISOString();

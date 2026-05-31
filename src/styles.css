@@ -1773,3 +1773,35 @@ input::placeholder, textarea::placeholder {
 .theme-section:first-child {
     margin-top: 0
 }
+
+/* ---- Image-upload block + draggable theme head ---- */
+.theme-drag {
+    cursor: move;
+    user-select: none
+}
+
+.image-upload {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px
+}
+
+.image-upload .button {
+    min-height: 40px;
+    cursor: pointer
+}
+
+.image-upload input {
+    display: none
+}
+
+
+.work-img-required {
+    text-align: center;
+    color: #ff9aa6;
+    font-size: 12px;
+    font-weight: 800;
+    margin: 8px 0 0
+}

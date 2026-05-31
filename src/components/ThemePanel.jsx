@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {FONTS, defaultTheme} from '../lib/theme.js';
 
 function Color({label, value, fallback, onChange}) {
@@ -16,6 +16,38 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
     const setColor = (k, v) => setField(['theme', 'colors', k], v);
     const setText = (k, v) => setField(['theme', 'text', k], v);
 
+    // Draggable panel
+    const panelRef = useRef(null);
+    const dragRef = useRef(null);
+    const [pos, setPos] = useState(null);
+
+    function onHeadDown(e) {
+        if (e.button !== 0 || e.target.closest('.theme-close')) return;
+        const rect = panelRef.current.getBoundingClientRect();
+        dragRef.current = {dx: e.clientX - rect.left, dy: e.clientY - rect.top};
+        e.preventDefault();
+    }
+
+    useEffect(() => {
+        function move(e) {
+            if (!dragRef.current) return;
+            setPos({x: e.clientX - dragRef.current.dx, y: e.clientY - dragRef.current.dy});
+        }
+
+        function up() {
+            dragRef.current = null;
+        }
+
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
+        return () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+        };
+    }, []);
+
+    const style = pos ? {left: pos.x, top: pos.y, right: 'auto', bottom: 'auto', transform: 'none'} : undefined;
+
     function applyPreset(name) {
         if (name && themes[name]) setField(['theme'], JSON.parse(JSON.stringify(themes[name])));
     }
@@ -32,8 +64,8 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
         }
     }
 
-    return <div className="theme-panel">
-        <div className="theme-panel-head">
+    return <div className="theme-panel" ref={panelRef} style={style}>
+        <div className="theme-panel-head theme-drag" onMouseDown={onHeadDown}>
             <strong>Theme</strong>
             <button type="button" className="theme-close" onClick={onClose}>×</button>
         </div>

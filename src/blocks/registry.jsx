@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Link} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {InlineText} from '../lib/edit.jsx';
@@ -47,8 +47,69 @@ function ListBlock({block, setProp, editing}) {
     </div>;
 }
 
-function ImageBlock({featured, onImageOpen}) {
-    return <div className="home-visual"><MediaPreview media={featured?.media} onImageOpen={onImageOpen}/></div>;
+function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
+    const [busy, setBusy] = useState(false);
+
+    async function onChange(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setBusy(true);
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+            const r = await fetch('/api/admin/upload', {method: 'POST', body: fd});
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.url) onUploaded(j.url);
+            else alert(j.error || 'Upload failed.');
+        } catch {
+            alert('Network error. Upload failed.');
+        } finally {
+            setBusy(false);
+            e.target.value = '';
+        }
+    }
+
+    return <div className="image-upload">
+        <label className="button button-ghost">{busy ? 'Uploading…' : (hasImage ? 'Replace image' : 'Upload image')}
+            <input type="file" accept="image/*,.heic,.heif" onChange={onChange}/></label>
+        {hasImage && onClear && clearLabel &&
+            <button type="button" className="button button-ghost" onClick={onClear}>{clearLabel}</button>}
+    </div>;
+}
+
+function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
+    const url = block.props.url;
+    const media = url ? [{url, type: 'image/*'}] : (featured?.media || []);
+    return <div className="home-visual">
+        <MediaPreview media={media} onImageOpen={onImageOpen}/>
+        {editing && <ImageUpload hasImage={!!url} clearLabel="Use featured" onUploaded={u => setProp('url', u)}
+                                 onClear={() => setProp('url', '')}/>}
+    </div>;
+}
+
+// A single portfolio item. Self-contained (its own title/description/price/image),
+// so each work on the page is its own block. The image is required to save.
+function WorkItemBlock({block, setProp, editing, onImageOpen}) {
+    const {title, description, price, image} = block.props;
+    const media = image ? [{url: image, type: 'image/*'}] : [];
+    return <article className="gallery-card work-card">
+        <MediaPreview media={media} compact onImageOpen={onImageOpen}/>
+        <div className="card-copy">
+            {editing
+                ? <InlineText as="h3" value={title} placeholder="Title" onChange={v => setProp('title', v)}/>
+                : <h3>{title}</h3>}
+            {editing
+                ? <InlineText className="price-tag" value={price} placeholder="Price / quote (optional)"
+                              onChange={v => setProp('price', v)}/>
+                : (price ? <p className="price-tag">{price}</p> : null)}
+            {editing
+                ? <InlineText as="p" value={description} placeholder="Description"
+                              onChange={v => setProp('description', v)}/>
+                : <p>{description}</p>}
+        </div>
+        {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
+        {editing && !image && <p className="work-img-required">A picture is required before saving.</p>}
+    </article>;
 }
 
 function headingControls({block, setProp}) {
@@ -100,5 +161,10 @@ export const blockRegistry = {
     text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck'}, render: ListBlock, controls: listControls},
-    image: {label: 'Featured image', defaults: {source: 'featured'}, render: ImageBlock},
+    image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock},
+    work: {
+        label: 'Work item',
+        defaults: {title: 'New work', description: 'Describe this piece.', price: '', image: ''},
+        render: WorkItemBlock
+    },
 };
