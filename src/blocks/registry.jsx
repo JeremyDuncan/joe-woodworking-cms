@@ -85,8 +85,13 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
     const url = block.props.url;
     const media = url ? [{url, type: 'image/*'}] : (featured?.media || []);
     const to = !editing ? block.props.to : null;
+    const caption = block.props.caption;
     return <div className="home-visual">
         <MediaPreview media={media} linkTo={to} onImageOpen={to ? undefined : onImageOpen}/>
+        {editing
+            ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
+                          onChange={v => setProp('caption', v)}/>
+            : (caption ? <p className="image-caption">{caption}</p> : null)}
         {editing && <ImageUpload hasImage={!!url} clearLabel="Use featured" onUploaded={u => setProp('url', u)}
                                  onClear={() => setProp('url', '')}/>}
     </div>;

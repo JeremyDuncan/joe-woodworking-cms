@@ -2043,3 +2043,19 @@ input::placeholder, textarea::placeholder {
 main.is-editing {
     padding-bottom: 170px
 }
+
+/* Linked image (no zoom cursor) + image caption */
+.media-frame-link {
+    appearance: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer
+}
+
+.image-caption {
+    text-align: center;
+    margin: 10px auto 0;
+    max-width: 600px;
+    color: var(--t-paragraph);
+    font-size: 15px
+}
