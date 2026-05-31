@@ -21,9 +21,9 @@ export function confirmDialog(text, opts = {}) {
     });
 }
 
-export function promptDialog(text, defaultValue = '') {
+export function promptDialog(text, defaultValue = '', opts = {}) {
     return new Promise(resolve => {
-        if (openDialog) openDialog({kind: 'prompt', text, value: defaultValue, resolve});
+        if (openDialog) openDialog({kind: 'prompt', text, value: defaultValue, ...opts, resolve});
         else resolve(null);
     });
 }
@@ -63,12 +63,14 @@ export function DialogHost() {
             <div className="dialog" onMouseDown={e => e.stopPropagation()}>
                 <p className="dialog-text">{dialog.text}</p>
                 {dialog.kind === 'prompt' &&
-                    <input className="dialog-input" autoFocus value={input}
+                    <input className="dialog-input" autoFocus value={input} maxLength={dialog.maxLength || undefined}
                            onChange={e => setInput(e.target.value)}
                            onKeyDown={e => {
                                if (e.key === 'Enter') finish(input);
                                if (e.key === 'Escape') finish(null);
                            }}/>}
+                {dialog.kind === 'prompt' && dialog.maxLength &&
+                    <span className="dialog-hint">{input.length}/{dialog.maxLength}</span>}
                 <div className="dialog-actions">
                     <button type="button" className="button button-ghost"
                             onClick={() => finish(cancelResult)}>{dialog.cancelLabel || 'Cancel'}</button>

@@ -2389,3 +2389,10 @@ main.is-editing {
     color: var(--gold);
     font-weight: 700
 }
+
+.dialog-hint {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--steel);
+    margin-top: -8px
+}

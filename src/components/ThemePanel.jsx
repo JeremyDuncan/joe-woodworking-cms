@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {FONTS, defaultTheme} from '../lib/theme.js';
 import {useDragPanel} from '../lib/useDragPanel.js';
-import {promptDialog} from '../lib/dialog.jsx';
+import {confirmDialog, promptDialog} from '../lib/dialog.jsx';
 
 // Not a <label>: wrapping the text in a label made clicking the text open the
 // native colour picker. Only the swatch input should trigger it.
@@ -34,7 +34,7 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
     }
 
     async function saveAs() {
-        const name = await promptDialog('Save this theme as:');
+        const name = await promptDialog('Save this theme as:', '', {maxLength: 12});
         if (!name || !name.trim()) return;
         setMsg('Saving…');
         try {
@@ -60,6 +60,7 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
     async function deletePreset() {
         if (!t.name || !onDeletePreset) return;
         const name = t.name;
+        if (!(await confirmDialog(`Delete the theme “${name}”?`, {danger: true, okLabel: 'Delete'}))) return;
         try {
             await onDeletePreset(name);
             setMsg(`Deleted “${name}”`);

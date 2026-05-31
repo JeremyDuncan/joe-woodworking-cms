@@ -72,7 +72,8 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         }
     }
 
-    function discard() {
+    async function discard() {
+        if (!(await confirmDialog('Discard all unsaved changes?', {danger: true, okLabel: 'Discard'}))) return;
         setDraft(settings);
         setEditing(false);
         setSaveState(null);
@@ -105,7 +106,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
 
     // ---- Page management ----
     async function addPage() {
-        const name = await promptDialog('New page name');
+        const name = await promptDialog('New page name', '', {maxLength: 12});
         if (!name || !name.trim()) return;
         const label = name.trim();
         const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -175,7 +176,9 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         const cur = draft.layout?.[route];
         if (!cur) return;
         const copy = JSON.parse(JSON.stringify(cur));
+        delete copy.templateName;
         setField(['layouts', name], copy);
+        setField(['layout', route, 'templateName'], name);
         await persistKey('layouts', {...(draft.layouts || {}), [name]: copy});
     }
 
@@ -183,10 +186,30 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         const tpl = (draft.layouts || {})[name];
         if (!tpl) return;
         const copy = {
-            columns: tpl.columns || 1,
+            columns: tpl.columns || 1, templateName: name,
             blocks: (tpl.blocks || []).map(b => ({...b, id: newId(), props: {...b.props}}))
         };
         setField(['layout', route], copy);
+    }
+
+    async function updateTemplate() {
+        const cur = draft.layout?.[route];
+        const name = cur?.templateName;
+        if (!name) return;
+        const copy = JSON.parse(JSON.stringify(cur));
+        delete copy.templateName;
+        setField(['layouts', name], copy);
+        await persistKey('layouts', {...(draft.layouts || {}), [name]: copy});
+    }
+
+    async function deleteTemplate(name) {
+        if (!name) return;
+        if (!(await confirmDialog(`Delete the layout “${name}”?`, {danger: true, okLabel: 'Delete'}))) return;
+        const nextLayouts = {...(draft.layouts || {})};
+        delete nextLayouts[name];
+        setField(['layouts'], nextLayouts);
+        if (draft.layout?.[route]?.templateName === name) setField(['layout', route, 'templateName'], undefined);
+        await persistKey('layouts', nextLayouts);
     }
 
     const gallery = works ?? fallbackGallery;
@@ -208,9 +231,11 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                             onClose={() => setThemeOpen(false)}/>}
             {isAdmin && editing && pagesOpen &&
                 <PagesPanel pages={view.nav} route={route} templates={view.layouts}
+                            currentTemplate={view.layout?.[route]?.templateName}
                             onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}
                             onToggleCta={toggleCta} onRename={renamePage} onChangePath={changePath}
                             onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
+                            onUpdateTemplate={updateTemplate} onDeleteTemplate={deleteTemplate}
                             onClose={() => setPagesOpen(false)}/>}
         </main>
     </EditProvider>;

@@ -11,7 +11,7 @@ function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, o
 
     return <div className={`pages-row${p.path === route ? ' current' : ''}`}>
         <div className="pages-fields">
-            <input className="pages-label-input" value={p.label} placeholder="Page name"
+            <input className="pages-label-input" value={p.label} placeholder="Page name" maxLength={12}
                    onChange={e => onRename(p.path, e.target.value)}/>
             {isHome
                 ? <span className="pages-path">/</span>
@@ -33,13 +33,14 @@ function PageRow({p, route, onRename, onChangePath, onDeletePage, onToggleNav, o
     </div>;
 }
 
-export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onSaveTemplate, onApplyTemplate, onClose}) {
+export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
+    const isTemplate = !!(currentTemplate && templateNames.includes(currentTemplate));
     const {panelRef, onHeadDown, style} = useDragPanel();
 
     async function saveTemplate() {
-        const name = await promptDialog('Save this page’s layout as a template named:');
+        const name = await promptDialog('Save this page’s layout as a template named:', '', {maxLength: 12});
         if (!name || !name.trim()) return;
         setMsg('Saving…');
         try {
@@ -47,6 +48,28 @@ export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, on
             setMsg(`Saved template “${name.trim()}”`);
         } catch {
             setMsg('Save failed');
+        }
+    }
+
+    async function updateTemplate() {
+        if (!isTemplate) return;
+        setMsg('Saving…');
+        try {
+            await onUpdateTemplate();
+            setMsg(`Updated “${currentTemplate}”`);
+        } catch {
+            setMsg('Save failed');
+        }
+    }
+
+    async function deleteTemplate() {
+        if (!isTemplate) return;
+        const name = currentTemplate;
+        try {
+            await onDeleteTemplate(name);
+            setMsg(`Deleted “${name}”`);
+        } catch {
+            setMsg('Delete failed');
         }
     }
 
@@ -66,16 +89,23 @@ export function PagesPanel({pages, route, templates, onAddPage, onDeletePage, on
 
         <div className="pages-templates">
             <p className="theme-section">Layout templates</p>
+            <p className="theme-current">This page: <strong>{currentTemplate || 'Custom (unsaved)'}</strong></p>
             <div className="theme-row"><span>Apply to this page</span>
-                <select value="" onChange={e => {
+                <select value={isTemplate ? currentTemplate : ''} onChange={e => {
                     if (e.target.value) onApplyTemplate(e.target.value);
                 }}>
                     <option value="">— choose —</option>
                     {templateNames.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
             </div>
-            <button type="button" className="button button-ghost" onClick={saveTemplate}>Save this layout as template
-            </button>
+            <div className="theme-preset-actions">
+                <button type="button" className="button button-ghost" onClick={saveTemplate}>Save as new</button>
+                {isTemplate &&
+                    <button type="button" className="button button-primary" onClick={updateTemplate}>Update
+                        “{currentTemplate}”</button>}
+                {isTemplate &&
+                    <button type="button" className="button danger" onClick={deleteTemplate}>Delete</button>}
+            </div>
             {msg && <span className="theme-msg">{msg}</span>}
         </div>
     </div>;
