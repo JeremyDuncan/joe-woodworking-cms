@@ -121,6 +121,33 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, cta: !n.cta} : n));
     }
 
+    function renamePage(path, label) {
+        setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, label} : n));
+    }
+
+    function changePath(oldPath, rawNew) {
+        if (oldPath === '/') return;
+        let np = '/' + (rawNew || '').trim().toLowerCase()
+            .replace(/^\/+/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+        if (np === oldPath || np === '/') return;
+        const nav = draft.nav || [];
+        if (nav.some(n => n.path === np)) {
+            alert('That address is already used by another page.');
+            return;
+        }
+        // Move the layout to the new key and repoint any links that pointed at the old path.
+        const layout = {};
+        Object.entries(draft.layout || {}).forEach(([rk, pg]) => {
+            const key = rk === oldPath ? np : rk;
+            const blocks = (pg?.blocks || []).map(b =>
+                (b.props && b.props.to === oldPath) ? {...b, props: {...b.props, to: np}} : b);
+            layout[key] = {...pg, blocks};
+        });
+        setField(['layout'], layout);
+        setField(['nav'], nav.map(n => n.path === oldPath ? {...n, path: np} : n));
+        if (route === oldPath) navigate(np);
+    }
+
     function deletePage(path) {
         if (path === '/') return;
         if (!confirm('Delete this page? (Applies when you Save.)')) return;
@@ -160,7 +187,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                          onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin && <EditBar editing={editing} saveState={saveState} adminPath={adminPath}
-                                 pages={(view.nav || []).filter(n => !n.hidden)}
+                                 pages={(view.nav || []).filter(n => !n.hidden)} route={route}
                                  onEnter={() => setEditing(true)} onSave={save} onDiscard={discard}
                                  onTheme={() => setThemeOpen(o => !o)} onPages={() => setPagesOpen(o => !o)}/>}
             {isAdmin && editing && themeOpen &&
@@ -169,7 +196,8 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             {isAdmin && editing && pagesOpen &&
                 <PagesPanel pages={view.nav} route={route} templates={view.layouts}
                             onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}
-                            onToggleCta={toggleCta} onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
+                            onToggleCta={toggleCta} onRename={renamePage} onChangePath={changePath}
+                            onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
                             onClose={() => setPagesOpen(false)}/>}
         </main>
     </EditProvider>;

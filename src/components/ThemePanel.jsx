@@ -1,10 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {FONTS, defaultTheme} from '../lib/theme.js';
 
+// Not a <label>: wrapping the text in a label made clicking the text open the
+// native colour picker. Only the swatch input should trigger it.
 function Color({label, value, fallback, onChange}) {
-    return <label className="theme-row">{label}
+    return <div className="theme-row"><span>{label}</span>
         <input type="color" value={value || fallback} onChange={e => onChange(e.target.value)}/>
-    </label>;
+    </div>;
 }
 
 export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
@@ -13,8 +15,19 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
     const text = {...defaultTheme.text, ...((t.text && typeof t.text === 'object' && !Array.isArray(t.text)) ? t.text : {})};
     const presetNames = Object.keys(themes || {});
     const [msg, setMsg] = useState('');
-    const setColor = (k, v) => setField(['theme', 'colors', k], v);
-    const setText = (k, v) => setField(['theme', 'text', k], v);
+    // Editing a colour/font makes the theme "custom" — clear the applied preset name.
+    const setColor = (k, v) => {
+        setField(['theme', 'colors', k], v);
+        setField(['theme', 'name'], '');
+    };
+    const setText = (k, v) => {
+        setField(['theme', 'text', k], v);
+        setField(['theme', 'name'], '');
+    };
+    const setFont = v => {
+        setField(['theme', 'font'], v);
+        setField(['theme', 'name'], '');
+    };
 
     // Draggable panel
     const panelRef = useRef(null);
@@ -49,7 +62,7 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
     const style = pos ? {left: pos.x, top: pos.y, right: 'auto', bottom: 'auto', transform: 'none'} : undefined;
 
     function applyPreset(name) {
-        if (name && themes[name]) setField(['theme'], JSON.parse(JSON.stringify(themes[name])));
+        if (name && themes[name]) setField(['theme'], {...JSON.parse(JSON.stringify(themes[name])), name});
     }
 
     async function saveAs() {
@@ -58,6 +71,7 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
         setMsg('Saving…');
         try {
             await onSavePreset(name.trim());
+            setField(['theme', 'name'], name.trim());
             setMsg(`Saved “${name.trim()}”`);
         } catch {
             setMsg('Save failed');
@@ -71,11 +85,11 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
         </div>
 
         <div className="theme-scroll">
-            <label className="theme-row">Font
-                <select value={t.font || 'Inter'} onChange={e => setField(['theme', 'font'], e.target.value)}>
+            <div className="theme-row"><span>Font</span>
+                <select value={t.font || 'Inter'} onChange={e => setFont(e.target.value)}>
                     {Object.keys(FONTS).map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
-            </label>
+            </div>
 
             <p className="theme-section">Background</p>
             <Color label="Background" value={colors.background} fallback="#08111f"
@@ -106,12 +120,13 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onClose}) {
         </div>
 
         <div className="theme-presets">
-            <label className="theme-row">Preset
-                <select value="" onChange={e => applyPreset(e.target.value)}>
+            <p className="theme-current">Current: <strong>{t.name || 'Custom (unsaved)'}</strong></p>
+            <div className="theme-row"><span>Apply preset</span>
+                <select value={t.name || ''} onChange={e => applyPreset(e.target.value)}>
                     <option value="">— choose —</option>
                     {presetNames.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
-            </label>
+            </div>
             <button type="button" className="button button-ghost" onClick={saveAs}>Save as new theme</button>
             {msg && <span className="theme-msg">{msg}</span>}
         </div>

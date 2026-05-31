@@ -3,15 +3,33 @@
 export const FONTS = {
     'Inter': "'Inter', system-ui, -apple-system, Segoe UI, sans-serif",
     'Poppins': "'Poppins', system-ui, sans-serif",
+    'Montserrat': "'Montserrat', sans-serif",
+    'Raleway': "'Raleway', sans-serif",
+    'Work Sans': "'Work Sans', sans-serif",
+    'DM Sans': "'DM Sans', sans-serif",
+    'Nunito': "'Nunito', sans-serif",
+    'Lato': "'Lato', sans-serif",
+    'Oswald': "'Oswald', sans-serif",
+    'Bebas Neue': "'Bebas Neue', 'Oswald', sans-serif",
     'Merriweather': "'Merriweather', Georgia, serif",
     'Playfair Display': "'Playfair Display', Georgia, serif",
+    'Lora': "'Lora', Georgia, serif",
     'Roboto Mono': "'Roboto Mono', ui-monospace, monospace",
 };
 
 const FONT_HREF = {
     'Poppins': 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap',
+    'Montserrat': 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap',
+    'Raleway': 'https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800;900&display=swap',
+    'Work Sans': 'https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800;900&display=swap',
+    'DM Sans': 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap',
+    'Nunito': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap',
+    'Lato': 'https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap',
+    'Oswald': 'https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap',
+    'Bebas Neue': 'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
     'Merriweather': 'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap',
     'Playfair Display': 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&display=swap',
+    'Lora': 'https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap',
     'Roboto Mono': 'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap',
 };
 
