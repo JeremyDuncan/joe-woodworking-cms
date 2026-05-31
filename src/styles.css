@@ -15,7 +15,7 @@
     --glass: rgba(255, 255, 255, .08);
     --shadow: 0 30px 100px rgba(0, 0, 0, .45);
     /* Theme-derived (overridden live by applyTheme); defaults match the base look */
-    --bg-deep: #050912;
+    --bg-deep: rgb(5 9 18 / 0.59);
     --bg-deep-rgb: 5, 9, 18;
     --grad1-rgb: 181, 31, 43;
     --grad2-rgb: 36, 88, 163;
@@ -1109,10 +1109,6 @@ input::placeholder, textarea::placeholder {
 }
 
 @media (max-width: 860px) {
-    .nav-hamburger {
-        display: inline-flex
-    }
-
     /* Collapse the nav into a dropdown panel toggled by the hamburger. */
     .site-header nav {
         position: absolute;
@@ -1131,7 +1127,9 @@ input::placeholder, textarea::placeholder {
     }
 
     .site-header nav.nav-open {
-        display: flex
+        display: flex;
+        background: rgba(var(--bg-deep-rgb), .92);
+        backdrop-filter: var(--header-blur, blur(18px));
     }
 
     .site-header nav .nav-item {
@@ -2487,4 +2485,12 @@ main.is-editing {
 .theme-row.theme-check input {
     width: 18px;
     height: 18px
+}
+
+/* Show the hamburger on small screens. Placed after the base .nav-hamburger
+   rule so this override wins (equal specificity → later source order wins). */
+@media (max-width: 860px) {
+    .nav-hamburger {
+        display: inline-flex
+    }
 }

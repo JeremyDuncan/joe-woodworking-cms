@@ -127,7 +127,7 @@ const defaultSettings = {
         colors: {
             background: '#08111f', gradient1: '#b51f2b', gradient2: '#2458a3',
             gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f', hover: '#d7a64f',
-            header: '#0b1626'
+            header: '#0b1626', divider: '#d7a64f'
         },
         text: {
             heading: '#fffaf0', paragraph: '#b8c2d6', nav: '#fffaf0', button: '#ffffff',
@@ -440,34 +440,85 @@ export function createApp(options = {}) {
     }
 
     async function convertImageBuffer(file) {
-        if (!isHeicUpload(file)) return {
-            buffer: file.buffer,
-            ext: path.extname(file.originalname || '') || '.bin',
-            mimetype: file.mimetype
-        };
-        const tmpIn = path.join(os.tmpdir(), `${randomUUID()}.heic`);
-        const tmpOut = path.join(os.tmpdir(), `${randomUUID()}.jpg`);
-        fs.writeFileSync(tmpIn, file.buffer);
-        try {
-            await execFileAsync('heif-convert', ['-q', '90', tmpIn, tmpOut], {
-                timeout: 120000,
-                maxBuffer: 1024 * 1024 * 8
-            });
-            const out = fs.readFileSync(tmpOut);
-            return {buffer: out, ext: '.jpg', mimetype: 'image/jpeg'};
-        } catch {
-            const out = await sharp(file.buffer).rotate().jpeg({quality: 90}).toBuffer();
-            return {buffer: out, ext: '.jpg', mimetype: 'image/jpeg'};
-        } finally {
+        const ext = path.extname(file.originalname || file.filename || '').toLowerCase();
+
+        // Leave videos alone.
+        if (file.mimetype?.startsWith('video/')) {
+            return {
+                buffer: file.buffer,
+                ext: ext || '.bin',
+                mimetype: file.mimetype
+            };
+        }
+
+        // Only optimize image uploads.
+        const isImage =
+            file.mimetype?.startsWith('image/') ||
+            ext === '.heic' ||
+            ext === '.heif';
+
+        if (!isImage) {
+            return {
+                buffer: file.buffer,
+                ext: ext || '.bin',
+                mimetype: file.mimetype || 'application/octet-stream'
+            };
+        }
+
+        let inputBuffer = file.buffer;
+
+        // HEIC/HEIF needs to be converted first before final WebP optimization.
+        if (isHeicUpload(file)) {
+            const tmpIn = path.join(os.tmpdir(), `${randomUUID()}.heic`);
+            const tmpOut = path.join(os.tmpdir(), `${randomUUID()}.jpg`);
+
+            fs.writeFileSync(tmpIn, file.buffer);
+
             try {
-                fs.unlinkSync(tmpIn);
+                await execFileAsync('heif-convert', ['-q', '90', tmpIn, tmpOut], {
+                    timeout: 120000,
+                    maxBuffer: 1024 * 1024 * 8
+                });
+
+                inputBuffer = fs.readFileSync(tmpOut);
             } catch {
-            }
-            try {
-                fs.unlinkSync(tmpOut);
-            } catch {
+                inputBuffer = await sharp(file.buffer)
+                    .rotate()
+                    .jpeg({quality: 90})
+                    .toBuffer();
+            } finally {
+                try {
+                    fs.unlinkSync(tmpIn);
+                } catch {
+                }
+
+                try {
+                    fs.unlinkSync(tmpOut);
+                } catch {
+                }
             }
         }
+
+        // Final optimized image output.
+        const output = await sharp(inputBuffer)
+            .rotate()
+            .resize({
+                width: 1600,
+                height: 1600,
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .webp({
+                quality: 82,
+                effort: 4
+            })
+            .toBuffer();
+
+        return {
+            buffer: output,
+            ext: '.webp',
+            mimetype: 'image/webp'
+        };
     }
 
     async function saveMedia(file) {
@@ -641,7 +692,13 @@ export function createApp(options = {}) {
             for (const b of (pg?.blocks || [])) {
                 if (b.type !== 'work' || !b.props || !b.props.image) continue;
                 const {title, description, price, image, workId} = b.props;
-                const media = [{url: image, type: 'image/jpeg', originalName: title || 'work'}];
+
+                const media = [{
+                    url: image,
+                    type: image?.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
+                    originalName: title || 'work'
+                }];
+
                 const now = new Date().toISOString();
                 if (workId && byId.has(workId)) {
                     const w = byId.get(workId);
