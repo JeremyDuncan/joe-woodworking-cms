@@ -1839,9 +1839,15 @@ input::placeholder, textarea::placeholder {
     min-width: 0
 }
 
-.page-block > .home-visual {
+.builder-page {
+    min-height: 55vh
+}
+
+/* Image block: cap width so the portrait media frame doesn't become huge at wide spans */
+.home-visual {
     width: 100%;
-    max-width: none
+    max-width: 600px;
+    margin-inline: auto
 }
 
 /* dnd-kit drag handle + lifted overlay */
@@ -1889,4 +1895,120 @@ input::placeholder, textarea::placeholder {
     .section, .section-full {
         padding-top: 104px
     }
+}
+
+/* ---- Pages panel + edit-bar wrapping ---- */
+.edit-bar {
+    flex-wrap: wrap;
+    justify-content: center
+}
+
+.pages-panel {
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 121;
+    width: min(360px, calc(100vw - 28px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .97);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow)
+}
+
+.pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 36vh;
+    overflow-y: auto
+}
+
+.pages-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0 6px 0 0;
+    background: rgba(255, 255, 255, .04)
+}
+
+.pages-row.current {
+    border-color: var(--gold)
+}
+
+.pages-go {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    background: transparent;
+    border: 0;
+    color: var(--white);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 9px 10px;
+    text-align: left;
+    min-width: 0
+}
+
+.pages-path {
+    font-size: 11px;
+    color: var(--steel);
+    font-weight: 600
+}
+
+.pages-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: #ff9aa6;
+    cursor: pointer;
+    flex: 0 0 auto
+}
+
+.pages-add {
+    min-height: 42px
+}
+
+.pages-templates {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+@media (max-width: 680px) {
+    .pages-panel {
+        bottom: 12px;
+        width: calc(100vw - 24px)
+    }
+}
+
+.pages-navtoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    cursor: pointer;
+    flex: 0 0 auto;
+    white-space: nowrap
+}
+
+.pages-navtoggle input {
+    width: auto;
+    cursor: pointer
 }

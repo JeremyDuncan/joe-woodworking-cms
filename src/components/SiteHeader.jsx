@@ -9,6 +9,7 @@ export function SiteHeader({settings}) {
     const {editing, setField} = useEdit();
     const [pickIcon, setPickIcon] = useState(false);
     const nav = settings.nav || defaultSettings.nav;
+    const menu = nav.filter(n => !n.hidden);
     const brandText = settings.brandShort || settings.brandName;
     const brandIcon = settings.brandIcon || 'Flag';
     return <header className="site-header">
@@ -27,9 +28,9 @@ export function SiteHeader({settings}) {
             : <Link to="/" className="brand" aria-label={`${brandText || 'Brand'} home`}>
                 <span className="brand-mark"><DynamicIcon className="ui-icon" name={brandIcon} size={18}/></span><span>{brandText}</span>
               </Link>}
-        <nav>{nav.map((n, i) => editing
+        <nav>{menu.map(n => editing
             ? <InlineText key={n.path} value={n.label} placeholder="Label"
-                          onChange={v => setField(['nav'], nav.map((m, j) => j === i ? {...m, label: v} : m))}/>
+                          onChange={v => setField(['nav'], nav.map(m => m.path === n.path ? {...m, label: v} : m))}/>
             : <Link key={n.path} to={n.path}
                     className={n.path === '/contact' ? 'nav-cta' : ''}>{n.label}</Link>)}</nav>
     </header>

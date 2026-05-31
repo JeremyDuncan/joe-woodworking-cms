@@ -65,8 +65,48 @@ const defaultSettings = {
                 {id: 'home-proof', type: 'list', props: {items: ['48 inches tall', 'Solid 2x12 wood', 'Hand-painted finish', 'State-shaped flags available'], icon: 'BadgeCheck', span: 2}},
                 {id: 'home-image', type: 'image', props: {source: 'featured', span: 2}}
             ]
+        },
+        '/work': {
+            columns: 1,
+            blocks: [
+                {id: 'work-eyebrow', type: 'eyebrow', props: {text: 'Recent work gallery', icon: 'Star'}},
+                {id: 'work-heading', type: 'heading', props: {text: 'Built for homes, shops, offices, veteran gifts, and patriotic celebrations.', level: 1}},
+                {id: 'work-body', type: 'text', props: {text: 'Browse recent custom pieces and examples. Add a Work item block for each piece.'}}
+            ]
+        },
+        '/options': {
+            columns: 1,
+            blocks: [
+                {id: 'opt-eyebrow', type: 'eyebrow', props: {text: 'Your flag, your story', icon: 'Sparkles'}},
+                {id: 'opt-heading', type: 'heading', props: {text: 'Choose from ready-made concepts or send your own idea.', level: 1}},
+                {id: 'opt-body', type: 'text', props: {text: 'Every flag includes a lower custom design area for artwork that makes the piece personal.'}},
+                {id: 'opt-list', type: 'list', props: {items: ['Business logos', 'College & professional teams', 'All military branches', '250 years of freedom themes', 'Memorial & service tributes', 'Your supplied custom artwork'], icon: 'Medal'}}
+            ]
+        },
+        '/process': {
+            columns: 1,
+            blocks: [
+                {id: 'proc-eyebrow', type: 'eyebrow', props: {text: 'Simple ordering process', icon: 'Star'}},
+                {id: 'proc-heading', type: 'heading', props: {text: 'From message to finished piece.', level: 1}},
+                {id: 'proc-s1h', type: 'heading', props: {text: '1 · Share your idea', level: 3}},
+                {id: 'proc-s1b', type: 'text', props: {text: 'Send a theme, logo, team, branch, memorial concept, or reference image.'}},
+                {id: 'proc-s2h', type: 'heading', props: {text: '2 · Approve the direction', level: 3}},
+                {id: 'proc-s2b', type: 'text', props: {text: 'Pick from available design options or refine a custom layout for the lower panel.'}},
+                {id: 'proc-s3h', type: 'heading', props: {text: '3 · Hand-built with pride', level: 3}},
+                {id: 'proc-s3b', type: 'text', props: {text: 'Your solid wood flag is crafted, painted, finished, and prepared for pickup or delivery.'}}
+            ]
+        },
+        '/contact': {
+            columns: 1,
+            blocks: [
+                {id: 'con-eyebrow', type: 'eyebrow', props: {text: 'Ready to start?', icon: 'Star'}},
+                {id: 'con-heading', type: 'heading', props: {text: 'Message with questions or to commission a custom American flag.', level: 1}},
+                {id: 'con-body', type: 'text', props: {text: 'Tell us the design you have in mind, who the flag is for, and whether you have artwork or a logo to include.'}},
+                {id: 'con-list', type: 'list', props: {items: ['Email: Smokingjoe38@yahoo.com', 'Phone / text: 706.299.8309'], icon: 'Mail'}}
+            ]
         }
     },
+    layouts: {},
     theme: {
         font: 'Inter',
         colors: {
