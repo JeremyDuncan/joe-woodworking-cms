@@ -18,10 +18,22 @@ const FONT_HREF = {
 export const defaultTheme = {
     font: 'Inter',
     colors: {
-        accent: '#d7a64f',     // --gold
-        primary: '#e33445',    // --red-bright
-        background: '#08111f', // --navy
-        text: '#fffaf0',       // --white
+        background: '#08111f',  // base page color
+        gradient1: '#b51f2b',   // top-left glow
+        gradient2: '#2458a3',   // top-right glow
+        gradient3: '#08111f',   // bottom-left glow (off by default)
+        gradient4: '#08111f',   // bottom-right glow (off by default)
+        button: '#e33445',      // button fill
+        icon: '#d7a64f',        // icon color
+    },
+    text: {
+        heading: '#fffaf0',
+        paragraph: '#b8c2d6',
+        nav: '#fffaf0',
+        button: '#ffffff',
+        eyebrow: '#d7a64f',
+        list: '#f4ead8',
+        featured: '#d7a64f',
     }
 };
 
@@ -43,6 +55,13 @@ function shade(hex, amt) {
     return '#' + [ch(16), ch(8), ch(0)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
+function rgbOf(hex) {
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
 function ensureFont(name) {
     const href = FONT_HREF[name];
     if (!href || document.querySelector(`link[data-font="${name}"]`)) return;
@@ -56,18 +75,43 @@ function ensureFont(name) {
 // Apply a theme by setting CSS variables on :root, so every var(--x) updates.
 export function applyTheme(theme) {
     if (typeof document === 'undefined') return;
-    const colors = {...defaultTheme.colors, ...(theme?.colors || {})};
-    const accent = validHex(colors.accent, defaultTheme.colors.accent);
-    const primary = validHex(colors.primary, defaultTheme.colors.primary);
-    const background = validHex(colors.background, defaultTheme.colors.background);
-    const text = validHex(colors.text, defaultTheme.colors.text);
+    const c = {...defaultTheme.colors, ...(theme?.colors || {})};
+    const tx = {...defaultTheme.text, ...((theme?.text && typeof theme.text === 'object' && !Array.isArray(theme.text)) ? theme.text : {})};
+    const hx = (v, fb) => validHex(v, fb);
     const root = document.documentElement.style;
-    root.setProperty('--gold', accent);
-    root.setProperty('--red-bright', primary);
-    root.setProperty('--red', shade(primary, -0.18));
+
+    const background = hx(c.background, defaultTheme.colors.background);
+    const button = hx(c.button, defaultTheme.colors.button);
+    const bgDeep = shade(background, -0.5);
     root.setProperty('--navy', background);
     root.setProperty('--navy-2', shade(background, 0.08));
-    root.setProperty('--white', text);
+    root.setProperty('--bg-deep', bgDeep);
+    root.setProperty('--bg-deep-rgb', rgbOf(bgDeep));
+
+    // Background corner gradients
+    root.setProperty('--grad1-rgb', rgbOf(hx(c.gradient1, defaultTheme.colors.gradient1)));
+    root.setProperty('--grad2-rgb', rgbOf(hx(c.gradient2, defaultTheme.colors.gradient2)));
+    root.setProperty('--grad3-rgb', rgbOf(hx(c.gradient3, defaultTheme.colors.gradient3)));
+    root.setProperty('--grad4-rgb', rgbOf(hx(c.gradient4, defaultTheme.colors.gradient4)));
+
+    // Buttons (legacy --red* kept in sync for any remaining references)
+    root.setProperty('--btn', button);
+    root.setProperty('--btn-deep', shade(button, -0.4));
+    root.setProperty('--btn-rgb', rgbOf(button));
+    root.setProperty('--red-bright', button);
+    root.setProperty('--red', shade(button, -0.18));
+
+    root.setProperty('--icon-color', hx(c.icon, defaultTheme.colors.icon));
+
+    // Per-element text colors
+    root.setProperty('--t-heading', hx(tx.heading, defaultTheme.text.heading));
+    root.setProperty('--t-paragraph', hx(tx.paragraph, defaultTheme.text.paragraph));
+    root.setProperty('--t-nav', hx(tx.nav, defaultTheme.text.nav));
+    root.setProperty('--t-button', hx(tx.button, defaultTheme.text.button));
+    root.setProperty('--t-eyebrow', hx(tx.eyebrow, defaultTheme.text.eyebrow));
+    root.setProperty('--t-list', hx(tx.list, defaultTheme.text.list));
+    root.setProperty('--t-featured', hx(tx.featured, defaultTheme.text.featured));
+
     const font = theme?.font && FONTS[theme.font] ? theme.font : 'Inter';
     ensureFont(font);
     root.setProperty('--app-font', FONTS[font]);

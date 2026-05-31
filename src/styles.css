@@ -14,6 +14,25 @@
     --line: rgba(255, 255, 255, .14);
     --glass: rgba(255, 255, 255, .08);
     --shadow: 0 30px 100px rgba(0, 0, 0, .45);
+    /* Theme-derived (overridden live by applyTheme); defaults match the base look */
+    --bg-deep: #050912;
+    --bg-deep-rgb: 5, 9, 18;
+    --grad1-rgb: 181, 31, 43;
+    --grad2-rgb: 36, 88, 163;
+    --grad3-rgb: 8, 17, 31;
+    --grad4-rgb: 8, 17, 31;
+    --btn: #e33445;
+    --btn-deep: #9a1624;
+    --btn-rgb: 227, 52, 69;
+    --icon-color: #d7a64f;
+    --accent-rgb: 215, 166, 79;
+    --t-heading: #fffaf0;
+    --t-paragraph: #b8c2d6;
+    --t-nav: #fffaf0;
+    --t-button: #ffffff;
+    --t-eyebrow: #d7a64f;
+    --t-list: #f4ead8;
+    --t-featured: #d7a64f;
 }
 
 * {
@@ -27,7 +46,7 @@ html {
 body {
     margin: 0;
     font-family: var(--app-font, 'Inter', system-ui, -apple-system, Segoe UI, sans-serif);
-    background: radial-gradient(circle at 15% 0%, rgba(181, 31, 43, .32), transparent 28%), radial-gradient(circle at 88% 12%, rgba(36, 88, 163, .28), transparent 24%), linear-gradient(180deg, #050912 0%, var(--navy) 45%, #050912 100%);
+    background: radial-gradient(circle at 0% 0%, rgba(var(--grad1-rgb), .32), transparent 45%), radial-gradient(circle at 100% 0%, rgba(var(--grad2-rgb), .28), transparent 42%), radial-gradient(circle at 0% 100%, rgba(var(--grad3-rgb), .28), transparent 45%), radial-gradient(circle at 100% 100%, rgba(var(--grad4-rgb), .28), transparent 42%), linear-gradient(180deg, var(--bg-deep) 0%, var(--navy) 45%, var(--bg-deep) 100%);
     color: var(--white);
     overflow-x: hidden
 }
@@ -45,7 +64,7 @@ a {
     align-items: center;
     justify-content: space-between;
     padding: 20px clamp(22px, 5vw, 72px);
-    background: linear-gradient(180deg, rgba(5, 9, 18, .88), rgba(5, 9, 18, .34));
+    background: linear-gradient(180deg, rgba(var(--bg-deep-rgb), .92), rgba(var(--bg-deep-rgb), .5));
     backdrop-filter: blur(18px);
     border-bottom: 1px solid rgba(255, 255, 255, .08)
 }
@@ -70,7 +89,11 @@ a {
     place-items: center;
     border: 1px solid rgba(255, 255, 255, .18);
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--red), #173b73)
+    background: linear-gradient(135deg, var(--btn), var(--navy-2))
+}
+
+.ui-icon {
+    color: var(--icon-color)
 }
 
 .site-header nav {
@@ -79,11 +102,12 @@ a {
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: rgba(255, 250, 240, .82)
+    color: var(--t-nav)
 }
 
 .site-header nav a:hover {
-    color: var(--white)
+    color: var(--t-nav);
+    opacity: .75
 }
 
 .nav-cta {
@@ -111,36 +135,11 @@ a {
     margin: 0 auto
 }
 
-.home {
-    overflow: hidden;
-    max-width: none
-}
-
-.home-bg {
-    position: absolute;
-    inset: 0;
-    z-index: -2;
-    background: linear-gradient(90deg, rgba(5, 9, 18, .95) 0%, rgba(5, 9, 18, .7) 44%, rgba(5, 9, 18, .35) 100%), repeating-linear-gradient(0deg, rgba(255, 255, 255, .045) 0 2px, transparent 2px 76px), linear-gradient(135deg, rgba(181, 31, 43, .22), rgba(13, 28, 49, .05) 45%, rgba(36, 88, 163, .2))
-}
-
-.home::after {
-    content: '';
-    position: absolute;
-    right: -12vw;
-    top: 12vh;
-    width: 55vw;
-    height: 55vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(227, 52, 69, .22), rgba(215, 166, 79, .08) 35%, transparent 65%);
-    filter: blur(12px);
-    z-index: -1
-}
-
 .eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    color: var(--gold);
+    color: var(--t-eyebrow);
     font-size: 12px;
     font-weight: 900;
     letter-spacing: .18em;
@@ -150,6 +149,10 @@ a {
 
 h1, h2, h3, p {
     margin-top: 0
+}
+
+h1, h2, h3 {
+    color: var(--t-heading)
 }
 
 h1 {
@@ -174,7 +177,7 @@ h3 {
 }
 
 p {
-    color: var(--muted);
+    color: var(--t-paragraph);
     line-height: 1.72;
     font-size: 17px
 }
@@ -182,7 +185,7 @@ p {
 .home-copy {
     max-width: 680px;
     font-size: clamp(18px, 2vw, 22px);
-    color: rgba(255, 250, 240, .8)
+    color: var(--t-paragraph)
 }
 
 .home-actions {
@@ -212,22 +215,22 @@ p {
 }
 
 .button-primary {
-    background: linear-gradient(135deg, var(--red-bright), #9a1624);
-    box-shadow: 0 20px 60px rgba(227, 52, 69, .32);
-    color: white
+    background: linear-gradient(135deg, var(--btn), var(--btn-deep));
+    box-shadow: 0 20px 60px rgba(var(--btn-rgb), .32);
+    color: var(--t-button)
 }
 
 .button-ghost {
     border-color: rgba(255, 255, 255, .22);
     background: rgba(255, 255, 255, .06);
-    color: var(--white)
+    color: var(--t-button)
 }
 
 .proof-strip {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    color: rgba(255, 250, 240, .86)
+    color: var(--t-list)
 }
 
 .proof-strip span {
@@ -310,7 +313,7 @@ p {
     justify-content: center;
     gap: 13px;
     background: linear-gradient(135deg, rgba(8, 17, 31, .96), rgba(41, 25, 17, .88)), repeating-linear-gradient(90deg, rgba(255, 255, 255, .03) 0 3px, transparent 3px 34px);
-    color: var(--gold);
+    color: var(--t-featured);
     font-weight: 900;
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -1609,4 +1612,164 @@ input::placeholder, textarea::placeholder {
 
 .theme-presets .button {
     min-height: 38px
+}
+
+/* ---- Icon picker ---- */
+.brand-mark-btn {
+    cursor: pointer;
+    padding: 0
+}
+
+.brand-mark-btn:hover {
+    border-color: var(--gold)
+}
+
+.icon-ctl {
+    gap: 6px
+}
+
+.icon-ctl-btn {
+    width: 30px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    border-radius: 8px;
+    cursor: pointer
+}
+
+.icon-ctl-btn:hover {
+    border-color: var(--gold)
+}
+
+.icon-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 7, 14, .82);
+    backdrop-filter: blur(10px)
+}
+
+.icon-modal {
+    width: min(440px, 100%);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(8, 17, 31, .98);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow)
+}
+
+.icon-modal-head {
+    display: flex;
+    gap: 10px;
+    align-items: center
+}
+
+.icon-modal-head input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 8px;
+    overflow-y: auto;
+    padding: 2px
+}
+
+.icon-cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    color: var(--cream);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px
+}
+
+.icon-cell:hover {
+    background: rgba(215, 166, 79, .18)
+}
+
+.icon-cell.active {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .22);
+    color: var(--white)
+}
+
+/* ---- Drag-to-reorder + theme save message ---- */
+.block-frame-grip {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    margin-right: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    cursor: grab
+}
+
+.block-frame-grip:active {
+    cursor: grabbing
+}
+
+.block-frame.drag-over {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .35) inset
+}
+
+.builder-hint {
+    color: var(--steel);
+    font-size: 12px;
+    font-weight: 700
+}
+
+.theme-msg {
+    font-size: 12px;
+    font-weight: 800;
+    color: #9cffc9;
+    align-self: center
+}
+
+/* ---- Theme panel: sections + scroll ---- */
+.theme-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 4px
+}
+
+.theme-section {
+    margin: 10px 0 2px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold)
+}
+
+.theme-section:first-child {
+    margin-top: 0
 }

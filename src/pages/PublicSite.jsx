@@ -66,6 +66,20 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         setSaveState(null);
     }
 
+    // Persist a named theme preset immediately (merges only `themes` on the server,
+    // so it doesn't commit other in-progress page edits).
+    async function saveThemePreset(name) {
+        const themeCopy = JSON.parse(JSON.stringify(draft.theme || {}));
+        setField(['themes', name], themeCopy);
+        const nextThemes = {...(draft.themes || {}), [name]: themeCopy};
+        await fetch('/api/admin/settings', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({themes: nextThemes})
+        });
+        await reloadSettings();
+    }
+
     const gallery = works ?? fallbackGallery;
     const featured = gallery.find(w => w.featured) || gallery.find(w => w.media?.length) || gallery[0];
 
@@ -85,7 +99,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                                  onTheme={() => setThemeOpen(o => !o)}/>}
             {isAdmin && editing && themeOpen &&
                 <ThemePanel theme={view.theme} themes={view.themes} setField={setField}
-                            onClose={() => setThemeOpen(false)}/>}
+                            onSavePreset={saveThemePreset} onClose={() => setThemeOpen(false)}/>}
         </main>
     </EditProvider>;
 }

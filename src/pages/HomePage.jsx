@@ -7,7 +7,6 @@ export function HomePage({settings, featured, onImageOpen}) {
     const raw = settings.layout?.['/'];
     const layout = raw && !Array.isArray(raw) && Array.isArray(raw.blocks) ? raw : defaultHomeLayout;
     return <section className="page home-page section">
-        <div className="home-bg"/>
         <PageBuilder route="/" layout={layout} registry={blockRegistry} featured={featured}
                      onImageOpen={onImageOpen} pages={settings.nav}/>
     </section>

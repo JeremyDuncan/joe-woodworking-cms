@@ -43,6 +43,7 @@ const seedWorks = [
 const defaultSettings = {
     brandName: "Joe’s Custom Flags",
     brandShort: "Joe’s Flags",
+    brandIcon: 'Flag',
     email: 'Smokingjoe38@yahoo.com',
     phone: '706.299.8309',
     nav: [
@@ -59,7 +60,7 @@ const defaultSettings = {
                 {id: 'home-eyebrow', type: 'eyebrow', column: 0, props: {text: 'Joe’s Custom Hand Crafted Flags'}},
                 {id: 'home-heading', type: 'heading', column: 0, props: {text: 'Hand-crafted American flags built to become family heirlooms.', level: 1}},
                 {id: 'home-body', type: 'text', column: 0, props: {text: 'Custom solid-wood American flag decor by Joe — hand-built, hand-painted, and personalized with logos, service branches, teams, memorials, patriotic themes, or your own image.'}},
-                {id: 'home-cta1', type: 'button', column: 0, props: {label: 'Request a custom flag', to: '/contact', variant: 'primary'}},
+                {id: 'home-cta1', type: 'button', column: 0, props: {label: 'Request a custom flag', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
                 {id: 'home-cta2', type: 'button', column: 0, props: {label: 'View recent work', to: '/work', variant: 'ghost'}},
                 {id: 'home-proof', type: 'list', column: 0, props: {items: ['48 inches tall', 'Solid 2x12 wood', 'Hand-painted finish', 'State-shaped flags available']}},
                 {id: 'home-image', type: 'image', column: 1, props: {source: 'featured'}}
@@ -68,7 +69,14 @@ const defaultSettings = {
     },
     theme: {
         font: 'Inter',
-        colors: {accent: '#d7a64f', primary: '#e33445', background: '#08111f', text: '#fffaf0'}
+        colors: {
+            background: '#08111f', gradient1: '#b51f2b', gradient2: '#2458a3',
+            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f'
+        },
+        text: {
+            heading: '#fffaf0', paragraph: '#b8c2d6', nav: '#fffaf0', button: '#ffffff',
+            eyebrow: '#d7a64f', list: '#f4ead8', featured: '#d7a64f'
+        }
     },
     themes: {},
     home: {
