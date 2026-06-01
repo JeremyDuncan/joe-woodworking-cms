@@ -142,7 +142,7 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
             ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
                           onChange={v => setProp('caption', v)}/>
             : (caption ? <p className="image-caption">{caption}</p> : null)}
-        {editing && <ImageUpload hasImage={!!url} clearLabel="Use featured" onUploaded={u => setProp('url', u)}
+        {editing && <ImageUpload hasImage={!!url} clearLabel="Use item image" onUploaded={u => setProp('url', u)}
                                  onClear={() => setProp('url', '')}/>}
         {editing && src && <button type="button" className="button button-ghost adjust-trigger"
                                    onClick={() => setAdjust(true)}>Adjust image</button>}
@@ -201,7 +201,7 @@ function CopyrightBlock({block, setProp, editing}) {
 function SavedWorkBlock({block, works, editing, onImageOpen}) {
     const list = works || [];
     const work = list.find(w => w.id === block.props.workId) || list[0];
-    if (!work) return <p className="work-img-required">No saved items yet — add them in the dashboard Work tab.</p>;
+    if (!work) return <p className="work-img-required">No saved items yet — add them in the dashboard Itemtab.</p>;
     const to = block.props.to;
     const card = <WorkCard item={work} i={0} onImageOpen={editing ? undefined : onImageOpen}/>;
     if (!editing && to) return <div className="work-card-clickable" onClick={() => navigate(to)}>{card}</div>;

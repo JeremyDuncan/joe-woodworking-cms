@@ -220,7 +220,9 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     }
 
     const gallery = works ?? fallbackGallery;
-    const featured = gallery.find(w => w.featured) || gallery.find(w => w.media?.length) || gallery[0];
+    // The representative item image used as the default for Image blocks: first item
+    // that has media (no "featured" flag anymore).
+    const featured = gallery.find(w => w.media?.length) || gallery[0];
 
     return <EditProvider editing={editing} setField={setField}>
         <main className={editing ? 'is-editing' : undefined}>

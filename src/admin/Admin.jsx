@@ -72,7 +72,7 @@ export function Admin({works, reload, onAuthChange}) {
         {notice && <div className={`admin-notice admin-notice--${notice.type}`}>{notice.text}</div>}
         <div className="admin-tabs">
             <button className={tab === 'work' ? 'active' : ''} onClick={() => setTab('work')}><ImagePlus
-                size={16}/> Work
+                size={16}/> Item
             </button>
             <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
                 size={16}/> Password

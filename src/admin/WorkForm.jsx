@@ -10,7 +10,6 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
         setTitle(editing?.title || '');
         setPrice(editing?.price ?? '');
         setDescription(editing?.description || '');
-        // setFeatured(Boolean(editing?.featured));
         setKeep((editing?.media || []).map(m => m.url));
         setMediaPlacement(Object.fromEntries((editing?.media || []).filter(isImageMedia).map(m => [m.url, m.placement ?? null])));
         setNewMediaPlacement({});
@@ -37,7 +36,6 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
             title: title.trim(),
             price,
             description: description.trim(),
-            featured: String(featured),
             keepMedia: keep.join(','),
             mediaPlacement: JSON.stringify(mediaPlacement),
             newMediaPlacement: JSON.stringify(newMediaPlacement)
@@ -48,7 +46,7 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
             const r = await fetch(url, {method: editing ? 'PUT' : 'POST', body: fd});
             const j = await r.json().catch(() => ({}));
             if (!r.ok) return setNotice({type: 'error', text: j.error || 'Save failed.'});
-            setNotice({type: 'success', text: `Work ${editing ? 'updated' : 'added'} successfully.`});
+            setNotice({type: 'success', text: `Item ${editing ? 'updated' : 'added'} successfully.`});
             setEditing(null);
             setFiles(null);
             setNewMediaPlacement({});
@@ -65,7 +63,7 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
     return (
         <form ref={formRef} className="work-form" onSubmit={submit} noValidate>
             <p className="eyebrow">
-                <Plus size={15} /> {editing ? 'Edit work' : 'Add a new work'}
+                <Plus size={15} /> {editing ? 'Edit Item' : 'Add A New Item'}
             </p>
 
             <div className="form-grid">
@@ -74,11 +72,6 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
             </div>
 
             <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-
-            {/*<label className="check">asd*/}
-            {/*    <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} />*/}
-            {/*    Feature this item on the home page*/}
-            {/*</label>*/}
 
             {editing?.media?.length > 0 && (
                 <div className="media-keep">
@@ -135,7 +128,7 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
 
             <div className="form-actions">
                 <button className="button button-primary" disabled={busy}>
-                    {busy ? 'Saving...' : editing ? 'Save changes' : 'Add work'}
+                    {busy ? 'Saving...' : editing ? 'Save changes' : 'Add Item'}
                 </button>
 
                 {editing && (

@@ -90,7 +90,7 @@ test('admin can customize public section text and settings persist through publi
             body: JSON.stringify({
                 brandName: 'Custom Shop',
                 hero: {title: 'A custom hero title', body: 'New hero body text'},
-                work: {eyebrow: 'Portfolio', title: 'A custom work section'},
+                work: {eyebrow: 'Portfolio', title: 'A custom Item section'},
                 nav: [
                     {label: 'Home', path: '/'},
                     {label: 'Gallery', path: '/work'},

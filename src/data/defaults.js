@@ -156,7 +156,7 @@ export const defaultSettings = {
                     {text: 'Another item', icon: 'Star'}
                 ]}},
                 {id: 'tut-ex-divider', type: 'divider', props: {}},
-                {id: 'tut-ex-item', type: 'work', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Work tab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp'}},
+                {id: 'tut-ex-item', type: 'work', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Itemtab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp'}},
 
                 {id: 'tut-pages-h', type: 'heading', props: {text: '4 · Pages', level: 2}},
                 {id: 'tut-pages-b', type: 'text', props: {text: 'Open “Pages” in the toolbar to add, rename, reorder, or remove pages. Each page has these options:'}},
@@ -174,7 +174,7 @@ export const defaultSettings = {
                 {id: 'tut-hf-b', type: 'text', props: {text: 'Your brand name, brand icon, and menu links live in the header and are edited in place. The footer at the bottom appears on every page and is edited just like a page. On phones the menu collapses into a ☰ button.'}},
 
                 {id: 'tut-dash-h', type: 'heading', props: {text: '7 · The dashboard', level: 2}},
-                {id: 'tut-dash-b', type: 'text', props: {text: 'Your private dashboard has three tabs: Work (add and manage items with photos or videos), Password (change your login), and Backup.'}},
+                {id: 'tut-dash-b', type: 'text', props: {text: 'Your private dashboard has three tabs: Item(add and manage items with photos or videos), Password (change your login), and Backup.'}},
 
                 {id: 'tut-backup-h', type: 'heading', props: {text: '8 · Backups — important!', level: 2}},
                 {id: 'tut-backup-b', type: 'text', props: {text: 'In the dashboard’s Backup tab, click “Download backup” to save one .zip containing every page, template, theme, item, image, and admin login. Keep it somewhere safe, off the server. If anything is ever lost, “Restore from backup” rebuilds the entire site from that file — even onto brand-new, empty storage. Download a fresh backup regularly.'}},
