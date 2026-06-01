@@ -2849,3 +2849,132 @@ h6 {
         max-height: calc(100vh - 120px)
     }
 }
+
+/* ===== List block (vertical stack; chips or plain; sizes) ===== */
+.list-block {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--t-list)
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%
+}
+
+.list-item-text {
+    min-width: 0;
+    font-weight: 700
+}
+
+/* Chips: each item is a rounded pill */
+.list-chips .list-item {
+    padding: 8px 14px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .05)
+}
+
+/* Plain: just an icon (bullet) + text, no pill */
+.list-plain .list-item {
+    padding: 2px 0
+}
+
+.list-plain .list-item-text {
+    font-weight: 500
+}
+
+/* Sizes */
+.list-sm {
+    font-size: 13px
+}
+
+.list-md {
+    font-size: 15px
+}
+
+.list-lg {
+    font-size: 19px
+}
+
+.list-add-row {
+    margin-top: 2px
+}
+
+/* Inline links inside list items match paragraph links */
+.list-item-text a {
+    display: inline;
+    color: var(--btn);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer
+}
+
+/* Solid bullets (Circle / Square) when list "Bullets" isn't set to Icons */
+.list-bullet {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    background: var(--icon-color);
+    display: inline-block
+}
+
+.list-bullet-disc {
+    border-radius: 50%
+}
+
+.list-bullet-square {
+    border-radius: 1px
+}
+
+/* Whole-item links */
+.list-item-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    color: inherit
+}
+
+.list-item-linked {
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease
+}
+
+.list-chips .list-item-linked:hover {
+    border-color: var(--hover-border);
+    background: rgba(255, 255, 255, .09)
+}
+
+.list-plain .list-item-linked:hover .list-item-text {
+    text-decoration: underline;
+    text-underline-offset: 3px
+}
+
+/* Inline per-item link picker (edit mode) */
+.list-item-link {
+    flex: 0 0 auto;
+    max-width: 130px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    border-radius: 8px;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    min-height: 0
+}
+
+.list-item-link.is-set {
+    border-color: var(--hover-border);
+    color: var(--white)
+}

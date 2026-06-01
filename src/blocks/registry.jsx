@@ -49,28 +49,51 @@ function ButtonBlock({block, setProp, editing}) {
                                              onChange={v => setProp('label', v)}/>{iconEl}</span>;
 }
 
-// List items may be strings (legacy) or {text, icon}. Each item's icon is click-to-edit.
-function ListBlock({block, setProp, editing}) {
+// List items may be strings (legacy) or {text, html, icon}. Each item's icon is
+// click-to-edit and its text supports inline links (pages + external) like paragraphs.
+// Renders as a vertical stack in both view and edit modes so they match. `variant`
+// is 'chips' (pill) or 'plain' (text only); `size` is sm/md/lg.
+function ListBlock({block, setProp, editing, pages}) {
     const items = block.props.items || [];
     const bullet = block.props.icon || 'BadgeCheck';
+    const variant = block.props.variant || 'chips';
+    const size = block.props.size || 'md';
+    const bulletStyle = block.props.bullet || 'icon'; // 'icon' | 'disc' | 'square' | 'none'
     const norm = raw => (typeof raw === 'string' ? {text: raw} : (raw || {}));
     const update = (i, patch) => setProp('items', items.map((x, j) => j === i ? {...norm(x), ...patch} : x));
-    return <div className="proof-strip">
+    return <ul className={`list-block list-${variant} list-${size}`}>
         {items.map((raw, i) => {
             const it = norm(raw);
-            return <span key={i}>
-                <EditableIcon className="ui-icon" name={it.icon} fallback={bullet} size={16} editing={editing}
-                              onChange={v => update(i, {icon: v})}/>
-                {editing
-                    ? <InlineText value={it.text} placeholder="Item" onChange={v => update(i, {text: v})}/>
-                    : it.text}
+            const bulletEl = bulletStyle === 'icon'
+                ? <EditableIcon className="ui-icon" name={it.icon} fallback={bullet} size={16} editing={editing}
+                                onChange={v => update(i, {icon: v})}/>
+                : bulletStyle === 'none' ? null
+                    : <span className={`list-bullet list-bullet-${bulletStyle}`} aria-hidden="true"/>;
+            // When the whole item is linked, show plain text (no inline rich links) to
+            // avoid an <a> inside an <a>.
+            const textEl = editing
+                ? <RichText className="list-item-text" html={it.html} text={it.text} pages={pages}
+                            placeholder="Item" onChange={h => update(i, {html: h})}/>
+                : (it.to
+                    ? <span className="list-item-text">{it.text}</span>
+                    : (it.html != null
+                        ? <RichHtml className="list-item-text" html={it.html}/>
+                        : <span className="list-item-text">{it.text}</span>));
+            const inner = <>{bulletEl}{textEl}</>;
+            return <li key={i} className={`list-item${it.to ? ' list-item-linked' : ''}`}>
+                {(!editing && it.to)
+                    ? <Link to={it.to} className="list-item-inner">{inner}</Link>
+                    : inner}
+                {editing && <ItemLinkCtl to={it.to} pages={pages} onChange={v => update(i, {to: v})}/>}
                 {editing && <button type="button" className="chip-remove" title="Remove"
                                     onClick={() => setProp('items', items.filter((_, j) => j !== i))}>×</button>}
-            </span>;
+            </li>;
         })}
-        {editing && <button type="button" className="chip-add"
-                            onClick={() => setProp('items', [...items, {text: 'New item'}])}>+ Add</button>}
-    </div>;
+        {editing && <li className="list-add-row">
+            <button type="button" className="chip-add"
+                    onClick={() => setProp('items', [...items, {text: 'New item'}])}>+ Add item</button>
+        </li>}
+    </ul>;
 }
 
 function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
@@ -222,6 +245,31 @@ function LinkCtl({block, setProp, pages}) {
     </label>;
 }
 
+// Compact per-list-item link picker shown inline in edit mode. Links the whole row.
+function ItemLinkCtl({to = '', pages, onChange}) {
+    const opts = pages || [];
+    const external = isExternalUrl(to);
+    const known = opts.some(p => p.path === to);
+
+    async function change(e) {
+        const v = e.target.value;
+        if (v === '__external__') {
+            const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
+            if (url && url.trim()) onChange(url.trim());
+            return;
+        }
+        onChange(v);
+    }
+
+    return <select className={`list-item-link${to ? ' is-set' : ''}`} title="Link this whole item"
+                   value={external ? '__external__' : to} onChange={change}>
+        <option value="">🔗 no link</option>
+        {!known && !external && to && <option value={to}>{to}</option>}
+        {opts.map(p => <option key={p.path} value={p.path}>{p.label}</option>)}
+        <option value="__external__">{external ? `External: ${to}` : 'External…'}</option>
+    </select>;
+}
+
 function headingControls({block, setProp, columns, pages}) {
     return <>
         <label className="block-ctl">Size
@@ -243,6 +291,33 @@ function headingControls({block, setProp, columns, pages}) {
 
 function widthControls({block, setProp, columns}) {
     return <WidthCtl block={block} setProp={setProp} columns={columns}/>;
+}
+
+function listControls({block, setProp, columns}) {
+    return <>
+        <label className="block-ctl">Style
+            <select value={block.props.variant || 'chips'} onChange={e => setProp('variant', e.target.value)}>
+                <option value="chips">Chips</option>
+                <option value="plain">Text only</option>
+            </select>
+        </label>
+        <label className="block-ctl">Bullets
+            <select value={block.props.bullet || 'icon'} onChange={e => setProp('bullet', e.target.value)}>
+                <option value="icon">Icons</option>
+                <option value="disc">Circle</option>
+                <option value="square">Square</option>
+                <option value="none">None</option>
+            </select>
+        </label>
+        <label className="block-ctl">Size
+            <select value={block.props.size || 'md'} onChange={e => setProp('size', e.target.value)}>
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+            </select>
+        </label>
+        <WidthCtl block={block} setProp={setProp} columns={columns}/>
+    </>;
 }
 
 function imageControls({block, setProp, columns, pages}) {
@@ -319,7 +394,7 @@ export const blockRegistry = {
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
     text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthControls},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
-    list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck'}, render: ListBlock, controls: widthControls},
+    list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck', variant: 'chips', size: 'md'}, render: ListBlock, controls: listControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},
     work: {
         label: 'Item',
