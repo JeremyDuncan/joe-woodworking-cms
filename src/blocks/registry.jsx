@@ -208,17 +208,6 @@ function SavedWorkBlock({block, works, editing, onImageOpen}) {
     return card;
 }
 
-function WidthCtl({block, setProp, columns}) {
-    if (columns < 2) return null;
-    const span = Math.min(block.props.span || 1, columns);
-    return <label className="block-ctl">Width
-        <select value={span} onChange={e => setProp('span', Number(e.target.value))}>
-            {Array.from({length: columns}, (_, i) => i + 1).map(n =>
-                <option key={n} value={n}>{n === columns ? `${n} · full` : n}</option>)}
-        </select>
-    </label>;
-}
-
 function LinkCtl({block, setProp, pages}) {
     const opts = pages || [];
     const to = block.props.to || '';
@@ -284,13 +273,7 @@ function headingControls({block, setProp, columns, pages}) {
                 <option value="p">Paragraph</option>
             </select>
         </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
-}
-
-function widthControls({block, setProp, columns}) {
-    return <WidthCtl block={block} setProp={setProp} columns={columns}/>;
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
 function listControls({block, setProp, columns}) {
@@ -315,16 +298,12 @@ function listControls({block, setProp, columns}) {
                 <option value="md">Medium</option>
                 <option value="lg">Large</option>
             </select>
-        </label>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
+        </label>    </>;
 }
 
 function imageControls({block, setProp, columns, pages}) {
     return <>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
 function buttonControls({block, setProp, pages, columns}) {
@@ -336,9 +315,7 @@ function buttonControls({block, setProp, pages, columns}) {
                 <option value="link">Text link</option>
             </select>
         </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
 function itemControls({block, setProp, setProps, works, columns, pages}) {
@@ -366,9 +343,7 @@ function itemControls({block, setProp, setProps, works, columns, pages}) {
                 {list.map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
             </select>
         </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
 function savedWorkControls({block, setProp, works, columns, pages}) {
@@ -379,20 +354,18 @@ function savedWorkControls({block, setProp, works, columns, pages}) {
                 {(works || []).map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
             </select>
         </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>
-        <WidthCtl block={block} setProp={setProp} columns={columns}/>
-    </>;
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
 // Each block type is self-contained: it carries its own content in `props`, so a
 // page can hold any number of them. `legacy` types still render but aren't offered
 // in the Add palette.
 export const blockRegistry = {
-    spacer: {label: 'Spacer', defaults: {text: 'Spacer'},  controls: widthControls},
-    divider: {label: 'Divider', defaults: {}, render: Divider, controls: widthControls},
-    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: widthControls},
+    spacer: {label: 'Spacer', defaults: {text: 'Spacer'}},
+    divider: {label: 'Divider', defaults: {}, render: Divider},
+    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
-    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: widthControls},
+    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck', variant: 'chips', size: 'md'}, render: ListBlock, controls: listControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},
@@ -405,6 +378,6 @@ export const blockRegistry = {
     copyright: {
         label: 'Copyright',
         defaults: {text: 'All rights reserved.'},
-        render: CopyrightBlock, controls: widthControls
+        render: CopyrightBlock
     },
 };

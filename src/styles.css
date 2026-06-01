@@ -1891,7 +1891,58 @@ input::placeholder, textarea::placeholder {
 
 /* Grid block items (column spanning via inline grid-column) */
 .page-block {
-    min-width: 0
+    min-width: 0;
+    position: relative
+}
+
+/* Drag-to-resize handles on a block's left/right edge (edit mode, >1 column). */
+.block-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    z-index: 6;
+    cursor: ew-resize;
+    touch-action: none
+}
+
+.block-resize-right {
+    right: -8px
+}
+
+.block-resize::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 40px;
+    max-height: 60%;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .25);
+    opacity: 0;
+    transition: opacity .15s ease, background .15s ease
+}
+
+.page-block:hover .block-resize::after {
+    opacity: .9
+}
+
+.block-resize:hover::after {
+    opacity: 1;
+    background: var(--hover-border)
+}
+
+body.resizing-col {
+    cursor: ew-resize !important;
+    user-select: none
+}
+
+/* Only the block being resized lights up its handle (not every block). */
+.page-block.is-resizing .block-resize::after {
+    opacity: 1;
+    background: var(--hover-border)
 }
 
 .builder-page {
