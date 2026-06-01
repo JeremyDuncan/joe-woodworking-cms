@@ -14,8 +14,8 @@ export function WorkList({works, reload, startEdit}) {
     }), [works, query, sortMode]);
     return <section className="admin-list">
         <div className="admin-list-toolbar">
-            <div><h2>Current work items</h2><p>{visible.length} of {works.length} shown</p></div>
-            <input placeholder="Search works" value={query} onChange={e => setQuery(e.target.value)}/><label>Sort
+            <div><h2>Current Items</h2><p>{visible.length} of {works.length} shown</p></div>
+            <input placeholder="Search Items" value={query} onChange={e => setQuery(e.target.value)}/><label>Sort
             by <select value={sortMode} onChange={e => setSortMode(e.target.value)}>
                 <option value="newest">Newest added</option>
                 <option value="oldest">Oldest added</option>
