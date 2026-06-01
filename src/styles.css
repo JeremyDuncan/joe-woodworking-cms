@@ -725,12 +725,17 @@ input::placeholder, textarea::placeholder {
     display: grid;
     grid-template-columns:1fr 1fr;
     gap: 12px;
-    margin-bottom: 12px
+    margin-bottom: 12px;
+    padding-top: 0;
 }
 
-.work-form textarea, .check, .upload, .media-keep, .work-form input + input {
-    margin-top: 12px
+.work-form textarea, .check, .upload, .media-keep, .work-form input {
+    margin-top: 12px;
 }
+.work-form {
+    padding: 16px;
+}
+
 
 .check, .upload, .media-keep label {
     display: flex;
@@ -961,7 +966,11 @@ input::placeholder, textarea::placeholder {
     max-width: 1120px;
     margin: 0 auto;
     display: grid;
-    gap: 14px
+    gap: 14px;
+    /*border: red solid 5px;*/
+    border: 2px solid var(--line);
+
+    border-radius: 28px;
 }
 
 .admin-list-toolbar {
@@ -1976,8 +1985,8 @@ input::placeholder, textarea::placeholder {
 }
 
 .pages-row {
-    display: flex;
-    align-items: center;
+    /*display: flex;*/
+    /*align-items: center;*/
     gap: 8px;
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -2166,6 +2175,7 @@ main.is-editing {
 .pages-row-actions {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap
 }
@@ -2685,4 +2695,8 @@ h6 {
 .pages-reorder button:disabled {
     opacity: .3;
     cursor: default
+}
+
+.password-confirm {
+    margin-bottom: 12px;
 }

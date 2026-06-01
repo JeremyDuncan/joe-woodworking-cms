@@ -26,12 +26,13 @@ function PageRow({p, route, index, total, onMove, onRename, onChangePath, onDele
         </div>
         <div className="pages-row-actions">
             <button type="button" className="pages-go" title="Go to page" onClick={() => navigate(p.path)}>
-                <ArrowUpRight size={15}/></button>
+                <ArrowUpRight size={12}/></button>
+
             <label className="pages-navtoggle" title="Show in the top navigation menu">
-                <input type="checkbox" checked={!p.hidden} disabled={isHome} onChange={() => onToggleNav(p.path)}/> Nav
+                <input type="checkbox" checked={!p.hidden} disabled={isHome} onChange={() => onToggleNav(p.path)}/> Nav Link
             </label>
             <label className="pages-navtoggle" title="Style this nav link as a button">
-                <input type="checkbox" checked={!!p.cta} onChange={() => onToggleCta(p.path)}/> Btn
+                <input type="checkbox" checked={!!p.cta} onChange={() => onToggleCta(p.path)}/> Button
             </label>
             {!isHome && <button type="button" className="pages-del" title="Delete page"
                                 onClick={() => onDeletePage(p.path)}>×</button>}

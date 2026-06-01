@@ -38,7 +38,7 @@ test('admin edit buttons scroll to the edit form', () => {
 
 test('admin work list is itemized with search and sort controls', () => {
     assert.match(source, /function\s+WorkList\s*\(\{works,setEditing,reload,startEdit\}\)/);
-    assert.match(source, /placeholder="Search works"/);
+    assert.match(source, /placeholder="Search Items"/);
     assert.match(source, /Sort by/);
     assert.match(source, /sortMode/);
     assert.match(source, /className="work-carousel-shell"/);
