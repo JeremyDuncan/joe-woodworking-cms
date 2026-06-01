@@ -1,0 +1,52 @@
+#!/bin/bash
+set -euo pipefail
+
+ENV_FILE=.production-env
+TAG="${1:-latest}"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE" >&2
+  exit 1
+fi
+
+read_env() {
+  local key="$1"
+  local val
+  val=$(grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d= -f2- || true)
+  val="${val%%#*}"
+  echo "$val" | xargs
+}
+
+REGISTRY=$(read_env REGISTRY)
+IMAGE=$(read_env IMAGE)
+
+if [ -z "$REGISTRY" ] || [ -z "$IMAGE" ]; then
+  echo "REGISTRY and IMAGE must be set in $ENV_FILE" >&2
+  exit 1
+fi
+
+echo "==> Deleting registry tag..."
+echo "    Image: ${REGISTRY}/${IMAGE}:${TAG}"
+
+DIGEST=$(curl -sI \
+  -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+  "http://${REGISTRY}/v2/${IMAGE}/manifests/${TAG}" \
+  | awk -F': ' 'tolower($1) == "docker-content-digest" {print $2}' \
+  | tr -d $'\r')
+
+if [ -z "$DIGEST" ]; then
+  echo "No digest found for ${IMAGE}:${TAG}."
+  echo "It may not exist, or registry deletes may not be enabled."
+  exit 0
+fi
+
+echo "    Digest: $DIGEST"
+
+curl -fsS -X DELETE \
+  "http://${REGISTRY}/v2/${IMAGE}/manifests/${DIGEST}" \
+  >/dev/null
+
+echo "==> Deleted ${REGISTRY}/${IMAGE}:${TAG}"
+echo
+echo "Current tags:"
+curl -s "http://${REGISTRY}/v2/${IMAGE}/tags/list" | python3 -m json.tool
