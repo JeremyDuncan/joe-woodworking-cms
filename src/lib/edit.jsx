@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {Link2} from 'lucide-react';
 import {navigate} from './navigation.jsx';
 import {promptDialog} from './dialog.jsx';
 
@@ -118,45 +119,84 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
         onChange(ref.current.innerHTML);
     }
 
+    // The <a> ancestor of a node, within this editor (or null).
+    function anchorAt(node) {
+        let n = node;
+        while (n && n !== ref.current) {
+            if (n.nodeType === 1 && n.tagName === 'A') return n;
+            n = n.parentNode;
+        }
+        return null;
+    }
+
     function refreshBar() {
         const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || !sel.rangeCount || !ref.current?.contains(sel.anchorNode)) {
+        if (!sel || !sel.rangeCount || !ref.current?.contains(sel.anchorNode)) {
+            setBar(null);
+            return;
+        }
+        const anchor = anchorAt(sel.anchorNode);
+        // Show the bar for a text selection (to create a link) OR when the caret sits
+        // inside an existing link (to see / change / remove where it points).
+        if (sel.isCollapsed && !anchor) {
             setBar(null);
             return;
         }
         savedRange.current = sel.getRangeAt(0).cloneRange();
-        const r = sel.getRangeAt(0).getBoundingClientRect();
-        setBar({top: r.top + window.scrollY - 46, left: r.left + window.scrollX});
+        const rectFrom = (sel.isCollapsed && anchor) ? anchor : sel.getRangeAt(0);
+        const r = rectFrom.getBoundingClientRect();
+        setBar({
+            top: r.top + window.scrollY - 46,
+            left: r.left + window.scrollX,
+            anchor: anchor || null,
+            href: anchor ? (anchor.getAttribute('href') || '') : null
+        });
+    }
+
+    // Reselect the right text before running execCommand: the whole link when editing
+    // an existing one, otherwise the saved selection (a dialog can steal focus).
+    function reselect(anchor) {
+        ref.current.focus();
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        if (anchor) {
+            const range = document.createRange();
+            range.selectNodeContents(anchor);
+            sel.addRange(range);
+        } else if (savedRange.current) {
+            sel.addRange(savedRange.current);
+        }
     }
 
     function applyLink(to) {
         if (!to) return;
+        reselect(bar?.anchor);
         document.execCommand('createLink', false, to);
         emit();
         setBar(null);
     }
 
-    // Opening a dialog moves focus out of the editor, collapsing the selection — so
-    // re-select the saved range before wrapping it in the link.
     async function applyExternal() {
-        const url = await promptDialog('External link (opens in a new tab):', 'https://');
+        const anchor = bar?.anchor, current = bar?.href;
+        const url = await promptDialog('External link (opens in a new tab):',
+            current && /^https?:\/\//.test(current) ? current : 'https://');
         if (!url || !url.trim()) return;
-        const el = ref.current;
-        el.focus();
-        if (savedRange.current) {
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(savedRange.current);
-        }
+        reselect(anchor);
         document.execCommand('createLink', false, url.trim());
         emit();
         setBar(null);
     }
 
     function unlink() {
+        reselect(bar?.anchor);
         document.execCommand('unlink');
         emit();
         setBar(null);
+    }
+
+    function linkLabel(href) {
+        const p = (pages || []).find(x => x.path === href);
+        return p ? p.label : href;
     }
 
     const Tag = as;
@@ -166,15 +206,22 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
              onInput={emit} onMouseUp={refreshBar} onKeyUp={refreshBar}
              onBlur={() => setTimeout(() => setBar(null), 200)}/>
         {bar && createPortal(
-            // preventDefault on mousedown keeps the text selection (and focus) alive,
-            // so execCommand acts on the still-selected text.
+            // preventDefault on mousedown keeps the selection/caret (and focus) alive,
+            // so execCommand acts on the right text.
             <div className="rich-linkbar" style={{top: bar.top, left: bar.left}}
                  onMouseDown={e => e.preventDefault()}>
-                <span className="rich-linkbar-label">Link to:</span>
+                {bar.href != null
+                    ? <span className="rich-linkbar-current" title={bar.href}>
+                        <Link2 size={13}/> Linked to <strong>{linkLabel(bar.href) || '(empty)'}</strong></span>
+                    : <span className="rich-linkbar-label">Link to:</span>}
                 {pages.map(p => <button key={p.path} type="button"
+                                        className={p.path === bar.href ? 'is-active' : undefined}
                                         onClick={() => applyLink(p.path)}>{p.label}</button>)}
-                <button type="button" className="rich-external" onClick={applyExternal}>External…</button>
-                <button type="button" className="rich-unlink" onClick={unlink}>Unlink</button>
+                <button type="button"
+                        className={`rich-external${bar.href && /^https?:\/\//.test(bar.href) ? ' is-active' : ''}`}
+                        onClick={applyExternal}>External…</button>
+                {bar.href != null &&
+                    <button type="button" className="rich-unlink" onClick={unlink}>Remove link</button>}
             </div>, document.body)}
     </>;
 }

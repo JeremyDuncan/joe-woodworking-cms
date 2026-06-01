@@ -3029,3 +3029,40 @@ h6 {
     border-color: var(--hover-border);
     color: var(--white)
 }
+
+/* Current link target shown in the rich-text link bar — an accent chip so it's
+   obvious where the text currently points. */
+.rich-linkbar-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 240px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--white);
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb, 215, 166, 79), .18);
+    border: 1px solid var(--hover-border);
+    margin-right: 4px
+}
+
+.rich-linkbar-current svg {
+    color: var(--hover-border);
+    flex: 0 0 auto
+}
+
+.rich-linkbar-current strong {
+    color: var(--hover-border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px
+}
+
+/* The page/External button matching the current link is highlighted. */
+.rich-linkbar button.is-active {
+    border-color: var(--hover-border);
+    background: var(--hover-border);
+    color: #0d1c31
+}
