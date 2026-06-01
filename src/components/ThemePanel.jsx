@@ -13,7 +13,7 @@ function Color({label, value, fallback, onChange}) {
     </div>;
 }
 
-export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePreset, onClose}) {
+export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePreset, onClose, docked}) {
     const t = theme || defaultTheme;
     const colors = {...defaultTheme.colors, ...(t.colors || {})};
     const text = {...defaultTheme.text, ...((t.text && typeof t.text === 'object' && !Array.isArray(t.text)) ? t.text : {})};
@@ -71,9 +71,9 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
         }
     }
 
-    return <div className="theme-panel" ref={panelRef} style={style}>
-        <div className="theme-panel-head theme-drag" onMouseDown={onHeadDown}>
-
+    return <div className={`theme-panel${docked ? ' docked' : ''}`} ref={docked ? undefined : panelRef}
+                style={docked ? undefined : style}>
+        <div className={`theme-panel-head${docked ? '' : ' theme-drag'}`} onMouseDown={docked ? undefined : onHeadDown}>
             <strong><Palette size={18}/> Theme</strong>
             <button type="button" className="theme-close" onClick={onClose}>×</button>
         </div>

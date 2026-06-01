@@ -4,8 +4,7 @@ import {SiteHeader} from '../components/SiteHeader.jsx';
 import {SiteFooter} from '../components/SiteFooter.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
 import {EditBar} from '../components/EditBar.jsx';
-import {ThemePanel} from '../components/ThemePanel.jsx';
-import {PagesPanel} from '../components/PagesPanel.jsx';
+import {EditDock} from '../components/EditDock.jsx';
 import {EditProvider} from '../lib/edit.jsx';
 import {applyTheme} from '../lib/theme.js';
 import {navigate} from '../lib/navigation.jsx';
@@ -21,8 +20,6 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(settings);
     const [saveState, setSaveState] = useState(null);
-    const [themeOpen, setThemeOpen] = useState(false);
-    const [pagesOpen, setPagesOpen] = useState(false);
 
     // Keep the draft in sync with saved settings while not actively editing.
     useEffect(() => {
@@ -122,7 +119,6 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             {okLabel: 'Show in menu', cancelLabel: 'Keep hidden'});
         setField(['nav'], [...nav, {label, path, hidden: !inNav}]);
         setField(['layout', path], {columns: 1, blocks: []});
-        setPagesOpen(false);
         navigate(path);
     }
 
@@ -232,23 +228,22 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
             <BuilderPage route={route} settings={view} featured={featured} works={gallery} onImageOpen={setModalImage}/>
             <SiteFooter settings={view} works={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
-            {isAdmin && <EditBar editing={editing} saveState={saveState} adminPath={adminPath}
-                                 pages={(view.nav || []).filter(n => !n.hidden)} route={route}
-                                 onEnter={() => setEditing(true)} onSave={save} onDiscard={discard}
-                                 onTheme={() => setThemeOpen(o => !o)} onPages={() => setPagesOpen(o => !o)}/>}
-            {isAdmin && editing && themeOpen &&
-                <ThemePanel theme={view.theme} themes={view.themes} setField={setField}
-                            onSavePreset={saveThemePreset} onDeletePreset={deleteThemePreset}
-                            onClose={() => setThemeOpen(false)}/>}
-            {isAdmin && editing && pagesOpen &&
-                <PagesPanel pages={view.nav} route={route} templates={view.layouts}
-                            currentTemplate={view.layout?.[route]?.templateName}
-                            onAddPage={addPage} onDeletePage={deletePage} onToggleNav={toggleNav}
-                            onToggleCta={toggleCta} onRename={renamePage} onChangePath={changePath}
-                            onMove={moveNav}
-                            onSaveTemplate={saveTemplate} onApplyTemplate={applyTemplate}
-                            onUpdateTemplate={updateTemplate} onDeleteTemplate={deleteTemplate}
-                            onClose={() => setPagesOpen(false)}/>}
+            {isAdmin && !editing &&
+                <EditBar editing={false} adminPath={adminPath} onEnter={() => setEditing(true)}/>}
+            {isAdmin && editing &&
+                <EditDock saveState={saveState} onSave={save} onDiscard={discard}
+                          pagesProps={{
+                              pages: view.nav, route, templates: view.layouts,
+                              currentTemplate: view.layout?.[route]?.templateName,
+                              onAddPage: addPage, onDeletePage: deletePage, onToggleNav: toggleNav,
+                              onToggleCta: toggleCta, onRename: renamePage, onChangePath: changePath, onMove: moveNav,
+                              onSaveTemplate: saveTemplate, onApplyTemplate: applyTemplate,
+                              onUpdateTemplate: updateTemplate, onDeleteTemplate: deleteTemplate
+                          }}
+                          themeProps={{
+                              theme: view.theme, themes: view.themes, setField,
+                              onSavePreset: saveThemePreset, onDeletePreset: deleteThemePreset
+                          }}/>}
         </main>
     </EditProvider>;
 }
