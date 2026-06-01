@@ -45,25 +45,21 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     const setProps = (idx, patch) => setBlocks(blocks.map((b, i) =>
         i === idx ? {...b, props: {...b.props, ...patch}} : b));
 
-    // FLIP: after any reflow (e.g. a resize changes spans and shoves neighbours), let
-    // each block glide from its old position to its new one with a springy ease — like
-    // iOS icons settling. The block being actively resized snaps instantly to the
-    // cursor; dnd-kit reordering is left alone (animations there fight the drag).
+    // FLIP: after any reflow — a resize changing spans, or a reorder shoving blocks
+    // aside — let each block glide from its old spot to its new one with a springy
+    // ease, like iOS icons settling. We measure with offsetLeft/offsetTop, which are
+    // relative to the grid and ignore in-flight transforms + page scroll (so neither a
+    // mid-animation nor a scroll can fake a layout change). The block you're actively
+    // resizing or dragging is excluded — it follows the cursor / the drag overlay.
     useLayoutEffect(() => {
         if (!editing || !gridRef.current) return;
-        const gridEl = gridRef.current;
-        // Positions are measured relative to the grid (not the viewport) so page
-        // scrolling between renders can't masquerade as a layout change and cause
-        // a spurious "shake". Sub-pixel deltas are ignored for the same reason.
-        const gridTop = gridEl.getBoundingClientRect();
         const next = new Map();
-        gridEl.querySelectorAll('.page-block').forEach(el => {
+        gridRef.current.querySelectorAll('.page-block').forEach(el => {
             const id = el.dataset.bid;
-            const r = el.getBoundingClientRect();
-            const pos = {left: r.left - gridTop.left, top: r.top - gridTop.top};
+            const pos = {left: el.offsetLeft, top: el.offsetTop};
             next.set(id, pos);
             const prev = prevRects.current.get(id);
-            if (prev && activeId == null && id !== resizingId) {
+            if (prev && id !== resizingId && id !== activeId) {
                 const dx = prev.left - pos.left, dy = prev.top - pos.top;
                 if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
                     el.style.transition = 'none';
