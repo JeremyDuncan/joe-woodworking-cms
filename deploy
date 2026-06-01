@@ -1,18 +1,51 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 ENV_FILE=.production-env
+BUILD_PLATFORM="linux/amd64"
+TAG="${TAG:-amd64-$(date +%Y%m%d-%H%M%S)}"
+DELETE_LATEST_FIRST="${DELETE_LATEST_FIRST:-false}"
+
 if [ ! -f "$ENV_FILE" ]; then
   echo "Missing $ENV_FILE" >&2
   exit 1
 fi
 
-# Read only the values we need, without executing the file as shell.
 read_env() {
+  local key="$1"
   local val
-  val=$(grep -E "^$1=" "$ENV_FILE" | head -n1 | cut -d= -f2-)
-  val="${val%%#*}"          # strip any inline comment
-  echo "$val" | xargs       # trim surrounding whitespace
+  val=$(grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d= -f2- || true)
+  val="${val%%#*}"
+  echo "$val" | xargs
+}
+
+delete_registry_tag() {
+  local registry="$1"
+  local image="$2"
+  local tag="$3"
+  local digest=""
+
+  echo "==> Looking up digest for ${registry}/${image}:${tag}..."
+
+  digest=$(curl -sI \
+    -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+    "http://${registry}/v2/${image}/manifests/${tag}" \
+    | awk -F': ' 'tolower($1) == "docker-content-digest" {print $2}' \
+    | tr -d $'\r')
+
+  if [ -z "$digest" ]; then
+    echo "    No digest found for ${image}:${tag}. It may not exist. Skipping delete."
+    return 0
+  fi
+
+  echo "    Digest: $digest"
+  echo "==> Deleting ${image}:${tag} from registry..."
+
+  curl -fsS -X DELETE \
+    "http://${registry}/v2/${image}/manifests/${digest}" \
+    >/dev/null
+
+  echo "    Deleted ${image}:${tag}"
 }
 
 REGISTRY=$(read_env REGISTRY)
@@ -23,13 +56,43 @@ if [ -z "$REGISTRY" ] || [ -z "$IMAGE" ]; then
   exit 1
 fi
 
-echo "==> Building image..."
-docker compose -f docker-compose.build.yml build
+IMAGE_LATEST="${REGISTRY}/${IMAGE}:latest"
+IMAGE_VERSIONED="${REGISTRY}/${IMAGE}:${TAG}"
 
-echo "==> Tagging image..."
-docker tag "$IMAGE:latest" "$REGISTRY/$IMAGE:latest"
+if [ "$DELETE_LATEST_FIRST" = "true" ]; then
+  delete_registry_tag "$REGISTRY" "$IMAGE" "latest"
 
-echo "==> Pushing to registry..."
-docker push "$REGISTRY/$IMAGE:latest"
+  echo
+  echo "==> Removing local latest image if present..."
+  docker image rm "$IMAGE_LATEST" >/dev/null 2>&1 || true
+fi
 
-echo "==> Done. Pull and redeploy the stack to apply changes."
+echo
+echo "==> Building AMD64 image for NAS..."
+echo "    Latest:    $IMAGE_LATEST"
+echo "    Versioned: $IMAGE_VERSIONED"
+echo "    Platform:  $BUILD_PLATFORM"
+
+docker buildx build \
+  --platform "$BUILD_PLATFORM" \
+  --pull \
+  --no-cache \
+  -t "$IMAGE_VERSIONED" \
+  -t "$IMAGE_LATEST" \
+  --push \
+  .
+
+echo
+echo "==> Done."
+echo
+echo "Built and pushed:"
+echo "  $IMAGE_VERSIONED"
+echo "  $IMAGE_LATEST"
+echo
+echo "Use this exact image tag in Portainer for deterministic deploys:"
+echo "  $IMAGE_VERSIONED"
+echo
+echo "Or verify latest on NAS with:"
+echo "  docker image rm $IMAGE_LATEST || true"
+echo "  docker pull $IMAGE_LATEST"
+echo "  docker image inspect $IMAGE_LATEST --format 'latest -> {{.Architecture}}/{{.Os}}  ID: {{.Id}}'"

@@ -1,0 +1,35 @@
+#!/bin/bash
+######################################################################
+## List all images in local docker registry in easy to read format  ##
+######################################################################
+
+set -euo pipefail
+
+ENV_FILE=.production-env
+BUILD_PLATFORM="linux/amd64"
+TAG="${TAG:-amd64-$(date +%Y%m%d-%H%M%S)}"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing Environment File: $ENV_FILE" >&2
+  exit 1
+fi
+
+read_env() {
+  local key="$1"
+  local val
+  val=$(grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d= -f2- || true)
+  val="${val%%#*}"
+  echo "$val" | xargs
+}
+
+REGISTRY=$(read_env REGISTRY)
+
+
+echo "Repositories:"
+repos=$(curl -s "http://${REGISTRY}/v2/_catalog" | jq -r '.repositories[]')
+
+for repo in $repos; do
+  echo
+  echo "$repo:"
+  curl -s "http://${REGISTRY}/v2/${repo}/tags/list" | jq -r '.tags[]?' | sed 's/^/  - /'
+done

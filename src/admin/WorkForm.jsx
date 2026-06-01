@@ -5,12 +5,12 @@ import {PlacementEditor} from './PlacementEditor.jsx';
 import {UploadPreview} from './UploadPreview.jsx';
 
 export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
-    const [title, setTitle] = useState(''), [price, setPrice] = useState(''), [description, setDescription] = useState(''), [featured, setFeatured] = useState(false), [files, setFiles] = useState(null), [keep, setKeep] = useState([]), [busy, setBusy] = useState(false), [mediaPlacement, setMediaPlacement] = useState({}), [newMediaPlacement, setNewMediaPlacement] = useState({});
+    const [title, setTitle] = useState(''), [price, setPrice] = useState(''), [description, setDescription] = useState(''), [files, setFiles] = useState(null), [keep, setKeep] = useState([]), [busy, setBusy] = useState(false), [mediaPlacement, setMediaPlacement] = useState({}), [newMediaPlacement, setNewMediaPlacement] = useState({});
     useEffect(() => {
         setTitle(editing?.title || '');
         setPrice(editing?.price ?? '');
         setDescription(editing?.description || '');
-        setFeatured(Boolean(editing?.featured));
+        // setFeatured(Boolean(editing?.featured));
         setKeep((editing?.media || []).map(m => m.url));
         setMediaPlacement(Object.fromEntries((editing?.media || []).filter(isImageMedia).map(m => [m.url, m.placement ?? null])));
         setNewMediaPlacement({});
@@ -62,36 +62,88 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
         }
     }
 
-    return <form ref={formRef} className="work-form" onSubmit={submit} noValidate><p className="eyebrow"><Plus
-        size={15}/> {editing ? 'Edit work' : 'Add a new work'}</p>
-        <div className="form-grid"><input placeholder="Title" value={title}
-                                          onChange={e => setTitle(e.target.value)}/><input
-            placeholder="Price / quote text" value={price} onChange={e => setPrice(e.target.value)}/></div>
-        <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}/><label
-            className="check"><input type="checkbox" checked={featured}
-                                     onChange={e => setFeatured(e.target.checked)}/> Feature this item on the
-            home page</label>{editing?.media?.length > 0 &&
-            <div className="media-keep"><p>Existing media</p>{editing.media.map(m => <div key={m.url}
-                                                                                          className="existing-media-editor">
-                <label><input type="checkbox" checked={keep.includes(m.url)}
-                              onChange={e => setKeep(e.target.checked ? [...keep, m.url] : keep.filter(x => x !== m.url))}/>{m.type?.startsWith('video/') ?
-                    <Video/> : <ImagePlus/>}{m.originalName || m.url}</label>{keep.includes(m.url) && isImageMedia(m) &&
-                <PlacementEditor media={{...m, placement: placementFor(mediaPlacement, m.url)}}
-                                   value={placementFor(mediaPlacement, m.url) ?? m.placement ?? null}
-                                   onChange={next => updatePlacementMap(setMediaPlacement, m.url, next)}/>}</div>)}
-            </div>}<label className="upload"><ImagePlus/> Upload images/videos, including Apple HEIC <input type="file"
-                                                                                                            accept="image/*,.heic,.heif,video/*"
-                                                                                                            multiple
-                                                                                                            onChange={e => {
-                                                                                                                setFiles(e.target.files);
-                                                                                                                setNewMediaPlacement({});
-                                                                                                            }}/></label><UploadPreview
-            files={files} title={title} price={price} description={description} placements={newMediaPlacement}
-            setPlacements={setNewMediaPlacement}/>
-        <div className="form-actions">
-            <button className="button button-primary"
-                    disabled={busy}>{busy ? 'Saving...' : editing ? 'Save changes' : 'Add work'}</button>
-            {editing && <button type="button" className="button button-ghost" onClick={() => setEditing(null)}>Cancel
-                edit</button>}</div>
-    </form>
+    return (
+        <form ref={formRef} className="work-form" onSubmit={submit} noValidate>
+            <p className="eyebrow">
+                <Plus size={15} /> {editing ? 'Edit work' : 'Add a new work'}
+            </p>
+
+            <div className="form-grid">
+                <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+                <input placeholder="Price / Quote Text" value={price} onChange={e => setPrice(e.target.value)} />
+            </div>
+
+            <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
+
+            {/*<label className="check">asd*/}
+            {/*    <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} />*/}
+            {/*    Feature this item on the home page*/}
+            {/*</label>*/}
+
+            {editing?.media?.length > 0 && (
+                <div className="media-keep">
+                    <p>Existing media</p>
+
+                    {editing.media.map(m => (
+                        <div key={m.url} className="existing-media-editor">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={keep.includes(m.url)}
+                                    onChange={e =>
+                                        setKeep(e.target.checked ? [...keep, m.url] : keep.filter(x => x !== m.url))
+                                    }
+                                />
+
+                                {m.type?.startsWith('video/') ? <Video /> : <ImagePlus />}
+                                {m.originalName || m.url}
+                            </label>
+
+                            {keep.includes(m.url) && isImageMedia(m) && (
+                                <PlacementEditor
+                                    media={{ ...m, placement: placementFor(mediaPlacement, m.url) }}
+                                    value={placementFor(mediaPlacement, m.url) ?? m.placement ?? null}
+                                    onChange={next => updatePlacementMap(setMediaPlacement, m.url, next)}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <label className="upload">
+                <ImagePlus /> Upload images/videos
+                <input
+                    type="file"
+                    accept="image/*,.heic,.heif,video/*"
+                    multiple
+                    onChange={e => {
+                        setFiles(e.target.files);
+                        setNewMediaPlacement({});
+                    }}
+                />
+            </label>
+
+            <UploadPreview
+                files={files}
+                title={title}
+                price={price}
+                description={description}
+                placements={newMediaPlacement}
+                setPlacements={setNewMediaPlacement}
+            />
+
+            <div className="form-actions">
+                <button className="button button-primary" disabled={busy}>
+                    {busy ? 'Saving...' : editing ? 'Save changes' : 'Add work'}
+                </button>
+
+                {editing && (
+                    <button type="button" className="button button-ghost" onClick={() => setEditing(null)}>
+                        Cancel edit
+                    </button>
+                )}
+            </div>
+        </form>
+    );
 }

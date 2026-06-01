@@ -1,6 +1,6 @@
-# Joe's Custom Flags CMS
+# Custom CMS
 
-A Docker-deployable CMS website for Joe's custom flags / woodshop portfolio.
+A Docker-deployable CMS website
 
 ## What it includes
 

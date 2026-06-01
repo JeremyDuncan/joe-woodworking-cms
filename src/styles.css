@@ -14,6 +14,26 @@
     --line: rgba(255, 255, 255, .14);
     --glass: rgba(255, 255, 255, .08);
     --shadow: 0 30px 100px rgba(0, 0, 0, .45);
+    /* Theme-derived (overridden live by applyTheme); defaults match the base look */
+    --bg-deep: rgb(5 9 18 / 0.59);
+    --bg-deep-rgb: 5, 9, 18;
+    --grad1-rgb: 181, 31, 43;
+    --grad2-rgb: 36, 88, 163;
+    --grad3-rgb: 8, 17, 31;
+    --grad4-rgb: 8, 17, 31;
+    --btn: #e33445;
+    --btn-deep: #9a1624;
+    --btn-rgb: 227, 52, 69;
+    --icon-color: #d7a64f;
+    --hover-border: #d7a64f;
+    --accent-rgb: 215, 166, 79;
+    --t-heading: #fffaf0;
+    --t-paragraph: #b8c2d6;
+    --t-nav: #fffaf0;
+    --t-button: #ffffff;
+    --t-eyebrow: #d7a64f;
+    --t-list: #f4ead8;
+    --t-featured: #d7a64f;
 }
 
 * {
@@ -26,8 +46,11 @@ html {
 
 body {
     margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
-    background: radial-gradient(circle at 15% 0%, rgba(181, 31, 43, .32), transparent 28%), radial-gradient(circle at 88% 12%, rgba(36, 88, 163, .28), transparent 24%), linear-gradient(180deg, #050912 0%, var(--navy) 45%, #050912 100%);
+    font-family: var(--app-font, 'Inter', system-ui, -apple-system, Segoe UI, sans-serif);
+    min-height: 100vh;
+    background: radial-gradient(circle at 0% 0%, rgba(var(--grad1-rgb), .32), transparent 45%), radial-gradient(circle at 100% 0%, rgba(var(--grad2-rgb), .28), transparent 42%), radial-gradient(circle at 0% 100%, rgba(var(--grad3-rgb), .28), transparent 45%), radial-gradient(circle at 100% 100%, rgba(var(--grad4-rgb), .28), transparent 42%), linear-gradient(180deg, var(--bg-deep) 0%, var(--navy) 45%, var(--bg-deep) 100%);
+    background-attachment: fixed;
+    background-size: cover;
     color: var(--white);
     overflow-x: hidden
 }
@@ -45,8 +68,8 @@ a {
     align-items: center;
     justify-content: space-between;
     padding: 20px clamp(22px, 5vw, 72px);
-    background: linear-gradient(180deg, rgba(5, 9, 18, .88), rgba(5, 9, 18, .34));
-    backdrop-filter: blur(18px);
+    background: var(--header-bg, linear-gradient(180deg, rgba(var(--bg-deep-rgb), .92), rgba(var(--bg-deep-rgb), .5)));
+    backdrop-filter: var(--header-blur, blur(18px));
     border-bottom: 1px solid rgba(255, 255, 255, .08)
 }
 
@@ -70,7 +93,11 @@ a {
     place-items: center;
     border: 1px solid rgba(255, 255, 255, .18);
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--red), #173b73)
+    background: linear-gradient(135deg, var(--btn), var(--navy-2))
+}
+
+.ui-icon {
+    color: var(--icon-color)
 }
 
 .site-header nav {
@@ -79,11 +106,12 @@ a {
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: rgba(255, 250, 240, .82)
+    color: var(--t-nav)
 }
 
 .site-header nav a:hover {
-    color: var(--white)
+    color: var(--t-nav);
+    opacity: .75
 }
 
 .nav-cta {
@@ -111,45 +139,32 @@ a {
     margin: 0 auto
 }
 
-.home {
-    overflow: hidden;
-    max-width: none
-}
-
-.home-bg {
-    position: absolute;
-    inset: 0;
-    z-index: -2;
-    background: linear-gradient(90deg, rgba(5, 9, 18, .95) 0%, rgba(5, 9, 18, .7) 44%, rgba(5, 9, 18, .35) 100%), repeating-linear-gradient(0deg, rgba(255, 255, 255, .045) 0 2px, transparent 2px 76px), linear-gradient(135deg, rgba(181, 31, 43, .22), rgba(13, 28, 49, .05) 45%, rgba(36, 88, 163, .2))
-}
-
-.home::after {
-    content: '';
-    position: absolute;
-    right: -12vw;
-    top: 12vh;
-    width: 55vw;
-    height: 55vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(227, 52, 69, .22), rgba(215, 166, 79, .08) 35%, transparent 65%);
-    filter: blur(12px);
-    z-index: -1
-}
-
 .eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    color: var(--gold);
+    color: var(--t-eyebrow);
     font-size: 12px;
     font-weight: 900;
     letter-spacing: .18em;
     text-transform: uppercase;
     margin: 0 0 18px
 }
+.divider {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid var(--divider);
+    margin: 1.5rem 0;
+    opacity: 0.35;
+}
+
 
 h1, h2, h3, p {
     margin-top: 0
+}
+
+h1, h2, h3 {
+    color: var(--t-heading)
 }
 
 h1 {
@@ -174,7 +189,7 @@ h3 {
 }
 
 p {
-    color: var(--muted);
+    color: var(--t-paragraph);
     line-height: 1.72;
     font-size: 17px
 }
@@ -182,7 +197,7 @@ p {
 .home-copy {
     max-width: 680px;
     font-size: clamp(18px, 2vw, 22px);
-    color: rgba(255, 250, 240, .8)
+    color: var(--t-paragraph)
 }
 
 .home-actions {
@@ -212,22 +227,22 @@ p {
 }
 
 .button-primary {
-    background: linear-gradient(135deg, var(--red-bright), #9a1624);
-    box-shadow: 0 20px 60px rgba(227, 52, 69, .32);
-    color: white
+    background: linear-gradient(135deg, var(--btn), var(--btn-deep));
+    box-shadow: 0 20px 60px rgba(var(--btn-rgb), .32);
+    color: var(--t-button)
 }
 
 .button-ghost {
     border-color: rgba(255, 255, 255, .22);
     background: rgba(255, 255, 255, .06);
-    color: var(--white)
+    color: var(--t-button)
 }
 
 .proof-strip {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    color: rgba(255, 250, 240, .86)
+    color: var(--t-list)
 }
 
 .proof-strip span {
@@ -310,7 +325,7 @@ p {
     justify-content: center;
     gap: 13px;
     background: linear-gradient(135deg, rgba(8, 17, 31, .96), rgba(41, 25, 17, .88)), repeating-linear-gradient(90deg, rgba(255, 255, 255, .03) 0 3px, transparent 3px 34px);
-    color: var(--gold);
+    color: var(--t-featured);
     font-weight: 900;
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -710,12 +725,17 @@ input::placeholder, textarea::placeholder {
     display: grid;
     grid-template-columns:1fr 1fr;
     gap: 12px;
-    margin-bottom: 12px
+    margin-bottom: 12px;
+    padding-top: 0;
 }
 
-.work-form textarea, .check, .upload, .media-keep, .work-form input + input {
-    margin-top: 12px
+.work-form textarea, .check, .upload, .media-keep, .work-form input {
+    margin-top: 12px;
 }
+.work-form {
+    padding: 16px;
+}
+
 
 .check, .upload, .media-keep label {
     display: flex;
@@ -946,7 +966,11 @@ input::placeholder, textarea::placeholder {
     max-width: 1120px;
     margin: 0 auto;
     display: grid;
-    gap: 14px
+    gap: 14px;
+    /*border: red solid 5px;*/
+    border: 2px solid var(--line);
+
+    border-radius: 28px;
 }
 
 .admin-list-toolbar {
@@ -1093,11 +1117,45 @@ input::placeholder, textarea::placeholder {
     width: 100%
 }
 
-@media (max-width: 980px) {
-    .site-header nav a:not(.nav-cta) {
+@media (max-width: 860px) {
+    /* Collapse the nav into a dropdown panel toggled by the hamburger. */
+    .site-header nav {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 12px clamp(18px, 5vw, 72px) 18px;
+        background: var(--header-bg, rgba(var(--bg-deep-rgb), .98));
+        backdrop-filter: var(--header-blur, blur(18px));
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, .35);
         display: none
     }
 
+    .site-header nav.nav-open {
+        display: flex;
+        background: rgba(var(--bg-deep-rgb), .92);
+        backdrop-filter: var(--header-blur, blur(18px));
+    }
+
+    .site-header nav .nav-item {
+        padding: 12px 6px;
+        border-radius: 10px
+    }
+
+    .site-header nav .nav-item:hover {
+        background: rgba(255, 255, 255, .06)
+    }
+
+    .site-header nav .nav-cta {
+        justify-content: center
+    }
+}
+
+@media (max-width: 980px) {
     .section-full, .split, .cta-card, .real-work-callout {
         grid-template-columns:1fr
     }
@@ -1171,5 +1229,1623 @@ input::placeholder, textarea::placeholder {
 
     .media-frame {
         max-height: 360px
+    }
+}
+
+/* ---- Inline page editing ---- */
+.inline-edit {
+    outline: 1px dashed rgba(215, 166, 79, .55);
+    outline-offset: 3px;
+    border-radius: 4px;
+    cursor: text;
+    transition: outline-color .15s, background .15s;
+    min-width: 1ch;
+}
+
+.inline-edit:hover {
+    outline-color: var(--gold)
+}
+
+.inline-edit:focus {
+    outline: 2px solid var(--gold);
+    background: rgba(255, 255, 255, .06)
+}
+
+.inline-edit:empty:before {
+    content: attr(data-placeholder);
+    color: var(--steel)
+}
+
+.chip-add, .chip-remove {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .08);
+    color: var(--cream);
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800
+}
+
+.chip-remove {
+    margin-left: 8px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    line-height: 1;
+    flex: 0 0 auto
+}
+
+.chip-remove.wide {
+    width: auto;
+    height: auto;
+    padding: 6px 12px;
+    margin: 8px 0 0;
+    font-size: 12px
+}
+
+.chip-add {
+    margin-top: 10px;
+    padding: 8px 14px;
+    font-size: 13px
+}
+
+.edit-bar {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(8, 17, 31, .94);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+    max-width: calc(100vw - 36px)
+}
+
+.edit-bar .button {
+    min-height: 42px
+}
+
+.edit-bar-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    white-space: nowrap
+}
+
+.edit-bar-hint {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 340px
+}
+
+@media (max-width: 700px) {
+    .edit-bar-hint {
+        display: none
+    }
+}
+
+/* Edit-bar page switcher + dashboard header actions */
+.edit-bar-pages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px
+}
+
+.edit-bar-pages button {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer
+}
+
+.edit-bar-pages button:hover {
+    background: rgba(255, 255, 255, .12)
+}
+
+.admin-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap
+}
+
+@media (max-width: 700px) {
+    .edit-bar-pages {
+        display: none
+    }
+}
+
+/* ---- Block-based page layout ---- */
+.home-page {
+    position: relative;
+    min-height: 60vh
+}
+
+.block-stack {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px
+}
+
+.home-stack {
+    text-align: center;
+    align-items: center
+}
+
+.home-stack .home-actions,
+.home-stack .proof-strip {
+    justify-content: center
+}
+
+.block-stack .home-visual {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto
+}
+
+.block-frame {
+    position: relative;
+    width: 100%;
+    border: 1px dashed rgba(255, 255, 255, .2);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: left
+}
+
+.block-frame-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px
+}
+
+.block-frame-label {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--steel)
+}
+
+.block-frame-actions {
+    display: flex;
+    gap: 5px
+}
+
+.block-frame-actions button {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    border-radius: 8px;
+    cursor: pointer
+}
+
+.block-frame-actions button:disabled {
+    opacity: .35;
+    cursor: default
+}
+
+.block-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: 1px dashed rgba(215, 166, 79, .4);
+    border-radius: 14px
+}
+
+.block-add > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.block-add button {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .08);
+    color: var(--cream);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer
+}
+
+.block-add button:hover {
+    background: rgba(215, 166, 79, .18)
+}
+
+/* ---- Multi-column page builder ---- */
+.page-grid {
+    display: grid;
+    gap: 28px;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    align-items: start;
+    position: relative;
+    z-index: 1
+}
+
+.page-grid.cols-1 {
+    grid-template-columns: 1fr
+}
+
+.page-grid.cols-2 {
+    grid-template-columns: 1fr 1fr
+}
+
+.page-grid.cols-3 {
+    grid-template-columns: 1fr 1fr 1fr
+}
+
+/* Block column-span (class-based so media queries can cap it on small screens) */
+.span-1 {
+    grid-column: span 1
+}
+
+.span-2 {
+    grid-column: span 2
+}
+
+.span-3 {
+    grid-column: span 3
+}
+
+.page-col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0
+}
+
+.builder-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-weight: 800;
+    color: var(--muted);
+    font-size: 13px;
+    position: relative;
+    z-index: 1
+}
+
+.builder-toolbar button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer
+}
+
+.builder-toolbar button.active {
+    background: var(--gold);
+    color: #1a1208;
+    border-color: var(--gold)
+}
+
+.block-ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--steel);
+    text-transform: none;
+    letter-spacing: 0
+}
+
+.block-ctl select, .block-ctl input {
+    width: auto;
+    min-width: 0;
+    padding: 4px 6px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white)
+}
+
+.block-ctl input {
+    width: 90px
+}
+
+.block-frame-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end
+}
+
+/* Responsive page grid: 3-col -> 2-col on tablets, everything -> 1-col on phones,
+   with block spans capped so nothing overflows the viewport. */
+@media (max-width: 1000px) {
+    .page-grid.cols-3 {
+        grid-template-columns: 1fr 1fr
+    }
+
+    .span-3 {
+        grid-column: span 2
+    }
+}
+
+@media (max-width: 680px) {
+    .page-grid {
+        gap: 18px
+    }
+
+    .page-grid.cols-2, .page-grid.cols-3 {
+        grid-template-columns: 1fr
+    }
+
+    .span-2, .span-3 {
+        grid-column: span 1
+    }
+}
+
+/* ---- Theme panel ---- */
+.theme-panel {
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 121;
+    width: min(320px, calc(100vw - 36px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .97);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow)
+}
+
+.theme-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.theme-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1
+}
+
+.theme-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.theme-row select {
+    flex: 1;
+    max-width: 170px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit
+}
+
+.theme-row input[type=color] {
+    width: 46px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer
+}
+
+.theme-presets {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px
+}
+
+.theme-presets .button {
+    min-height: 38px
+}
+
+/* ---- Icon picker ---- */
+.brand-mark-btn {
+    cursor: pointer;
+    padding: 0
+}
+
+.brand-mark-btn:hover {
+    border-color: var(--gold)
+}
+
+.icon-ctl {
+    gap: 6px
+}
+
+.icon-ctl-btn {
+    width: 30px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    border-radius: 8px;
+    cursor: pointer
+}
+
+.icon-ctl-btn:hover {
+    border-color: var(--gold)
+}
+
+.icon-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 7, 14, .82);
+    backdrop-filter: blur(10px)
+}
+
+.icon-modal {
+    width: min(440px, 100%);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(8, 17, 31, .98);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow)
+}
+
+.icon-modal-head {
+    display: flex;
+    gap: 10px;
+    align-items: center
+}
+
+.icon-modal-head input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 8px;
+    overflow-y: auto;
+    padding: 2px
+}
+
+.icon-cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    color: var(--cream);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px
+}
+
+.icon-cell:hover {
+    background: rgba(215, 166, 79, .18)
+}
+
+.icon-cell.active {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .22);
+    color: var(--white)
+}
+
+/* ---- Drag-to-reorder + theme save message ---- */
+.block-frame-grip {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    margin-right: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream);
+    cursor: grab
+}
+
+.block-frame-grip:active {
+    cursor: grabbing
+}
+
+.block-frame.drag-over {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .35) inset
+}
+
+.builder-hint {
+    color: var(--steel);
+    font-size: 12px;
+    font-weight: 700
+}
+
+.theme-msg {
+    font-size: 12px;
+    font-weight: 800;
+    color: #9cffc9;
+    align-self: center
+}
+
+/* ---- Theme panel: sections + scroll ---- */
+.theme-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 4px
+}
+
+.theme-section {
+    margin: 10px 0 2px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold)
+}
+
+.theme-section:first-child {
+    margin-top: 0
+}
+
+/* ---- Image-upload block + draggable theme head ---- */
+.theme-drag {
+    cursor: move;
+    user-select: none
+}
+
+.image-upload {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px
+}
+
+.image-upload .button {
+    min-height: 40px;
+    cursor: pointer
+}
+
+.image-upload input {
+    display: none
+}
+
+
+.work-img-required {
+    text-align: center;
+    color: #ff9aa6;
+    font-size: 12px;
+    font-weight: 800;
+    margin: 8px 0 0
+}
+
+/* Grid block items (column spanning via inline grid-column) */
+.page-block {
+    min-width: 0
+}
+
+.builder-page {
+    min-height: 55vh
+}
+
+/* Image block: cap width so the portrait media frame doesn't become huge at wide spans */
+.home-visual {
+    width: 100%;
+    max-width: 600px;
+    margin-inline: auto
+}
+
+/* dnd-kit drag handle + lifted overlay */
+.block-frame-grip {
+    touch-action: none
+}
+
+.block-frame.is-overlay {
+    border-color: var(--gold);
+    background: rgba(8, 17, 31, .96);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    transform: scale(1.02);
+    cursor: grabbing
+}
+
+/* ---- Mobile polish for the builder + editing chrome ---- */
+@media (max-width: 680px) {
+    .builder-toolbar {
+        flex-wrap: wrap
+    }
+
+    .block-frame-bar {
+        flex-wrap: wrap;
+        gap: 8px
+    }
+
+    .edit-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+        bottom: 12px;
+        border-radius: 18px;
+        gap: 8px
+    }
+
+    .edit-bar-label {
+        width: 100%;
+        justify-content: center
+    }
+
+    .theme-panel {
+        bottom: 12px;
+        width: calc(100vw - 24px)
+    }
+
+    .section, .section-full {
+        padding-top: 104px
+    }
+}
+
+/* ---- Pages panel + edit-bar wrapping ---- */
+.edit-bar {
+    flex-wrap: wrap;
+    justify-content: center
+}
+
+.pages-panel {
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 121;
+    width: min(360px, calc(100vw - 28px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .97);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow)
+}
+
+.pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 36vh;
+    overflow-y: auto
+}
+
+.pages-row {
+    /*display: flex;*/
+    /*align-items: center;*/
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0 6px 0 0;
+    background: rgba(255, 255, 255, .04)
+}
+
+.pages-row.current {
+    border-color: var(--gold)
+}
+
+.pages-go {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    background: transparent;
+    border: 0;
+    color: var(--white);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 9px 10px;
+    text-align: left;
+    min-width: 0
+}
+
+.pages-path {
+    font-size: 11px;
+    color: var(--steel);
+    font-weight: 600
+}
+
+.pages-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: #ff9aa6;
+    cursor: pointer;
+    flex: 0 0 auto
+}
+
+.pages-add {
+    min-height: 42px
+}
+
+.pages-templates {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+@media (max-width: 680px) {
+    .pages-panel {
+        bottom: 12px;
+        width: calc(100vw - 24px)
+    }
+}
+
+.pages-navtoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    cursor: pointer;
+    flex: 0 0 auto;
+    white-space: nowrap
+}
+
+.pages-navtoggle input {
+    width: auto;
+    cursor: pointer
+}
+
+/* Text-link button variant + heading links */
+.text-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--btn);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer
+}
+
+.text-link:hover {
+    opacity: .8
+}
+
+.block-link {
+    display: block;
+    color: inherit;
+    text-decoration: none
+}
+
+.block-link:hover {
+    color: var(--btn)
+}
+
+/* Keep the fixed edit bar from covering the bottom of the page (the Add palette) */
+main.is-editing {
+    padding-bottom: 170px
+}
+
+/* Linked image (no zoom cursor) + image caption */
+.media-frame-link {
+    appearance: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer
+}
+
+.image-caption {
+    text-align: center;
+    margin: 10px auto 0;
+    max-width: 600px;
+    color: var(--t-paragraph);
+    font-size: 15px
+}
+
+/* ---- Edit bar refinement ---- */
+.edit-bar-pages button.active {
+    background: var(--gold);
+    color: #1a1208;
+    border-color: var(--gold)
+}
+
+.edit-bar-sep {
+    width: 1px;
+    align-self: stretch;
+    min-height: 22px;
+    background: var(--line);
+    margin: 0 2px
+}
+
+.edit-icon-btn {
+    gap: 7px
+}
+
+/* ---- Editable page rows ---- */
+.pages-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, .04)
+}
+
+.pages-row.current {
+    border-color: var(--gold)
+}
+
+.pages-fields {
+    display: flex;
+    gap: 8px
+}
+
+.pages-label-input, .pages-path-input {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit;
+    font-size: 13px
+}
+
+.pages-path-input {
+    flex: 0 1 140px;
+    color: var(--steel)
+}
+
+.pages-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap
+}
+
+.pages-go {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    border-radius: 8px;
+    cursor: pointer;
+    flex: 0 0 auto
+}
+
+.pages-go:hover {
+    border-color: var(--gold)
+}
+
+/* ---- Current theme indicator ---- */
+.theme-current {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--muted)
+}
+
+.theme-current strong {
+    color: var(--gold)
+}
+
+/* Clickable work card (the whole box links to a page) */
+.work-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer
+}
+
+.work-card-link:hover .gallery-card {
+    border-color: var(--hover-border)
+}
+
+/* List item icon picker sits tight next to its text */
+.proof-strip .icon-ctl {
+    gap: 0
+}
+
+/* Click-to-edit icon (the icon itself is the trigger) */
+.icon-edit-btn {
+    appearance: none;
+    border: 1px dashed transparent;
+    background: transparent;
+    color: inherit;
+    padding: 2px;
+    margin: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+    vertical-align: middle
+}
+
+.icon-edit-btn:hover {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .14)
+}
+
+/* ---- Toasts ---- */
+.toast-stack {
+    position: fixed;
+    top: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    pointer-events: none
+}
+
+.toast {
+    pointer-events: auto;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(8, 17, 31, .98);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 14px;
+    max-width: 360px;
+    animation: toastIn .18s ease
+}
+
+.toast-error {
+    border-color: rgba(248, 113, 113, .5);
+    color: #ffc2c8
+}
+
+.toast-success {
+    border-color: rgba(74, 222, 128, .5);
+    color: #b7ffd0
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px)
+    }
+    to {
+        opacity: 1;
+        transform: none
+    }
+}
+
+/* ---- Confirm / prompt dialog ---- */
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 320;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 7, 14, .84);
+    backdrop-filter: blur(10px)
+}
+
+.dialog {
+    width: min(420px, 100%);
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .99);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 16px
+}
+
+.dialog-text {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.5
+}
+
+.dialog-input {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #101827;
+    border: 1px solid var(--line);
+    color: var(--white);
+    font: inherit
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px
+}
+
+.dialog-actions .button {
+    min-height: 44px
+}
+
+/* ---- Image adjust modal ---- */
+.adjust-modal {
+    width: min(520px, 100%);
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(8, 17, 31, .99);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow)
+}
+
+.adjust-canvas {
+    position: relative;
+    width: 100%;
+    height: 60vh;
+    max-height: 460px;
+    background: #050912
+}
+
+.adjust-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px
+}
+
+.adjust-hint {
+    flex: 1;
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.adjust-trigger {
+    min-height: 40px;
+    margin-top: 8px
+}
+
+/* ---- Clickable work card (box links; picture opens lightbox) ---- */
+.work-card-clickable {
+    cursor: pointer;
+    display: block
+}
+
+.work-card-clickable:hover .gallery-card {
+    border-color: var(--hover-border)
+}
+
+/* ---- Nav items with icons ---- */
+.site-header nav .nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px
+}
+
+/* Theme preset action buttons */
+.theme-preset-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px
+}
+
+.theme-preset-actions .button {
+    min-height: 40px;
+    flex: 1 1 auto;
+    padding-inline: 14px
+}
+
+/* ---- Admin chrome buttons: fixed colors, NOT the themeable button fill ---- */
+.edit-bar .button-primary,
+.theme-panel .button-primary,
+.pages-panel .button-primary,
+.dialog .button-primary,
+.icon-modal .button-primary,
+.adjust-modal .button-primary,
+.admin-shell .button-primary {
+    background: linear-gradient(135deg, #2f6fe0, #1e49a0);
+    box-shadow: 0 16px 50px rgba(47, 111, 224, .3);
+    color: #fff
+}
+
+/* Save = always green */
+.btn-save {
+    background: linear-gradient(135deg, #2bbf76, #1c8a55);
+    box-shadow: 0 16px 50px rgba(43, 191, 118, .32);
+    color: #fff
+}
+
+.btn-save:disabled {
+    opacity: .7
+}
+
+.theme-edited {
+    color: var(--gold);
+    font-weight: 700
+}
+
+.dialog-hint {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--steel);
+    margin-top: -8px
+}
+
+/* ---- Mobile nav hamburger (hidden on desktop, shown via media query) ---- */
+.nav-hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .06);
+    color: var(--t-nav);
+    cursor: pointer
+}
+
+.nav-hamburger:hover {
+    background: rgba(255, 255, 255, .12)
+}
+
+/* ---- Global site footer ---- */
+.site-footer {
+    margin-top: 64px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    background: rgba(var(--bg-deep-rgb), .35)
+}
+
+.site-footer .page-grid {
+    align-items: start
+}
+
+.site-footer .copyright {
+    color: var(--t-paragraph);
+    opacity: .8;
+    font-size: 13px;
+    letter-spacing: .04em
+}
+
+/* ---- Theme checkbox row (e.g. solid header toggle) ---- */
+.theme-row.theme-check {
+    cursor: pointer
+}
+
+.theme-row.theme-check input {
+    width: 18px;
+    height: 18px
+}
+
+/* Show the hamburger on small screens. Placed after the base .nav-hamburger
+   rule so this override wins (equal specificity → later source order wins). */
+@media (max-width: 860px) {
+    .nav-hamburger {
+        display: inline-flex
+    }
+}
+
+/* ---- Top-level error / loading fallback (ErrorBoundary + config gate) ---- */
+.app-fallback {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 40px
+}
+
+.app-fallback h1 {
+    font-size: 32px;
+    margin: 0
+}
+
+.app-fallback p {
+    margin: 0;
+    max-width: 460px;
+    color: var(--t-paragraph)
+}
+
+.app-loading {
+    opacity: .7;
+    letter-spacing: .04em
+}
+
+/* ---- Admin backup & restore ---- */
+.backup-panel {
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-self: center;
+}
+
+.backup-panel h2 {
+    margin: 0
+}
+
+.backup-panel p {
+    margin: 0
+}
+
+.backup-panel code {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .08);
+    font-size: 13px
+}
+
+.backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px
+}
+
+.backup-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid rgba(227, 52, 69, .35);
+    border-radius: 12px;
+    background: rgba(227, 52, 69, .08);
+    color: var(--t-paragraph);
+    font-size: 14px
+}
+
+.backup-warning svg {
+    flex: 0 0 auto;
+    color: var(--red-bright)
+}
+
+/* ---- Heading block: H4–H6 (H1–H3 already styled above) ---- */
+h4, h5, h6 {
+    margin-top: 0;
+    color: var(--t-heading);
+    letter-spacing: -.01em
+}
+
+h4 {
+    font-size: 19px;
+    margin-bottom: 9px
+}
+
+h5 {
+    font-size: 16px;
+    margin-bottom: 8px
+}
+
+h6 {
+    font-size: 14px;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: .06em
+}
+
+/* ---- Inline links inside rich heading/paragraph text ---- */
+.rich-text a, .inline-edit a {
+    display: inline;
+    color: var(--btn);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer
+}
+
+.rich-text a:hover, .inline-edit a:hover {
+    opacity: .8
+}
+
+/* ---- Floating "link to page" toolbar shown over a text selection ---- */
+.rich-linkbar {
+    position: absolute;
+    z-index: 1200;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    max-width: min(92vw, 560px);
+    padding: 7px 9px;
+    border-radius: 12px;
+    background: #0d1c31;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .5)
+}
+
+.rich-linkbar-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: var(--muted);
+    text-transform: uppercase
+}
+
+.rich-linkbar button {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .06);
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer
+}
+
+.rich-linkbar button:hover {
+    background: rgba(255, 255, 255, .14)
+}
+
+.rich-linkbar .rich-unlink {
+    border-color: rgba(227, 52, 69, .4);
+    color: #ffb4bd
+}
+
+.rich-linkbar .rich-external {
+    border-color: rgba(120, 170, 255, .4);
+    color: #bcd4ff
+}
+
+/* ---- Pages panel: nav reorder up/down ---- */
+.pages-reorder {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 6px
+}
+
+.pages-reorder button {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .06);
+    color: var(--white);
+    cursor: pointer
+}
+
+.pages-reorder button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .14)
+}
+
+.pages-reorder button:disabled {
+    opacity: .3;
+    cursor: default
+}
+
+.password-confirm {
+    margin-bottom: 12px;
+}
+/* ===== Edit dock: left tool rail in edit mode ===== */
+.dock-cog {
+    position: fixed;
+    left: 18px;
+    bottom: 18px;
+    z-index: 122;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(8, 17, 31, .97);
+    color: var(--white);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+    cursor: pointer
+}
+
+.dock-cog:hover {
+    background: rgba(255, 255, 255, .12)
+}
+
+.edit-dock {
+    position: fixed;
+    left: 18px;
+    bottom: 18px;
+    z-index: 122;
+    width: 216px;
+    max-height: calc(100vh - 36px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(8, 17, 31, .97);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow)
+}
+
+.dock-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.dock-title {
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--muted)
+}
+
+.dock-collapse {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--white);
+    cursor: pointer
+}
+
+.dock-collapse:hover {
+    background: rgba(255, 255, 255, .14)
+}
+
+.dock-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.dock-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, .05);
+    color: var(--white);
+    font-weight: 800;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer
+}
+
+.dock-section span {
+    flex: 1
+}
+
+.dock-section-caret {
+    opacity: .45
+}
+
+.dock-section:hover {
+    background: rgba(255, 255, 255, .1)
+}
+
+.dock-section.active {
+    border-color: rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .12)
+}
+
+.dock-section.active .dock-section-caret {
+    opacity: 1;
+    transform: translateX(2px)
+}
+
+.dock-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px
+}
+
+.dock-footer .button {
+    width: 100%
+}
+
+/* Docked flyouts: anchor to the right of the rail instead of bottom-centered. */
+.theme-panel.docked,
+.pages-panel.docked {
+    left: 250px;
+    bottom: 18px;
+    top: auto;
+    transform: none;
+    max-height: calc(100vh - 36px);
+    overflow-y: auto;
+    z-index: 121
+}
+
+@media (max-width: 640px) {
+    .theme-panel.docked,
+    .pages-panel.docked {
+        left: 12px;
+        right: 12px;
+        bottom: 92px;
+        width: auto;
+        max-height: calc(100vh - 120px)
     }
 }

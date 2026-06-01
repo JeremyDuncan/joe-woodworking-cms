@@ -12,7 +12,16 @@ import path from 'path';
 import {fileURLToPath, pathToFileURL} from 'url';
 import os from 'os';
 import pkg from 'pg';
-import {S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand} from '@aws-sdk/client-s3';
+import {
+    S3Client,
+    PutObjectCommand,
+    DeleteObjectCommand,
+    GetObjectCommand,
+    ListObjectsV2Command,
+    HeadBucketCommand,
+    CreateBucketCommand
+} from '@aws-sdk/client-s3';
+import AdmZip from 'adm-zip';
 
 const {Pool} = pkg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,76 +29,239 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const seedWorks = [
     {
         id: randomUUID(),
-        title: 'State Silhouette Flag',
-        price: 'Custom quote',
+        title: 'Project One',
+        price: '',
         featured: true,
-        description: 'A hand-crafted American flag shaped into a state silhouette with a custom lower detail area.',
-        media: [{url: '/joe-business-card.jpg', type: 'image/jpeg', originalName: 'Joe business card example'}],
+        description: 'A short description of this project goes here. Replace it with your own.',
+        media: [{url: '/placeholder.webp', type: 'image/webp', originalName: 'Placeholder'}],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     },
     {
         id: randomUUID(),
-        title: 'Military Tribute Flag',
-        price: 'Custom quote',
+        title: 'Project Two',
+        price: '',
         featured: false,
-        description: 'Personalized for Army, Navy, Air Force, Marines, Coast Guard, Space Force, veterans, and memorial gifts.',
-        media: [],
+        description: 'A short description of this project goes here. Replace it with your own.',
+        media: [{url: '/placeholder.webp', type: 'image/webp', originalName: 'Placeholder'}],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     }
 ];
 
 const defaultSettings = {
-    brandName: "Joe’s Custom Flags",
-    brandShort: "Joe’s Flags",
-    email: 'Smokingjoe38@yahoo.com',
-    phone: '706.299.8309',
+    brandName: 'Your Business',
+    brandShort: 'Your Brand',
+    brandIcon: 'Hexagon',
+    email: 'hello@example.com',
+    phone: '(555) 123-4567',
     nav: [
+        {label: 'Tutorial', path: '/tutorial', icon: 'GraduationCap'},
         {label: 'Home', path: '/'},
-        {label: 'Work', path: '/work'},
-        {label: 'Options', path: '/options'},
-        {label: 'Process', path: '/process'},
-        {label: 'Contact', path: '/contact'}
+        {label: 'Services', path: '/services'},
+        {label: 'Gallery', path: '/gallery'},
+        {label: 'About', path: '/about'},
+        {label: 'Contact', path: '/contact', cta: true}
     ],
-    home: {
-        eyebrow: 'Joe’s Custom Hand Crafted Flags',
-        title: 'Hand-crafted American flags built to become family heirlooms.',
-        body: 'Custom solid-wood American flag decor by Joe — hand-built, hand-painted, and personalized with logos, service branches, teams, memorials, patriotic themes, or your own image.',
-        primaryCta: 'Request a custom flag',
-        secondaryCta: 'View recent work'
+    layout: {
+        '/': {
+            columns: 2,
+            blocks: [
+                {id: 'home-eyebrow', type: 'eyebrow', props: {text: 'Welcome', icon: 'Sparkles', span: 2}},
+                {id: 'home-heading', type: 'heading', props: {text: 'A beautiful website you can edit yourself.', level: 1, span: 2}},
+                {id: 'home-body', type: 'text', props: {text: 'This is a starter template. Click anything to edit it, rearrange the blocks, choose your colors, and make it your own — no code required.', span: 2}},
+                {id: 'home-cta1', type: 'button', props: {label: 'Get in touch', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
+                {id: 'home-cta2', type: 'button', props: {label: 'See our work', to: '/gallery', variant: 'ghost'}},
+                {id: 'home-proof', type: 'list', props: {items: [{text: 'Fully editable pages', icon: 'Pencil'}, {text: 'Your own colors & fonts', icon: 'Palette'}, {text: 'Looks great on phones & desktops', icon: 'Check'}], icon: 'BadgeCheck', span: 2}},
+                {id: 'home-image', type: 'image', props: {url: '/build-your-site.webp', caption: 'Replace this with your own image', span: 2}},
+                {id: 'home-divider', type: 'divider', props: {span: 2}},
+                {id: 'home-h2', type: 'heading', props: {text: 'What we do', level: 2, span: 2}},
+                {id: 'home-h2-body', type: 'text', props: {text: 'Briefly describe what your business offers and why people should choose you.', span: 2}},
+                {id: 'home-learn', type: 'button', props: {label: 'Learn more about us', to: '/about', variant: 'link', icon: ''}}
+            ]
+        },
+        '/services': {
+            columns: 1,
+            blocks: [
+                {id: 'srv-eyebrow', type: 'eyebrow', props: {text: 'What we offer', icon: 'Star'}},
+                {id: 'srv-heading', type: 'heading', props: {text: 'Services', level: 1}},
+                {id: 'srv-body', type: 'text', props: {text: 'A short introduction to the services your business provides.'}},
+                {id: 'srv-list', type: 'list', props: {items: [{text: 'Service one — a short description', icon: 'Check'}, {text: 'Service two — a short description', icon: 'Check'}, {text: 'Service three — a short description', icon: 'Check'}], icon: 'BadgeCheck'}},
+                {id: 'srv-divider', type: 'divider', props: {}},
+                {id: 'srv-cta-h', type: 'heading', props: {text: 'Ready to get started?', level: 3}},
+                {id: 'srv-cta-b', type: 'text', props: {text: 'Tell us what you need and we’ll take it from there.'}},
+                {id: 'srv-cta', type: 'button', props: {label: 'Contact us', to: '/contact', variant: 'primary', icon: 'ArrowRight'}}
+            ]
+        },
+        '/gallery': {
+            columns: 3,
+            blocks: [
+                {id: 'gal-eyebrow', type: 'eyebrow', props: {text: 'Our work', icon: 'Image', span: 3}},
+                {id: 'gal-heading', type: 'heading', props: {text: 'Gallery', level: 1, span: 3}},
+                {id: 'gal-body', type: 'text', props: {text: 'A selection of recent projects. Replace these examples with your own.', span: 3}},
+                {id: 'gal-1', type: 'work', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-2', type: 'work', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-3', type: 'work', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
+            ]
+        },
+        '/about': {
+            columns: 2,
+            blocks: [
+                {id: 'abt-eyebrow', type: 'eyebrow', props: {text: 'Our story', icon: 'BookOpen', span: 2}},
+                {id: 'abt-heading', type: 'heading', props: {text: 'About us', level: 1, span: 2}},
+                {id: 'abt-body', type: 'text', props: {text: 'Tell your story here — who you are, what you value, and why customers choose you.'}},
+                {id: 'abt-image', type: 'image', props: {url: '/placeholder.webp', caption: ''}},
+                {id: 'abt-divider', type: 'divider', props: {span: 2}},
+                {id: 'abt-values-h', type: 'heading', props: {text: 'What we value', level: 3, span: 2}},
+                {id: 'abt-values', type: 'list', props: {items: [{text: 'Quality work', icon: 'BadgeCheck'}, {text: 'Honest service', icon: 'Heart'}, {text: 'Real craftsmanship', icon: 'Hammer'}], icon: 'Star', span: 2}}
+            ]
+        },
+        '/contact': {
+            columns: 1,
+            blocks: [
+                {id: 'con-eyebrow', type: 'eyebrow', props: {text: 'Get in touch', icon: 'Mail'}},
+                {id: 'con-heading', type: 'heading', props: {text: 'Contact', level: 1}},
+                {id: 'con-body', type: 'text', props: {text: 'We’d love to hear from you. Reach out and we’ll get back to you soon.'}},
+                {id: 'con-list', type: 'list', props: {items: [{text: 'hello@example.com', icon: 'Mail'}, {text: '(555) 123-4567', icon: 'Phone'}], icon: 'Mail'}},
+                {id: 'con-cta', type: 'button', props: {label: 'Email us', to: 'mailto:hello@example.com', variant: 'primary', icon: 'Send'}}
+            ]
+        },
+        // Built-in admin tutorial (shown in nav on a fresh install).
+        '/tutorial': {
+            columns: 1,
+            blocks: [
+                {id: 'tut-eyebrow', type: 'eyebrow', props: {text: 'Admin guide', icon: 'GraduationCap'}},
+                {id: 'tut-h1', type: 'heading', props: {text: 'How to run your website', level: 1}},
+                {id: 'tut-intro', type: 'text', props: {text: 'Welcome! This page explains everything you can do as the site admin, with live examples. When you’re comfortable, hide this page from the menu (Pages → uncheck “Nav”) or delete it entirely.'}},
+
+                {id: 'tut-edit-h', type: 'heading', props: {text: '1 · Edit mode', level: 2}},
+                {id: 'tut-edit-b', type: 'text', props: {text: 'Sign in at your private admin address and click “Edit site”. A toolbar appears with Pages, Theme, Save, and Discard. Every change is a draft until you press Save.'}},
+                {id: 'tut-edit-l', type: 'list', props: {icon: 'BadgeCheck', items: [
+                    {text: 'Click any text or icon on the page to change it', icon: 'Pencil'},
+                    {text: 'Save — the green button — makes your changes live', icon: 'BadgeCheck'},
+                    {text: 'Discard throws away unsaved changes (it asks first)', icon: 'Trash2'}
+                ]}},
+
+                {id: 'tut-text-h', type: 'heading', props: {text: '2 · Editing text & icons', level: 2}},
+                {id: 'tut-text-b', type: 'text', props: {text: 'In edit mode, click directly on any heading, paragraph, label, or list item and start typing. Click any icon to open the picker and choose a new one.'}},
+                {id: 'tut-text-link-h', type: 'heading', props: {text: 'Links inside text', level: 3}},
+                {id: 'tut-text-link-b', type: 'text', props: {text: 'Select any words inside a heading or paragraph and a small bar appears. Pick a page to link to, or choose “External…” to link to another website — external links always open in a new tab.'}},
+
+                {id: 'tut-blocks-h', type: 'heading', props: {text: '3 · Building pages with blocks', level: 2}},
+                {id: 'tut-blocks-b', type: 'text', props: {text: 'Every page is built from blocks. Choose a 1, 2, or 3 column grid with the “Columns” buttons, drag the ⠿ handle to reorder, set each block’s Width to span columns, and press × to remove one. Add new blocks from the “Add:” row.'}},
+                {id: 'tut-blocks-l', type: 'list', props: {icon: 'Star', items: [
+                    {text: 'Eyebrow — a small label with an icon', icon: 'Star'},
+                    {text: 'Heading — H1 through H6, or a paragraph', icon: 'Bookmark'},
+                    {text: 'Paragraph — body text with inline links', icon: 'BookOpen'},
+                    {text: 'Button — primary, ghost, or text-link style', icon: 'ArrowRight'},
+                    {text: 'List — bullet items, each with its own icon', icon: 'Check'},
+                    {text: 'Image — upload, crop, caption, and link it', icon: 'Image'},
+                    {text: 'Item — a card that also appears on your dashboard', icon: 'Package'},
+                    {text: 'Divider — a horizontal line', icon: 'Ruler'},
+                    {text: 'Copyright — shows the current year automatically', icon: 'Calendar'}
+                ]}},
+
+                {id: 'tut-ex-h', type: 'heading', props: {text: 'Live examples', level: 2}},
+                {id: 'tut-ex-b', type: 'text', props: {text: 'The blocks below are real and editable. In edit mode, click any of them to see their controls.'}},
+                {id: 'tut-ex-eyebrow', type: 'eyebrow', props: {text: 'This is an eyebrow', icon: 'Sparkles'}},
+                {id: 'tut-ex-h3', type: 'heading', props: {text: 'This is an H3 heading', level: 3}},
+                {id: 'tut-ex-text', type: 'text', props: {text: 'This is a paragraph block — try selecting these words to turn them into a link.'}},
+                {id: 'tut-ex-btn', type: 'button', props: {label: 'Primary button', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
+                {id: 'tut-ex-btn2', type: 'button', props: {label: 'Text link', to: '/gallery', variant: 'link', icon: ''}},
+                {id: 'tut-ex-list', type: 'list', props: {icon: 'BadgeCheck', items: [
+                    {text: 'A list item with its own icon', icon: 'BadgeCheck'},
+                    {text: 'Another item', icon: 'Star'}
+                ]}},
+                {id: 'tut-ex-divider', type: 'divider', props: {}},
+                {id: 'tut-ex-item', type: 'work', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Work tab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp'}},
+
+                {id: 'tut-pages-h', type: 'heading', props: {text: '4 · Pages', level: 2}},
+                {id: 'tut-pages-b', type: 'text', props: {text: 'Open “Pages” in the toolbar to add, rename, reorder, or remove pages. Each page has these options:'}},
+                {id: 'tut-pages-l', type: 'list', props: {icon: 'Folder', items: [
+                    {text: 'Nav — show or hide the page in the top menu', icon: 'Eye'},
+                    {text: 'Btn — style its menu link as a call-to-action button', icon: 'ArrowRight'},
+                    {text: 'Path — the page’s web address, e.g. /about', icon: 'Link'},
+                    {text: 'Layout templates — save a layout and reuse it on other pages', icon: 'Folder'}
+                ]}},
+
+                {id: 'tut-theme-h', type: 'heading', props: {text: '5 · Theme & colors', level: 2}},
+                {id: 'tut-theme-b', type: 'text', props: {text: 'Open “Theme” to change the font; the background and its four corner glows; the button, icon, and divider colors; the card hover border; and every text color. The header can be translucent or a solid color. Save favorite combinations as named presets to reuse later.'}},
+
+                {id: 'tut-hf-h', type: 'heading', props: {text: '6 · Header & footer', level: 2}},
+                {id: 'tut-hf-b', type: 'text', props: {text: 'Your brand name, brand icon, and menu links live in the header and are edited in place. The footer at the bottom appears on every page and is edited just like a page. On phones the menu collapses into a ☰ button.'}},
+
+                {id: 'tut-dash-h', type: 'heading', props: {text: '7 · The dashboard', level: 2}},
+                {id: 'tut-dash-b', type: 'text', props: {text: 'Your private dashboard has three tabs: Work (add and manage items with photos or videos), Password (change your login), and Backup.'}},
+
+                {id: 'tut-backup-h', type: 'heading', props: {text: '8 · Backups — important!', level: 2}},
+                {id: 'tut-backup-b', type: 'text', props: {text: 'In the dashboard’s Backup tab, click “Download backup” to save one .zip containing every page, template, theme, item, image, and admin login. Keep it somewhere safe, off the server. If anything is ever lost, “Restore from backup” rebuilds the entire site from that file — even onto brand-new, empty storage. Download a fresh backup regularly.'}},
+
+                {id: 'tut-end-h', type: 'heading', props: {text: 'You’re ready', level: 2}},
+                {id: 'tut-end-b', type: 'text', props: {text: 'That’s everything. When you no longer need this guide, open Pages and uncheck “Nav” to hide it, or delete the page. Don’t forget to press Save.'}}
+            ]
+        },
+        '__footer__': {
+            columns: 3,
+            blocks: [
+                {id: 'foot-brand', type: 'heading', props: {text: 'Your Business', level: 3}},
+                {id: 'foot-tag', type: 'text', props: {text: 'A short tagline describing what your business does.'}},
+                {id: 'foot-explore-h', type: 'heading', props: {text: 'Explore', level: 3}},
+                {id: 'foot-link1', type: 'button', props: {label: 'Services', to: '/services', variant: 'link', icon: ''}},
+                {id: 'foot-link2', type: 'button', props: {label: 'Gallery', to: '/gallery', variant: 'link', icon: ''}},
+                {id: 'foot-link3', type: 'button', props: {label: 'Contact', to: '/contact', variant: 'link', icon: ''}},
+                {id: 'foot-contact-h', type: 'heading', props: {text: 'Get in touch', level: 3}},
+                {id: 'foot-contact', type: 'list', props: {items: [{text: 'hello@example.com', icon: 'Mail'}, {text: '(555) 123-4567', icon: 'Phone'}], icon: 'Mail'}},
+                {id: 'foot-copy', type: 'copyright', props: {text: 'Your Business. All rights reserved.', span: 3}}
+            ]
+        }
     },
-    proof: ['48 inches tall', 'Solid 2x12 wood', 'Hand-painted finish', 'State-shaped flags available'],
+    layouts: {},
+    theme: {
+        font: 'Inter',
+        headerSolid: false,
+        colors: {
+            background: '#08111f', gradient1: '#b51f2b', gradient2: '#2458a3',
+            gradient3: '#08111f', gradient4: '#08111f', button: '#e33445', icon: '#d7a64f', hover: '#d7a64f',
+            header: '#0b1626', divider: '#d7a64f'
+        },
+        text: {
+            heading: '#fffaf0', paragraph: '#b8c2d6', nav: '#fffaf0', button: '#ffffff',
+            eyebrow: '#d7a64f', list: '#f4ead8', featured: '#d7a64f'
+        }
+    },
+    themes: {},
+    home: {
+        eyebrow: 'Welcome',
+        title: 'A beautiful website you can edit yourself.',
+        body: 'This is a starter template you can make your own.',
+        primaryCta: 'Get in touch',
+        secondaryCta: 'See our work'
+    },
+    proof: ['Fully editable pages', 'Your own colors & fonts', 'Mobile friendly'],
     work: {
-        eyebrow: 'Recent work gallery',
-        title: 'Built for homes, shops, offices, veteran gifts, and patriotic celebrations.',
-        body: 'Browse recent custom pieces and examples. Photos and videos are managed by the private CMS.'
+        eyebrow: 'Our work',
+        title: 'Gallery',
+        body: 'A selection of recent projects.'
     },
     options: {
-        eyebrow: 'Your flag, your story',
-        title: 'Choose from ready-made concepts or send your own idea.',
-        body: 'Every flag includes a lower custom design area for artwork that makes the piece personal.',
-        items: ['Business logos', 'College & professional teams', 'All military branches', '250 years of freedom themes', 'Memorial & service tributes', 'Your supplied custom artwork']
+        eyebrow: 'What we offer',
+        title: 'Services',
+        body: 'A short introduction to the services your business provides.',
+        items: ['Service one', 'Service two', 'Service three']
     },
     process: {
-        eyebrow: 'Simple ordering process',
-        title: 'From message to finished piece.',
+        eyebrow: 'How it works',
+        title: 'Our process',
         steps: [
-            {title: 'Share your idea', body: 'Send a theme, logo, team, branch, memorial concept, or reference image.'},
-            {
-                title: 'Approve the direction',
-                body: 'Pick from available design options or refine a custom layout for the lower panel.'
-            },
-            {
-                title: 'Hand-built with pride',
-                body: 'Your solid wood flag is crafted, painted, finished, and prepared for pickup or delivery details.'
-            }
+            {title: 'Step one', body: 'Describe the first step of working with you.'},
+            {title: 'Step two', body: 'Describe the second step of working with you.'},
+            {title: 'Step three', body: 'Describe the third step of working with you.'}
         ]
     },
     contact: {
-        eyebrow: 'Ready to start?',
-        title: 'Message with questions or to commission a custom American flag.',
-        body: 'Tell us the design you have in mind, who the flag is for, and whether you have artwork or a logo to include.'
+        eyebrow: 'Get in touch',
+        title: 'Contact',
+        body: 'We’d love to hear from you. Reach out and we’ll get back to you soon.'
     }
 };
 
@@ -213,6 +385,23 @@ export function createApp(options = {}) {
             for (const w of seedWorks) {
                 await pool.query('INSERT INTO cms_works(id,title,price,featured,description,media,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)',
                     [w.id, w.title, w.price || '', Boolean(w.featured), w.description, JSON.stringify(w.media || []), w.createdAt, w.updatedAt]);
+            }
+        }
+    }
+
+    // Make sure the media bucket exists before we try to read/write objects, so a
+    // brand-new MinIO/S3 (after a crash + fresh storage) works even without the
+    // minio-init sidecar. Safe to call repeatedly.
+    async function ensureBucket() {
+        if (!s3) return;
+        try {
+            await s3.send(new HeadBucketCommand({Bucket: S3_BUCKET}));
+        } catch {
+            try {
+                await s3.send(new CreateBucketCommand({Bucket: S3_BUCKET}));
+                console.log(`Created S3 bucket "${S3_BUCKET}"`);
+            } catch (e) {
+                console.warn(`Could not ensure S3 bucket "${S3_BUCKET}":`, e?.message || e);
             }
         }
     }
@@ -357,34 +546,85 @@ export function createApp(options = {}) {
     }
 
     async function convertImageBuffer(file) {
-        if (!isHeicUpload(file)) return {
-            buffer: file.buffer,
-            ext: path.extname(file.originalname || '') || '.bin',
-            mimetype: file.mimetype
-        };
-        const tmpIn = path.join(os.tmpdir(), `${randomUUID()}.heic`);
-        const tmpOut = path.join(os.tmpdir(), `${randomUUID()}.jpg`);
-        fs.writeFileSync(tmpIn, file.buffer);
-        try {
-            await execFileAsync('heif-convert', ['-q', '90', tmpIn, tmpOut], {
-                timeout: 120000,
-                maxBuffer: 1024 * 1024 * 8
-            });
-            const out = fs.readFileSync(tmpOut);
-            return {buffer: out, ext: '.jpg', mimetype: 'image/jpeg'};
-        } catch {
-            const out = await sharp(file.buffer).rotate().jpeg({quality: 90}).toBuffer();
-            return {buffer: out, ext: '.jpg', mimetype: 'image/jpeg'};
-        } finally {
+        const ext = path.extname(file.originalname || file.filename || '').toLowerCase();
+
+        // Leave videos alone.
+        if (file.mimetype?.startsWith('video/')) {
+            return {
+                buffer: file.buffer,
+                ext: ext || '.bin',
+                mimetype: file.mimetype
+            };
+        }
+
+        // Only optimize image uploads.
+        const isImage =
+            file.mimetype?.startsWith('image/') ||
+            ext === '.heic' ||
+            ext === '.heif';
+
+        if (!isImage) {
+            return {
+                buffer: file.buffer,
+                ext: ext || '.bin',
+                mimetype: file.mimetype || 'application/octet-stream'
+            };
+        }
+
+        let inputBuffer = file.buffer;
+
+        // HEIC/HEIF needs to be converted first before final WebP optimization.
+        if (isHeicUpload(file)) {
+            const tmpIn = path.join(os.tmpdir(), `${randomUUID()}.heic`);
+            const tmpOut = path.join(os.tmpdir(), `${randomUUID()}.jpg`);
+
+            fs.writeFileSync(tmpIn, file.buffer);
+
             try {
-                fs.unlinkSync(tmpIn);
+                await execFileAsync('heif-convert', ['-q', '90', tmpIn, tmpOut], {
+                    timeout: 120000,
+                    maxBuffer: 1024 * 1024 * 8
+                });
+
+                inputBuffer = fs.readFileSync(tmpOut);
             } catch {
-            }
-            try {
-                fs.unlinkSync(tmpOut);
-            } catch {
+                inputBuffer = await sharp(file.buffer)
+                    .rotate()
+                    .jpeg({quality: 90})
+                    .toBuffer();
+            } finally {
+                try {
+                    fs.unlinkSync(tmpIn);
+                } catch {
+                }
+
+                try {
+                    fs.unlinkSync(tmpOut);
+                } catch {
+                }
             }
         }
+
+        // Final optimized image output.
+        const output = await sharp(inputBuffer)
+            .rotate()
+            .resize({
+                width: 1600,
+                height: 1600,
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .webp({
+                quality: 82,
+                effort: 4
+            })
+            .toBuffer();
+
+        return {
+            buffer: output,
+            ext: '.webp',
+            mimetype: 'image/webp'
+        };
     }
 
     async function saveMedia(file) {
@@ -433,6 +673,55 @@ export function createApp(options = {}) {
         }
     }
 
+    const MIME_BY_EXT = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp',
+        '.gif': 'image/gif', '.avif': 'image/avif', '.svg': 'image/svg+xml',
+        '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.m4v': 'video/x-m4v'
+    };
+
+    function mimeFromKey(key) {
+        return MIME_BY_EXT[path.extname(key).toLowerCase()] || 'application/octet-stream';
+    }
+
+    // List every stored media object key (whole S3 bucket, or the local upload dir).
+    async function listMediaKeys() {
+        if (s3) {
+            const keys = [];
+            let token;
+            do {
+                const out = await s3.send(new ListObjectsV2Command({Bucket: S3_BUCKET, ContinuationToken: token}));
+                (out.Contents || []).forEach(o => o.Key && keys.push(o.Key));
+                token = out.IsTruncated ? out.NextContinuationToken : undefined;
+            } while (token);
+            return keys;
+        }
+        try {
+            return fs.readdirSync(UPLOAD_DIR).filter(f => fs.statSync(path.join(UPLOAD_DIR, f)).isFile());
+        } catch {
+            return [];
+        }
+    }
+
+    // Fetch one stored object as {buffer, contentType} (for backup).
+    async function getMedia(key) {
+        if (s3) {
+            const obj = await s3.send(new GetObjectCommand({Bucket: S3_BUCKET, Key: key}));
+            return {buffer: await streamToBuffer(obj.Body), contentType: obj.ContentType || mimeFromKey(key)};
+        }
+        return {buffer: fs.readFileSync(path.join(UPLOAD_DIR, key)), contentType: mimeFromKey(key)};
+    }
+
+    // Store one object under an exact key (for restore).
+    async function putMedia(key, buffer, contentType) {
+        if (s3) {
+            await s3.send(new PutObjectCommand({
+                Bucket: S3_BUCKET, Key: key, Body: buffer, ContentType: contentType || mimeFromKey(key)
+            }));
+        } else {
+            fs.writeFileSync(path.join(UPLOAD_DIR, key), buffer);
+        }
+    }
+
     async function uploadedFilesToMedia(files = [], placementMap = {}) {
         const stored = [];
         for (const f of files) {
@@ -465,7 +754,24 @@ export function createApp(options = {}) {
 
     app.set('trust proxy', 1);
     app.use(express.json({limit: '2mb'}));
-    app.locals.init = initSql;
+    // One-time: surface the built-in Tutorial page in the nav for sites created before
+    // it existed. Guarded by a flag so it's added at most once — deleting it later sticks.
+    async function migrateSettings() {
+        const s = await readSettings();
+        if (s.tutorialMigrated) return;
+        const nav = Array.isArray(s.nav) ? [...s.nav] : [];
+        if (!nav.some(n => n.path === '/tutorial')) {
+            // Far left of the nav.
+            nav.unshift({label: 'Tutorial', path: '/tutorial', icon: 'GraduationCap'});
+        }
+        await writeSettings({...s, nav, tutorialMigrated: true});
+    }
+
+    app.locals.init = async () => {
+        await initSql();
+        await ensureBucket();
+        await migrateSettings();
+    };
 
     const FileStore = createFileStore(session);
     app.use(session({
@@ -546,8 +852,55 @@ export function createApp(options = {}) {
     });
 
     app.get('/api/admin/settings', requireAdmin, async (_req, res) => res.json(await readSettings()));
+    // Sync self-contained "work" blocks in the page layout into the Works DB, so
+    // pieces created on a page also appear in the dashboard. New blocks get a workId
+    // written back into the layout; existing ones are updated in place.
+    async function syncWorkBlocks(settings) {
+        if (!settings || !settings.layout) return;
+        const works = await readWorks();
+        const byId = new Map(works.map(w => [w.id, w]));
+        for (const route of Object.keys(settings.layout)) {
+            const pg = settings.layout[route];
+            for (const b of (pg?.blocks || [])) {
+                if (b.type !== 'work' || !b.props || !b.props.image) continue;
+                const {title, description, price, image, workId} = b.props;
+
+                const media = [{
+                    url: image,
+                    type: image?.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
+                    originalName: title || 'work'
+                }];
+
+                const now = new Date().toISOString();
+                if (workId && byId.has(workId)) {
+                    const w = byId.get(workId);
+                    Object.assign(w, {
+                        title: title || '', description: description || '',
+                        price: price || '', media, updatedAt: now
+                    });
+                } else {
+                    const id = randomUUID();
+                    const w = {
+                        id, title: title || '', price: price || '', featured: false,
+                        description: description || '', media, createdAt: now, updatedAt: now
+                    };
+                    works.unshift(w);
+                    byId.set(id, w);
+                    b.props.workId = id;
+                }
+            }
+        }
+        await writeWorks(works);
+    }
+
     app.put('/api/admin/settings', requireAdmin, async (req, res) => {
-        const next = deepMerge(await readSettings(), req.body || {});
+        const body = req.body || {};
+        const next = deepMerge(await readSettings(), body);
+        // Preset collections must be replaceable (deepMerge can't delete keys), so a
+        // removed theme/layout actually persists.
+        if (body.themes) next.themes = body.themes;
+        if (body.layouts) next.layouts = body.layouts;
+        if (body.layout) await syncWorkBlocks(next);
         await writeSettings(next);
         res.json(next);
     });
@@ -560,6 +913,17 @@ export function createApp(options = {}) {
             res.send(converted.buffer);
         } catch {
             res.status(500).json({error: 'Conversion failed'});
+        }
+    });
+
+    // Store a standalone image (used by image blocks in the page builder).
+    app.post('/api/admin/upload', requireAdmin, upload.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No file provided'});
+        try {
+            const saved = await saveMedia(req.file);
+            res.json({url: saved.url, key: saved.key, type: saved.type});
+        } catch {
+            res.status(500).json({error: 'Upload failed'});
         }
     });
 
@@ -620,6 +984,118 @@ export function createApp(options = {}) {
         res.json({ok: true});
     });
 
+    // ---- Full backup / restore (settings + works + every uploaded image) ----
+    const BACKUP_VERSION = 1;
+    // A separate multer that accepts any file (the backup zip), since the media
+    // `upload` instance only allows image/video mime types.
+    const uploadZip = multer({
+        storage: multer.memoryStorage(),
+        limits: {fileSize: 2 * 1024 * 1024 * 1024}
+    });
+
+    app.get('/api/admin/backup', requireAdmin, async (_req, res) => {
+        try {
+            const zip = new AdmZip();
+            const settings = await readSettings();
+            const works = await readWorks();
+            const users = await readUsers();
+            zip.addFile('settings.json', Buffer.from(JSON.stringify(settings, null, 2)));
+            zip.addFile('works.json', Buffer.from(JSON.stringify(works, null, 2)));
+            // Admin logins (usernames + password hashes). Sensitive — the backup zip
+            // must be stored securely.
+            zip.addFile('users.json', Buffer.from(JSON.stringify(users, null, 2)));
+
+            const keys = await listMediaKeys();
+            const media = [];
+            for (const key of keys) {
+                try {
+                    const {buffer, contentType} = await getMedia(key);
+                    zip.addFile(`uploads/${key}`, buffer);
+                    media.push({key, contentType, size: buffer.length});
+                } catch {
+                    // Skip objects that can't be read rather than failing the whole backup.
+                }
+            }
+
+            zip.addFile('manifest.json', Buffer.from(JSON.stringify({
+                version: BACKUP_VERSION,
+                createdAt: new Date().toISOString(),
+                counts: {works: works.length, media: media.length, users: users.length},
+                storage: {sql: Boolean(pool), s3: Boolean(s3)},
+                media
+            }, null, 2)));
+
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="cms-backup-${stamp}.zip"`);
+            res.send(zip.toBuffer());
+        } catch {
+            res.status(500).json({error: 'Backup failed'});
+        }
+    });
+
+    app.post('/api/admin/restore', requireAdmin, uploadZip.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No backup file uploaded'});
+        let zip;
+        try {
+            zip = new AdmZip(req.file.buffer);
+        } catch {
+            return res.status(400).json({error: 'That file is not a valid backup zip.'});
+        }
+        const readEntry = name => {
+            const e = zip.getEntry(name);
+            return e ? e.getData() : null;
+        };
+        try {
+            const settingsRaw = readEntry('settings.json');
+            const worksRaw = readEntry('works.json');
+            if (!settingsRaw || !worksRaw) {
+                return res.status(400).json({error: 'Backup is missing settings.json or works.json.'});
+            }
+            const settings = JSON.parse(settingsRaw.toString('utf8'));
+            const works = JSON.parse(worksRaw.toString('utf8'));
+
+            let manifest = {};
+            const mRaw = readEntry('manifest.json');
+            if (mRaw) try {
+                manifest = JSON.parse(mRaw.toString('utf8'));
+            } catch {
+            }
+            const ctByKey = Object.fromEntries((manifest.media || []).map(m => [m.key, m.contentType]));
+
+            // Restore images first so links resolve as soon as settings/works land.
+            await ensureBucket();
+            let restoredMedia = 0;
+            for (const entry of zip.getEntries()) {
+                if (entry.isDirectory || !entry.entryName.startsWith('uploads/')) continue;
+                const key = entry.entryName.slice('uploads/'.length);
+                if (!key || key.includes('/') || key.includes('..')) continue; // flat keys only
+                await putMedia(key, entry.getData(), ctByKey[key]);
+                restoredMedia++;
+            }
+
+            await writeSettings(settings);
+            await writeWorks(works);
+
+            // Restore admin logins last (and only if present + non-empty) so a failure
+            // earlier in the restore can never wipe credentials and lock you out. Older
+            // backups without users.json simply leave existing logins untouched.
+            let restoredUsers = 0;
+            const usersRaw = readEntry('users.json');
+            if (usersRaw) {
+                const users = JSON.parse(usersRaw.toString('utf8'));
+                if (Array.isArray(users) && users.length && users.every(u => u.username && u.password)) {
+                    await writeUsers(users);
+                    restoredUsers = users.length;
+                }
+            }
+
+            res.json({ok: true, restored: {works: works.length, media: restoredMedia, users: restoredUsers}});
+        } catch (e) {
+            res.status(500).json({error: 'Restore failed: ' + (e?.message || 'unknown error')});
+        }
+    });
+
     const dist = path.join(__dirname, '..', 'dist');
     app.use('/joe-business-card.jpg', express.static(path.join(dist, 'joe-business-card.jpg')));
     app.use(express.static(dist, {maxAge: '1h'}));
@@ -637,5 +1113,5 @@ if (isMain) {
     const app = createApp();
     const {PORT, ADMIN_PATH} = app.locals.cmsConfig;
     await app.locals.init();
-    app.listen(PORT, '0.0.0.0', () => console.log(`Joe's Flags CMS listening on ${PORT}; admin path ${ADMIN_PATH}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`CMS listening on ${PORT}; admin path ${ADMIN_PATH}`));
 }

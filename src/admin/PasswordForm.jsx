@@ -32,6 +32,7 @@ export function PasswordForm() {
                                                                                            })}/><input type="password"
                                                                                                        placeholder="Confirm new password"
                                                                                                        value={form.confirm}
+                                                                                                       className="password-confirm"
                                                                                                        onChange={e => setForm({
                                                                                                            ...form,
                                                                                                            confirm: e.target.value

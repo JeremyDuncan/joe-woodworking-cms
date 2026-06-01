@@ -1,0 +1,85 @@
+x-app-env: &app-env
+  NODE_ENV: ${NODE_ENV}
+  PORT: ${PORT}
+  ADMIN_PATH: ${ADMIN_PATH}
+  ADMIN_USERS: ${ADMIN_USERS}
+  SESSION_SECRET: ${SESSION_SECRET}
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_REGION: ${S3_REGION}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE}
+  MAX_FILE_MB: ${MAX_FILE_MB}
+
+x-postgres-env: &postgres-env
+  POSTGRES_DB: ${POSTGRES_DB}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  PGDATA: ${PGDATA}
+
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+x-minio-init-env: &minio-init-env
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+  S3_BUCKET: ${S3_BUCKET}
+
+services:
+  joes-custom-flags-cms:
+    image: ${REGISTRY}/${IMAGE}:latest
+    container_name: joes-custom-flags-cms
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "3015:8080"
+    environment:
+      <<: *app-env
+    volumes:
+      - ${NAS_DATA_DIR}/app-data:/app/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: joes-custom-flags-cms-postgres
+    restart: unless-stopped
+    environment:
+      <<: *postgres-env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ${NAS_DATA_DIR}/postgres-data-v2/db:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: joes-custom-flags-cms-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      <<: *minio-env
+    volumes:
+      - ${NAS_DATA_DIR}/minio:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: joes-custom-flags-cms-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb -p local/$$S3_BUCKET || true;
+      /usr/bin/mc anonymous set download local/$$S3_BUCKET || true;
+      "
+    environment:
+      <<: *minio-init-env
