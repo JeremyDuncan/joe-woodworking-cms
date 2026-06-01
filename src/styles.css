@@ -163,6 +163,13 @@ h1, h2, h3, p {
     margin-top: 0
 }
 
+/* Break over-long words so headings/paragraphs stay inside their column instead of
+   overflowing — matches how the contentEditable wraps them in edit mode. */
+h1, h2, h3, h4, h5, h6, p, .rich-text, .inline-edit {
+    overflow-wrap: break-word;
+    word-break: break-word
+}
+
 h1, h2, h3 {
     color: var(--t-heading)
 }
@@ -1256,6 +1263,12 @@ input::placeholder, textarea::placeholder {
     color: var(--steel)
 }
 
+/* Editable headings/paragraphs span the full block width (cancelling the block-frame's
+   12px padding) so their line-wrapping in edit mode matches the saved/live view. */
+.block-frame-body > :is(h1, h2, h3, h4, h5, h6, p).inline-edit {
+    margin-inline: -12px
+}
+
 .chip-add, .chip-remove {
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, .08);
@@ -1409,7 +1422,9 @@ input::placeholder, textarea::placeholder {
     border: 1px dashed rgba(255, 255, 255, .2);
     border-radius: 14px;
     padding: 12px;
-    text-align: left
+    text-align: left;
+    /* Lets the control bar respond to the block's own width (e.g. narrow 6-col blocks). */
+    container-type: inline-size
 }
 
 .block-frame-bar {
@@ -1509,6 +1524,18 @@ input::placeholder, textarea::placeholder {
     grid-template-columns: 1fr 1fr 1fr
 }
 
+.page-grid.cols-4 {
+    grid-template-columns: repeat(4, 1fr)
+}
+
+.page-grid.cols-5 {
+    grid-template-columns: repeat(5, 1fr)
+}
+
+.page-grid.cols-6 {
+    grid-template-columns: repeat(6, 1fr)
+}
+
 /* Block column-span (class-based so media queries can cap it on small screens) */
 .span-1 {
     grid-column: span 1
@@ -1522,6 +1549,18 @@ input::placeholder, textarea::placeholder {
     grid-column: span 3
 }
 
+.span-4 {
+    grid-column: span 4
+}
+
+.span-5 {
+    grid-column: span 5
+}
+
+.span-6 {
+    grid-column: span 6
+}
+
 .page-col {
     display: flex;
     flex-direction: column;
@@ -1533,6 +1572,7 @@ input::placeholder, textarea::placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 20px;
     font-weight: 800;
@@ -1591,28 +1631,114 @@ input::placeholder, textarea::placeholder {
     justify-content: flex-end
 }
 
-/* Responsive page grid: 3-col -> 2-col on tablets, everything -> 1-col on phones,
-   with block spans capped so nothing overflows the viewport. */
-@media (max-width: 1000px) {
-    .page-grid.cols-3 {
+.block-ctl select, .block-ctl input {
+    max-width: 100%
+}
+
+/* In a narrow block, each control stacks its dropdown UNDER its label on a full-width
+   row, body buttons go full-width, and list-item link pickers drop to their own row —
+   so nothing is squeezed off the block's edge. */
+@container (max-width: 380px) {
+    .block-frame-bar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        align-items: flex-start
+    }
+
+    .block-frame-actions {
+        flex: 1 1 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px
+    }
+
+    .block-ctl {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 3px
+    }
+
+    .block-ctl select,
+    .block-ctl input {
+        width: 100%;
+        flex: none;
+        margin: 0
+    }
+
+    .block-frame-actions > button {
+        align-self: flex-end
+    }
+
+    /* Keep block-body buttons / uploads inside the block */
+    .block-frame-body .button,
+    .block-frame-body .text-link {
+        width: 100%;
+        min-width: 0;
+        padding-inline: 10px;
+        font-size: 12px;
+        white-space: normal
+    }
+
+    .image-upload {
+        flex-direction: column;
+        align-items: stretch
+    }
+
+    /* List items: the per-item link picker drops onto its own full-width row */
+    .list-block .list-item {
+        flex-wrap: wrap
+    }
+
+    .list-item-link {
+        flex: 1 1 100%;
+        max-width: 100%;
+        margin-top: 4px
+    }
+}
+
+/* Responsive page grid: columns cascade down (6→4→3→2→1) as the screen narrows,
+   with block spans capped to match so nothing overflows the viewport. */
+@media (max-width: 1150px) {
+    .page-grid.cols-5, .page-grid.cols-6 {
+        grid-template-columns: repeat(4, 1fr)
+    }
+
+    .span-5, .span-6 {
+        grid-column: span 4
+    }
+}
+
+@media (max-width: 940px) {
+    .page-grid.cols-4, .page-grid.cols-5, .page-grid.cols-6 {
+        grid-template-columns: repeat(3, 1fr)
+    }
+
+    .span-4, .span-5, .span-6 {
+        grid-column: span 3
+    }
+}
+
+@media (max-width: 760px) {
+    .page-grid.cols-3, .page-grid.cols-4, .page-grid.cols-5, .page-grid.cols-6 {
         grid-template-columns: 1fr 1fr
     }
 
-    .span-3 {
+    .span-3, .span-4, .span-5, .span-6 {
         grid-column: span 2
     }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 520px) {
     .page-grid {
-        gap: 18px
+        gap: 16px
     }
 
-    .page-grid.cols-2, .page-grid.cols-3 {
+    .page-grid.cols-2, .page-grid.cols-3, .page-grid.cols-4, .page-grid.cols-5, .page-grid.cols-6 {
         grid-template-columns: 1fr
     }
 
-    .span-2, .span-3 {
+    .span-2, .span-3, .span-4, .span-5, .span-6 {
         grid-column: span 1
     }
 }

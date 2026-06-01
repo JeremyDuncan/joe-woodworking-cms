@@ -1,4 +1,4 @@
-import React, {useLayoutEffect, useRef, useState} from 'react';
+import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {Plus} from 'lucide-react';
 import {DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors} from '@dnd-kit/core';
 import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
@@ -30,12 +30,16 @@ function SortableBlock({block, columns, label, extra, onRemove, onResizeStart, r
 
 export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages, context = 'page'}) {
     const {editing, setField} = useEdit();
-    const columns = Math.min(3, Math.max(1, layout.columns || 1));
+    const columns = Math.min(6, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
     const setLayout = patch => setField(['layout', route], {...layout, ...patch});
     const setBlocks = next => setLayout({blocks: next});
     const [activeId, setActiveId] = useState(null);
     const [resizingId, setResizingId] = useState(null);
+    // Stable item-id array for SortableContext: identity only changes when the order
+    // actually changes (not on every prop edit / re-render), avoiding dnd-kit churn.
+    const idsKey = blocks.map(b => b.id).join('|');
+    const sortableItems = useMemo(() => (idsKey ? idsKey.split('|') : []), [idsKey]);
     const gridRef = useRef(null);
     const prevRects = useRef(new Map());
     const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
@@ -45,21 +49,25 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     const setProps = (idx, patch) => setBlocks(blocks.map((b, i) =>
         i === idx ? {...b, props: {...b.props, ...patch}} : b));
 
-    // FLIP: after any reflow — a resize changing spans, or a reorder shoving blocks
-    // aside — let each block glide from its old spot to its new one with a springy
-    // ease, like iOS icons settling. We measure with offsetLeft/offsetTop, which are
-    // relative to the grid and ignore in-flight transforms + page scroll (so neither a
-    // mid-animation nor a scroll can fake a layout change). The block you're actively
-    // resizing or dragging is excluded — it follows the cursor / the drag overlay.
+    // FLIP: after a resize changes spans and shoves neighbours, let each block glide
+    // from its old spot to its new one with a springy ease, like iOS icons settling.
+    // We measure with offsetLeft/offsetTop (relative to the grid; immune to in-flight
+    // transforms + page scroll, so neither can fake a layout change). We deliberately
+    // skip this *during a dnd-kit drag* (activeId set): transforming the blocks while
+    // dnd-kit is live-measuring them feeds back into its state and loops infinitely.
     useLayoutEffect(() => {
         if (!editing || !gridRef.current) return;
+        // Keep measuring even while dragging (so prevRects stays current and there's no
+        // jump on drop), but only *animate* when not dragging. We never write transforms
+        // during a drag — that would change the rects dnd-kit measures and loop.
+        const dragging = activeId != null;
         const next = new Map();
         gridRef.current.querySelectorAll('.page-block').forEach(el => {
             const id = el.dataset.bid;
             const pos = {left: el.offsetLeft, top: el.offsetTop};
             next.set(id, pos);
             const prev = prevRects.current.get(id);
-            if (prev && id !== resizingId && id !== activeId) {
+            if (!dragging && prev && id !== resizingId) {
                 const dx = prev.left - pos.left, dy = prev.top - pos.top;
                 if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
                     el.style.transition = 'none';
@@ -119,14 +127,23 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
         setBlocks(blocks.filter((_, i) => i !== idx));
     }
 
-    // Reorder live as the pointer moves over another block, so the grid reflows
-    // out of the way without relying on (buggy on spanning grids) sortable tweens.
-    function onDragOver(e) {
+    // Live reorder while dragging — but driven by real pointer MOVEMENT (onDragMove),
+    // not by re-measurement (onDragOver). The old onDragOver approach re-fired every time
+    // a swap changed the layout, so holding the block near a boundary made two blocks flip
+    // back and forth forever (and crash with "max update depth"). onDragMove only fires on
+    // actual pointer motion, so a still pointer never swaps; a short throttle also caps the
+    // swap rate during fast jiggles. Stable, and blocks still move out of the way live.
+    const lastSwapAt = useRef(0);
+
+    function onDragMove(e) {
         const {active, over} = e;
         if (!over || active.id === over.id) return;
+        const now = Date.now();
+        if (now - lastSwapAt.current < 70) return;
         const oldI = blocks.findIndex(b => b.id === active.id);
         const newI = blocks.findIndex(b => b.id === over.id);
         if (oldI < 0 || newI < 0 || oldI === newI) return;
+        lastSwapAt.current = now;
         setBlocks(arrayMove(blocks, oldI, newI));
     }
 
@@ -152,15 +169,15 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     return <div className="page-builder">
         <div className="builder-toolbar">
             <span>{columnsLabel}</span>
-            {[1, 2, 3].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
-                                        onClick={() => setLayout({columns: n})}>{n}</button>)}
+            {[1, 2, 3, 4, 5, 6].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
+                                                 onClick={() => setLayout({columns: n})}>{n}</button>)}
             <span className="builder-hint">Drag the ⠿ handle to reorder · drag a block’s side edge to resize</span>
         </div>
 
         <DndContext sensors={sensors} collisionDetection={closestCenter}
-                    onDragStart={e => setActiveId(e.active.id)} onDragOver={onDragOver}
+                    onDragStart={e => setActiveId(e.active.id)} onDragMove={onDragMove}
                     onDragEnd={() => setActiveId(null)} onDragCancel={() => setActiveId(null)}>
-            <SortableContext items={blocks.map(b => b.id)} strategy={rectSortingStrategy}>
+            <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
                 <div className={`page-grid cols-${columns}`} ref={gridRef}>
                     {blocks.map((b, i) => {
                         const def = registry[b.type];
