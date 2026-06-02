@@ -104,7 +104,7 @@ test('admin can customize public section text and settings persist through publi
         const json = await publicSettings.json();
         assert.equal(json.brandName, 'Custom Shop');
         assert.equal(json.hero.title, 'A custom hero title');
-        assert.equal(json.work.title, 'A custom work section');
+        assert.equal(json.work.title, 'A custom Item section');
         assert.deepEqual(json.nav.map(n => n.path), ['/', '/work', '/contact']);
     } finally {
         await t.cleanup();
@@ -120,15 +120,15 @@ test('uploaded media returns url, type, originalName, size, and default image pl
         data.append('price', 'Custom quote');
         data.append('description', 'Preview description');
         data.append('media', new Blob(['fake image bytes'], {type: 'image/png'}), 'preview.png');
-        const res = await t.request('/api/admin/works', {method: 'POST', body: data});
+        const res = await t.request('/api/admin/items', {method: 'POST', body: data});
         assert.equal(res.status, 201);
-        const work = await res.json();
-        assert.equal(work.media.length, 1);
-        assert.equal(work.media[0].type, 'image/png');
-        assert.equal(work.media[0].originalName, 'preview.png');
-        assert.ok(work.media[0].size > 0);
-        assert.match(work.media[0].url, /^\/uploads\//);
-        assert.deepEqual(work.media[0].placement, {fit: 'cover', x: 50, y: 50, scale: 1});
+        const item = await res.json();
+        assert.equal(item.media.length, 1);
+        assert.equal(item.media[0].type, 'image/png');
+        assert.equal(item.media[0].originalName, 'preview.png');
+        assert.ok(item.media[0].size > 0);
+        assert.match(item.media[0].url, /^\/uploads\//);
+        assert.deepEqual(item.media[0].placement, {fit: 'cover', x: 50, y: 50, scale: 1});
     } finally {
         await t.cleanup();
     }
@@ -148,26 +148,26 @@ test('admin converts Apple HEIC uploads to browser-friendly JPEG media', async (
         data.append('title', 'HEIC Item');
         data.append('description', 'HEIC description');
         data.append('media', new Blob(['fake heic bytes'], {type: 'image/heic'}), 'apple-photo.heic');
-        const res = await t.request('/api/admin/works', {method: 'POST', body: data});
+        const res = await t.request('/api/admin/items', {method: 'POST', body: data});
         assert.equal(res.status, 201);
-        const work = await res.json();
-        assert.equal(work.media[0].type, 'image/jpeg');
-        assert.equal(work.media[0].originalName, 'apple-photo.heic');
-        assert.match(work.media[0].url, /\.jpg$/);
-        assert.deepEqual(work.media[0].placement, {fit: 'cover', x: 50, y: 50, scale: 1});
+        const item = await res.json();
+        assert.equal(item.media[0].type, 'image/jpeg');
+        assert.equal(item.media[0].originalName, 'apple-photo.heic');
+        assert.match(item.media[0].url, /\.jpg$/);
+        assert.deepEqual(item.media[0].placement, {fit: 'cover', x: 50, y: 50, scale: 1});
     } finally {
         await t.cleanup();
     }
 });
 
-test('admin work create and update reject missing required fields or missing media', async () => {
+test('admin item create and update reject missing required fields or missing media', async () => {
     const t = await startTestServer();
     try {
         await t.login();
         const missingTitle = new FormData();
         missingTitle.append('description', 'Description only');
         missingTitle.append('media', new Blob(['fake image bytes'], {type: 'image/png'}), 'preview.png');
-        const createRes = await t.request('/api/admin/works', {method: 'POST', body: missingTitle});
+        const createRes = await t.request('/api/admin/items', {method: 'POST', body: missingTitle});
         assert.equal(createRes.status, 400);
         assert.match((await createRes.json()).error, /Title and description are required/);
 
@@ -175,15 +175,15 @@ test('admin work create and update reject missing required fields or missing med
         valid.append('title', 'Valid Item');
         valid.append('description', 'Valid description');
         valid.append('media', new Blob(['fake image bytes'], {type: 'image/png'}), 'preview.png');
-        const created = await t.request('/api/admin/works', {method: 'POST', body: valid});
+        const created = await t.request('/api/admin/items', {method: 'POST', body: valid});
         assert.equal(created.status, 201);
-        const work = await created.json();
+        const item = await created.json();
 
         const update = new FormData();
         update.append('title', '');
         update.append('description', 'Still has description');
-        update.append('keepMedia', work.media.map(m => m.url).join(','));
-        const updateRes = await t.request(`/api/admin/works/${work.id}`, {method: 'PUT', body: update});
+        update.append('keepMedia', item.media.map(m => m.url).join(','));
+        const updateRes = await t.request(`/api/admin/items/${item.id}`, {method: 'PUT', body: update});
         assert.equal(updateRes.status, 400);
     } finally {
         await t.cleanup();
@@ -203,29 +203,29 @@ test('admin can save crop, resize, and position settings for image media only', 
         }));
         create.append('media', new Blob(['fake image bytes'], {type: 'image/png'}), 'preview.png');
         create.append('media', new Blob(['fake video bytes'], {type: 'video/mp4'}), 'clip.mp4');
-        const created = await t.request('/api/admin/works', {method: 'POST', body: create});
+        const created = await t.request('/api/admin/items', {method: 'POST', body: create});
         assert.equal(created.status, 201);
-        const work = await created.json();
-        const image = work.media.find(m => m.type === 'image/png');
-        const video = work.media.find(m => m.type === 'video/mp4');
+        const item = await created.json();
+        const image = item.media.find(m => m.type === 'image/png');
+        const video = item.media.find(m => m.type === 'video/mp4');
         assert.deepEqual(image.placement, {fit: 'contain', x: 25, y: 80, scale: 1.4});
         assert.equal(video.placement, undefined);
 
         const update = new FormData();
-        update.append('title', work.title);
-        update.append('description', work.description);
-        update.append('keepMedia', work.media.map(m => m.url).join(','));
+        update.append('title', item.title);
+        update.append('description', item.description);
+        update.append('keepMedia', item.media.map(m => m.url).join(','));
         update.append('mediaPlacement', JSON.stringify({[image.url]: {fit: 'cover', x: 62, y: 91, scale: 2.25}}));
-        const updated = await t.request(`/api/admin/works/${work.id}`, {method: 'PUT', body: update});
+        const updated = await t.request(`/api/admin/items/${item.id}`, {method: 'PUT', body: update});
         assert.equal(updated.status, 200);
-        const updatedWork = await updated.json();
-        assert.deepEqual(updatedWork.media.find(m => m.url === image.url).placement, {
+        const updatedItem = await updated.json();
+        assert.deepEqual(updatedItem.media.find(m => m.url === image.url).placement, {
             fit: 'cover',
             x: 62,
             y: 91,
             scale: 2.25
         });
-        assert.equal(updatedWork.media.find(m => m.url === video.url).placement, undefined);
+        assert.equal(updatedItem.media.find(m => m.url === video.url).placement, undefined);
     } finally {
         await t.cleanup();
     }

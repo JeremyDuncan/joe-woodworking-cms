@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component {
 }
 
 function App() {
-    const [works, setWorks] = useState([]);
+    const [items, setItems] = useState([]);
     const [config, setConfig] = useState(null);
     const [configError, setConfigError] = useState(false);
     const [settings, setSettings] = useState(defaultSettings);
@@ -47,7 +47,7 @@ function App() {
     const isAdminRoute = useMemo(
         () => config && (route === config.adminPath || route.startsWith(config.adminPath + '/')), [route, config]);
 
-    const reload = () => fetch('/api/works?ts=' + Date.now()).then(r => r.json()).then(setWorks).catch(() => {});
+    const reload = () => fetch('/api/items?ts=' + Date.now()).then(r => r.json()).then(setItems).catch(() => {});
     const reloadSettings = () => fetch('/api/settings?ts=' + Date.now())
         .then(r => r.json()).then(s => setSettings(mergeSettings(s))).catch(() => {});
     // Only this fetch gates the whole app, so guard it: on failure, surface a retry
@@ -97,10 +97,10 @@ function App() {
     }
     return <>
         {isAdminRoute
-            ? <Admin works={works} reload={reload} onAuthChange={reloadConfig}/>
-            : <PublicSite works={works} settings={settings} route={route}
+            ? <Admin items={items} reload={reload} onAuthChange={reloadConfig}/>
+            : <PublicSite items={items} settings={settings} route={route}
                           isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
-                          reloadWorks={reload}/>}
+                          reloadItems={reload}/>}
         <DialogHost/>
     </>;
 }

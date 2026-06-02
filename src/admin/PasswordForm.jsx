@@ -21,7 +21,7 @@ export function PasswordForm() {
         }
     }
 
-    return <form className="work-form" onSubmit={save}><p className="eyebrow"><Lock size={15}/> Change your password</p>
+    return <form className="item-form" onSubmit={save}><p className="eyebrow"><Lock size={15}/> Change your password</p>
         <input type="password" placeholder="Current password" value={form.currentPassword}
                onChange={e => setForm({...form, currentPassword: e.target.value})}/><input type="password"
                                                                                            placeholder="New password"

@@ -19,12 +19,12 @@ export function isHeicFile(f) {
 export function CropImage({src, alt, crop}) {
     if (!src) return null;
     if (!crop || typeof crop.width !== 'number' || crop.width <= 0) {
-        return <img src={src} alt={alt} className="work-media" style={{objectFit: 'cover'}}/>;
+        return <img src={src} alt={alt} className="item-media" style={{objectFit: 'cover'}}/>;
     }
     return <img
         src={src}
         alt={alt}
-        className="work-media"
+        className="item-media"
         style={{
             objectFit: 'fill',
             transformOrigin: '0 0',

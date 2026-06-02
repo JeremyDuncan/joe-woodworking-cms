@@ -26,7 +26,7 @@ export function BackupPanel({reload}) {
                 notify(j.error || 'Restore failed.', 'error');
                 return;
             }
-            notify(`Restored ${j.restored?.works ?? 0} items, ${j.restored?.media ?? 0} images, and ${j.restored?.users ?? 0} logins. Reloading…`, 'success');
+            notify(`Restored ${j.restored?.items ?? 0} items, ${j.restored?.media ?? 0} images, and ${j.restored?.users ?? 0} logins. Reloading…`, 'success');
             if (reload) await reload();
             setTimeout(() => location.reload(), 1400);
         } catch {

@@ -81,9 +81,9 @@ export const defaultSettings = {
                 {id: 'gal-eyebrow', type: 'eyebrow', props: {text: 'Our work', icon: 'Image', span: 3}},
                 {id: 'gal-heading', type: 'heading', props: {text: 'Gallery', level: 1, span: 3}},
                 {id: 'gal-body', type: 'text', props: {text: 'A selection of recent projects. Replace these examples with your own.', span: 3}},
-                {id: 'gal-1', type: 'work', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
-                {id: 'gal-2', type: 'work', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
-                {id: 'gal-3', type: 'work', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
+                {id: 'gal-1', type: 'item', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-2', type: 'item', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-3', type: 'item', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
             ]
         },
         '/about': {
@@ -156,7 +156,7 @@ export const defaultSettings = {
                     {text: 'Another item', icon: 'Star'}
                 ]}},
                 {id: 'tut-ex-divider', type: 'divider', props: {}},
-                {id: 'tut-ex-item', type: 'work', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Itemtab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp'}},
+                {id: 'tut-ex-item', type: 'item', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Itemtab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp'}},
 
                 {id: 'tut-pages-h', type: 'heading', props: {text: '4 · Pages', level: 2}},
                 {id: 'tut-pages-b', type: 'text', props: {text: 'Open “Pages” in the toolbar to add, rename, reorder, or remove pages. Each page has these options:'}},

@@ -28,7 +28,7 @@ function SortableBlock({block, columns, label, extra, onRemove, onResizeStart, r
     </div>;
 }
 
-export function PageBuilder({route, layout, registry, featured, works, onImageOpen, pages, context = 'page'}) {
+export function PageBuilder({route, layout, registry, featured, items, onImageOpen, pages, context = 'page'}) {
     const {editing, setField} = useEdit();
     const columns = Math.min(6, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
@@ -150,7 +150,7 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
     function content(b, i) {
         const Comp = registry[b.type]?.render;
         return Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
-                            featured={featured} works={works} onImageOpen={onImageOpen} pages={pages}/> : null;
+                            featured={featured} items={items} onImageOpen={onImageOpen} pages={pages}/> : null;
     }
 
     if (!editing) {
@@ -184,7 +184,7 @@ export function PageBuilder({route, layout, registry, featured, works, onImageOp
                         return <SortableBlock key={b.id} block={b} columns={columns} label={def?.label || b.type}
                                               onRemove={() => removeBlock(i)} resizing={resizingId === b.id}
                                               onResizeStart={e => startResize(e, i)}
-                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), setProps: patch => setProps(i, patch), pages, columns, works}) : null}>
+                                              extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), setProps: patch => setProps(i, patch), pages, columns, items}) : null}>
                             {content(b, i)}
                         </SortableBlock>;
                     })}

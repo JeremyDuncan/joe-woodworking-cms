@@ -1,16 +1,16 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Archive, Edit3, ImagePlus, Lock, LogOut} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
-import {WorkForm} from './WorkForm.jsx';
-import {WorkList} from './WorkList.jsx';
+import {ItemForm} from './ItemForm.jsx';
+import {ItemList} from './ItemList.jsx';
 import {PasswordForm} from './PasswordForm.jsx';
 import {BackupPanel} from './BackupPanel.jsx';
 
-export function Admin({works, reload, onAuthChange}) {
+export function Admin({items, reload, onAuthChange}) {
     const [me, setMe] = useState(null), [login, setLogin] = useState({
         username: '',
         password: ''
-    }), [editing, setEditing] = useState(null), [msg, setMsg] = useState(''), [tab, setTab] = useState('work'), [notice, setNotice] = useState(null);
+    }), [editing, setEditing] = useState(null), [msg, setMsg] = useState(''), [tab, setTab] = useState('item'), [notice, setNotice] = useState(null);
     const formRef = useRef(null);
     useEffect(() => {
         fetch('/api/admin/me').then(r => r.json()).then(setMe).catch(() => setMe({isAdmin: false}));
@@ -44,9 +44,9 @@ export function Admin({works, reload, onAuthChange}) {
         setMe({isAdmin: false});
     }
 
-    function startEdit(work) {
-        setTab('work');
-        setEditing(work);
+    function startEdit(item) {
+        setTab('item');
+        setEditing(item);
         setNotice(null);
         setTimeout(() => formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}), 50);
     }
@@ -71,8 +71,8 @@ export function Admin({works, reload, onAuthChange}) {
         </header>
         {notice && <div className={`admin-notice admin-notice--${notice.type}`}>{notice.text}</div>}
         <div className="admin-tabs">
-            <button className={tab === 'work' ? 'active' : ''} onClick={() => setTab('work')}><ImagePlus
-                size={16}/> Item
+            <button className={tab === 'item' ? 'active' : ''} onClick={() => setTab('item')}><ImagePlus
+                size={16}/> Items
             </button>
             <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
                 size={16}/> Password
@@ -81,8 +81,8 @@ export function Admin({works, reload, onAuthChange}) {
                 size={16}/> Backup
             </button>
         </div>
-        {tab === 'work' && <><WorkForm formRef={formRef} editing={editing} setEditing={setEditing} reload={reload}
-                                       setNotice={setNotice}/><WorkList works={works} setEditing={setEditing}
+        {tab === 'item' && <><ItemForm formRef={formRef} editing={editing} setEditing={setEditing} reload={reload}
+                                       setNotice={setNotice}/><ItemList items={items} setEditing={setEditing}
                                                                         reload={reload} startEdit={startEdit}/></>}
         {tab === 'password' && <PasswordForm/>}
         {tab === 'backup' && <BackupPanel reload={reload}/>}

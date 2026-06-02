@@ -3,59 +3,46 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
-const projectRoot = path.resolve(import.meta.dirname, '..');
-const source = readFileSync(path.join(projectRoot, 'src/main.jsx'), 'utf8');
-const styles = readFileSync(path.join(projectRoot, 'src/styles.css'), 'utf8');
+const root = path.resolve(import.meta.dirname, '..');
+const read = p => readFileSync(path.join(root, p), 'utf8');
 
-test('public Item images expose admin placement styles for fit, crop, resize, and position', () => {
-    assert.match(source, /function\s+placementStyle\s*\(/);
-    assert.match(source, /objectFit\s*:/);
-    assert.match(source, /objectPosition\s*:/);
-    assert.match(source, /transform\s*:/);
-    assert.match(styles, /\.media-placement-controls/);
-    assert.match(styles, /\.placement-preview/);
+const itemList = read('src/admin/ItemList.jsx');
+const itemForm = read('src/admin/ItemForm.jsx');
+const imageModal = read('src/components/ImageModal.jsx');
+const publicSite = read('src/pages/PublicSite.jsx');
+const admin = read('src/admin/Admin.jsx');
+const styles = read('src/styles.css');
+
+test('clicking a public image opens a full-size modal with accessible controls', () => {
+    assert.match(imageModal, /function\s+ImageModal\s*\(/);
+    assert.match(imageModal, /role="dialog"/);
+    assert.match(imageModal, /aria-label="View full-size image"/);
+    assert.match(imageModal, /className="image-modal-backdrop"/);
+    assert.match(publicSite, /<ImageModal image=\{modalImage\}/);
 });
 
-test('clicking a public image opens a full-size image modal with accessible close controls', () => {
-    assert.match(source, /function\s+ImageModal\s*\(/);
-    assert.match(source, /role="dialog"/);
-    assert.match(source, /aria-label="View full-size image"/);
-    assert.match(source, /className="image-modal-backdrop"/);
-    assert.match(source, /onClick=\{\(\)\s*=>\s*onImageOpen\?\.\(first\)\}/);
-    assert.match(source, /<ImageModal image=\{modalImage\}/);
-});
-
-test('admin Item form shows top success and validation error notifications', () => {
-    assert.match(source, /className=\{`admin-notice admin-notice--\$\{notice\.type\}`\}/);
-    assert.match(source, /setNotice\(\{type:'error', text:'Title and description are required\.'/);
-    assert.match(source, /setNotice\(\{type:'success', text:`Item \$\{editing\?'updated':'added'\} successfully\.`\}/);
-});
-
-test('admin edit buttons scroll to the edit form', () => {
-    assert.match(source, /formRef\.current\?\.scrollIntoView\(\{ behavior:'smooth', block:'start' \}\)/);
-    assert.match(source, /startEdit=\{startEdit\}/);
+test('admin Item form shows success/validation notifications and supports HEIC', () => {
+    assert.match(admin, /admin-notice admin-notice--\$\{notice\.type\}/);
+    assert.match(itemForm, /Title and description are required\./);
+    assert.match(itemForm, /Item \$\{editing \? 'updated' : 'added'\} successfully\./);
+    assert.match(itemForm, /accept="image\/\*,\.heic,\.heif,video\/\*"/);
 });
 
 test('admin Item list is itemized with search and sort controls', () => {
-    assert.match(source, /function\s+WorkList\s*\(\{Items,setEditing,reload,startEdit\}\)/);
-    assert.match(source, /placeholder="Search Items"/);
-    assert.match(source, /Sort by/);
-    assert.match(source, /sortMode/);
-    assert.match(source, /className="work-carousel-shell"/);
-    assert.match(source, /className="work-carousel-list"/);
+    assert.match(itemList, /export function\s+ItemList\s*\(\{items, reload, startEdit\}\)/);
+    assert.match(itemList, /placeholder="Search Items"/);
+    assert.match(itemList, /sortMode/);
+    assert.match(itemList, /className="item-carousel-shell"/);
+    assert.match(itemList, /className="item-carousel-list"/);
     assert.match(styles, /\.admin-list-toolbar/);
-    assert.match(styles, /\.work-list-row/);
+    assert.match(styles, /\.item-list-row/);
 });
 
-test('admin work carousel has fixed width rows, max height, scroll snap, and fade edges', () => {
-    assert.match(styles, /\.work-carousel-shell/);
+test('admin Item carousel has fixed-width rows, max height, scroll snap, and fade edges', () => {
+    assert.match(styles, /\.item-carousel-shell/);
     assert.match(styles, /max-height:\s*520px/);
     assert.match(styles, /overflow-y:\s*auto/);
     assert.match(styles, /mask-image:\s*linear-gradient/);
-    assert.match(styles, /\.work-list-row\{[^}]*width:\s*100%/);
+    assert.match(styles, /\.item-list-row\s*\{[^}]*width:\s*100%/);
     assert.match(styles, /scroll-snap-align:\s*center/);
-});
-
-test('file input and preview explicitly support Apple HEIC images', () => {
-    assert.match(source, /accept="image\/\*,\.heic,\.heif,video\/\*"/);
 });

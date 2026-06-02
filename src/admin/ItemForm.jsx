@@ -4,7 +4,7 @@ import {isImageMedia, placementFor, updatePlacementMap} from '../lib/media.jsx';
 import {PlacementEditor} from './PlacementEditor.jsx';
 import {UploadPreview} from './UploadPreview.jsx';
 
-export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
+export function ItemForm({formRef, editing, setEditing, reload, setNotice}) {
     const [title, setTitle] = useState(''), [price, setPrice] = useState(''), [description, setDescription] = useState(''), [files, setFiles] = useState(null), [keep, setKeep] = useState([]), [busy, setBusy] = useState(false), [mediaPlacement, setMediaPlacement] = useState({}), [newMediaPlacement, setNewMediaPlacement] = useState({});
     useEffect(() => {
         setTitle(editing?.title || '');
@@ -41,7 +41,7 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
             newMediaPlacement: JSON.stringify(newMediaPlacement)
         }).forEach(([k, v]) => fd.append(k, v));
         selectedFiles.forEach(f => fd.append('media', f));
-        const url = editing ? '/api/admin/works/' + editing.id : '/api/admin/works';
+        const url = editing ? '/api/admin/items/' + editing.id : '/api/admin/items';
         try {
             const r = await fetch(url, {method: editing ? 'PUT' : 'POST', body: fd});
             const j = await r.json().catch(() => ({}));
@@ -61,7 +61,7 @@ export function WorkForm({formRef, editing, setEditing, reload, setNotice}) {
     }
 
     return (
-        <form ref={formRef} className="work-form" onSubmit={submit} noValidate>
+        <form ref={formRef} className="item-form" onSubmit={submit} noValidate>
             <p className="eyebrow">
                 <Plus size={15} /> {editing ? 'Edit Item' : 'Add A New Item'}
             </p>

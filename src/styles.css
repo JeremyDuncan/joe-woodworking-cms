@@ -384,7 +384,7 @@ p {
     aspect-ratio: 1.15
 }
 
-.work-media {
+.item-media {
     width: 100%;
     height: 100%;
     max-width: 100%;
@@ -395,12 +395,12 @@ p {
     background: #111827
 }
 
-.media-frame video.work-media {
+.media-frame video.item-media {
     object-fit: contain;
     background: #050912
 }
 
-.media-frame img.work-media {
+.media-frame img.item-media {
     object-fit: contain;
     object-position: center;
     background: #050912
@@ -650,7 +650,7 @@ code {
     background: radial-gradient(circle at 10% 0%, rgba(181, 31, 43, .26), transparent 28%), linear-gradient(180deg, #050912, #08111f)
 }
 
-.login-card, .work-form, .admin-list article, .admin-dashboard > header, .admin-tabs {
+.login-card, .item-form, .admin-list article, .admin-dashboard > header, .admin-tabs {
     max-width: 1120px;
     margin: 0 auto 22px;
     border: 1px solid var(--line);
@@ -736,10 +736,10 @@ input::placeholder, textarea::placeholder {
     padding-top: 0;
 }
 
-.work-form textarea, .check, .upload, .media-keep, .work-form input {
+.item-form textarea, .check, .upload, .media-keep, .item-form input {
     margin-top: 12px;
 }
-.work-form {
+.item-form {
     padding: 16px;
 }
 
@@ -942,7 +942,7 @@ input::placeholder, textarea::placeholder {
     display: block
 }
 
-.work-media {
+.item-media {
     transform-origin: center;
     will-change: transform
 }
@@ -1020,7 +1020,7 @@ input::placeholder, textarea::placeholder {
     font: inherit
 }
 
-.work-carousel-shell {
+.item-carousel-shell {
     max-height: 520px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1031,7 +1031,7 @@ input::placeholder, textarea::placeholder {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%)
 }
 
-.work-carousel-list {
+.item-carousel-list {
     display: grid;
     gap: 18px;
     width: 100%;
@@ -1039,7 +1039,7 @@ input::placeholder, textarea::placeholder {
     margin: 0 auto
 }
 
-.work-list-row {
+.item-list-row {
     width: 100%;
     max-width: 1120px;
     margin: 0 auto !important;
@@ -1052,24 +1052,24 @@ input::placeholder, textarea::placeholder {
     scroll-snap-align: center
 }
 
-.work-list-index {
+.item-list-index {
     color: var(--gold);
     font-size: 12px;
     font-weight: 900;
     letter-spacing: .18em
 }
 
-.work-list-thumb .media-frame {
+.item-list-thumb .media-frame {
     height: 88px !important;
     aspect-ratio: 1.2 !important;
     border-radius: 16px
 }
 
-.work-list-copy h3 {
+.item-list-copy h3 {
     margin: 0 0 4px
 }
 
-.work-list-copy p {
+.item-list-copy p {
     font-size: 14px;
     line-height: 1.45;
     margin: 0 0 8px;
@@ -1079,13 +1079,13 @@ input::placeholder, textarea::placeholder {
     overflow: hidden
 }
 
-.work-list-meta {
+.item-list-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 8px
 }
 
-.work-list-meta span {
+.item-list-meta span {
     font-size: 12px;
     color: var(--steel);
     border: 1px solid rgba(255, 255, 255, .1);
@@ -2007,7 +2007,7 @@ input::placeholder, textarea::placeholder {
 }
 
 
-.work-img-required {
+.item-img-required {
     text-align: center;
     color: #ff9aa6;
     font-size: 12px;
@@ -2386,14 +2386,14 @@ main.is-editing {
 }
 
 /* Clickable work card (the whole box links to a page) */
-.work-card-link {
+.item-card-link {
     display: block;
     color: inherit;
     text-decoration: none;
     cursor: pointer
 }
 
-.work-card-link:hover .gallery-card {
+.item-card-link:hover .gallery-card {
     border-color: var(--hover-border)
 }
 
@@ -2561,12 +2561,12 @@ main.is-editing {
 }
 
 /* ---- Clickable work card (box links; picture opens lightbox) ---- */
-.work-card-clickable {
+.item-card-clickable {
     cursor: pointer;
     display: block
 }
 
-.work-card-clickable:hover .gallery-card {
+.item-card-clickable:hover .gallery-card {
     border-color: var(--hover-border)
 }
 

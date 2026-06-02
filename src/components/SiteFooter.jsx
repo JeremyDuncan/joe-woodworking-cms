@@ -8,11 +8,11 @@ import {defaultSettings} from '../data/defaults.js';
 // with the same block builder used for pages.
 export const FOOTER_KEY = '__footer__';
 
-export function SiteFooter({settings, works, onImageOpen}) {
+export function SiteFooter({settings, items, onImageOpen}) {
     const raw = settings.layout?.[FOOTER_KEY] ?? defaultSettings.layout[FOOTER_KEY];
     const layout = raw && Array.isArray(raw.blocks) ? raw : {columns: 1, blocks: []};
     return <footer className="site-footer section">
         <PageBuilder route={FOOTER_KEY} layout={layout} registry={blockRegistry}
-                     works={works} onImageOpen={onImageOpen} pages={settings.nav} context="footer"/>
+                     items={items} onImageOpen={onImageOpen} pages={settings.nav} context="footer"/>
     </footer>;
 }

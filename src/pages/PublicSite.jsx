@@ -15,7 +15,7 @@ function newId() {
     return `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSettings, reloadWorks}) {
+export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSettings, reloadItems}) {
     const [modalImage, setModalImage] = useState(null);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(settings);
@@ -43,9 +43,9 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     }, []);
 
     async function save() {
-        const workNeedsImage = Object.values(draft.layout || {}).some(pg =>
-            (pg?.blocks || []).some(b => b.type === 'work' && !(b.props && b.props.image)));
-        if (workNeedsImage) {
+        const itemNeedsImage = Object.values(draft.layout || {}).some(pg =>
+            (pg?.blocks || []).some(b => (b.type === 'item' || b.type === 'work') && !(b.props && b.props.image)));
+        if (itemNeedsImage) {
             notify('Each Item needs a picture before the page can be saved.', 'error');
             return;
         }
@@ -61,7 +61,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
                 return;
             }
             await reloadSettings();
-            if (reloadWorks) await reloadWorks();
+            if (reloadItems) await reloadItems();
             setEditing(false);
             setSaveState(null);
             notify('Changes saved', 'success');
@@ -219,7 +219,7 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
         await persistKey('layouts', nextLayouts);
     }
 
-    const gallery = works ?? fallbackGallery;
+    const gallery = items ?? fallbackGallery;
     // The representative item image used as the default for Image blocks: first item
     // that has media (no "featured" flag anymore).
     const featured = gallery.find(w => w.media?.length) || gallery[0];
@@ -227,8 +227,8 @@ export function PublicSite({works, settings, route, isAdmin, adminPath, reloadSe
     return <EditProvider editing={editing} setField={setField}>
         <main className={editing ? 'is-editing' : undefined}>
             <SiteHeader settings={view}/>
-            <BuilderPage route={route} settings={view} featured={featured} works={gallery} onImageOpen={setModalImage}/>
-            <SiteFooter settings={view} works={gallery} onImageOpen={setModalImage}/>
+            <BuilderPage route={route} settings={view} featured={featured} items={gallery} onImageOpen={setModalImage}/>
+            <SiteFooter settings={view} items={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin && !editing &&
                 <EditBar editing={false} adminPath={adminPath} onEnter={() => setEditing(true)}/>}

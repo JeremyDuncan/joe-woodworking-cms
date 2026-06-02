@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
-import {WorkCard} from '../components/WorkCard.jsx';
+import {ItemCard} from '../components/ItemCard.jsx';
 import {ImageAdjust} from '../components/ImageAdjust.jsx';
 import {InlineText, RichHtml, RichText} from '../lib/edit.jsx';
 import {EditableIcon} from '../components/IconPicker.jsx';
@@ -152,13 +152,13 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
 }
 
 // An "Item": fill it in to create a new saved item, or load an existing one from
-// the collection. Either way it syncs to the Works DB and shows in the dashboard.
+// the collection. Either way it syncs to the Items DB and shows in the dashboard.
 function ItemBlock({block, setProp, editing, onImageOpen}) {
     const [adjust, setAdjust] = useState(false);
     const {title, description, price, image, to, placement} = block.props;
     const media = image ? [{url: image, type: 'image/*', placement}] : [];
     const onImg = editing ? (image ? () => setAdjust(true) : undefined) : onImageOpen;
-    const card = <article className="gallery-card work-card">
+    const card = <article className="gallery-card item-card">
         <MediaPreview media={media} compact onImageOpen={onImg}/>
         <div className="card-copy">
             {editing
@@ -176,10 +176,10 @@ function ItemBlock({block, setProp, editing, onImageOpen}) {
         {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
         {editing && image && <button type="button" className="button button-ghost adjust-trigger"
                                      onClick={() => setAdjust(true)}>Adjust image</button>}
-        {editing && !image && <p className="work-img-required">A picture is required before saving.</p>}
+        {editing && !image && <p className="item-img-required">A picture is required before saving.</p>}
     </article>;
     return <>
-        {(!editing && to) ? <div className="work-card-clickable" onClick={() => navigate(to)}>{card}</div> : card}
+        {(!editing && to) ? <div className="item-card-clickable" onClick={() => navigate(to)}>{card}</div> : card}
         {adjust && image && <ImageAdjust src={image} value={placement} onApply={p => setProp('placement', p)}
                                          onClose={() => setAdjust(false)}/>}
     </>;
@@ -197,14 +197,14 @@ function CopyrightBlock({block, setProp, editing}) {
     </p>;
 }
 
-// Legacy: displays a portfolio item chosen from the Works DB (kept so old pages render).
-function SavedWorkBlock({block, works, editing, onImageOpen}) {
-    const list = works || [];
-    const work = list.find(w => w.id === block.props.workId) || list[0];
-    if (!work) return <p className="work-img-required">No saved items yet — add them in the dashboard Itemtab.</p>;
+// Legacy: displays a saved item chosen from the Items DB (kept so old pages render).
+function SavedItemBlock({block, items, editing, onImageOpen}) {
+    const list = items || [];
+    const item = list.find(w => w.id === block.props.itemId) || list[0];
+    if (!item) return <p className="item-img-required">No saved items yet — add them in the dashboard Item tab.</p>;
     const to = block.props.to;
-    const card = <WorkCard item={work} i={0} onImageOpen={editing ? undefined : onImageOpen}/>;
-    if (!editing && to) return <div className="work-card-clickable" onClick={() => navigate(to)}>{card}</div>;
+    const card = <ItemCard item={item} i={0} onImageOpen={editing ? undefined : onImageOpen}/>;
+    if (!editing && to) return <div className="item-card-clickable" onClick={() => navigate(to)}>{card}</div>;
     return card;
 }
 
@@ -318,19 +318,19 @@ function buttonControls({block, setProp, pages, columns}) {
         <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
-function itemControls({block, setProp, setProps, works, columns, pages}) {
-    const list = works || [];
+function itemControls({block, setProp, setProps, items, columns, pages}) {
+    const list = items || [];
 
     function onLoad(e) {
         const id = e.target.value;
         if (!id) return;
         if (id === '__new__') {
-            setProps({workId: '', title: 'New item', description: 'Describe this item.', price: '', image: ''});
+            setProps({itemId: '', title: 'New item', description: 'Describe this item.', price: '', image: ''});
             return;
         }
         const w = list.find(x => x.id === id);
         if (w) setProps({
-            workId: w.id, title: w.title || '', description: w.description || '',
+            itemId: w.id, title: w.title || '', description: w.description || '',
             price: w.price || '', image: w.media?.[0]?.url || ''
         });
     }
@@ -346,12 +346,12 @@ function itemControls({block, setProp, setProps, works, columns, pages}) {
         <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
 }
 
-function savedWorkControls({block, setProp, works, columns, pages}) {
+function savedItemControls({block, setProp, items, columns, pages}) {
     return <>
         <label className="block-ctl">Item
-            <select value={block.props.workId || ''} onChange={e => setProp('workId', e.target.value)}>
+            <select value={block.props.itemId || ''} onChange={e => setProp('itemId', e.target.value)}>
                 <option value="">— choose —</option>
-                {(works || []).map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
+                {(items || []).map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
             </select>
         </label>
         <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
@@ -369,12 +369,18 @@ export const blockRegistry = {
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck', variant: 'chips', size: 'md'}, render: ListBlock, controls: listControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},
-    work: {
+    item: {
         label: 'Item',
         defaults: {title: 'New item', description: 'Describe this item.', price: '', image: ''},
         render: ItemBlock, controls: itemControls
     },
-    savedwork: {label: 'Saved item', defaults: {}, render: SavedWorkBlock, controls: savedWorkControls, legacy: true},
+    // Legacy alias: pages saved before the rename still use type 'work'.
+    work: {
+        label: 'Item',
+        defaults: {title: 'New item', description: 'Describe this item.', price: '', image: ''},
+        render: ItemBlock, controls: itemControls, legacy: true
+    },
+    savedwork: {label: 'Saved item', defaults: {}, render: SavedItemBlock, controls: savedItemControls, legacy: true},
     copyright: {
         label: 'Copyright',
         defaults: {text: 'All rights reserved.'},

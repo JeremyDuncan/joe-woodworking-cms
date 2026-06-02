@@ -26,7 +26,7 @@ import AdmZip from 'adm-zip';
 const {Pool} = pkg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const seedWorks = [
+const seedItems = [
     {
         id: randomUUID(),
         title: 'Project One',
@@ -99,9 +99,9 @@ const defaultSettings = {
                 {id: 'gal-eyebrow', type: 'eyebrow', props: {text: 'Our work', icon: 'Image', span: 3}},
                 {id: 'gal-heading', type: 'heading', props: {text: 'Gallery', level: 1, span: 3}},
                 {id: 'gal-body', type: 'text', props: {text: 'A selection of recent projects. Replace these examples with your own.', span: 3}},
-                {id: 'gal-1', type: 'work', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
-                {id: 'gal-2', type: 'work', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
-                {id: 'gal-3', type: 'work', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
+                {id: 'gal-1', type: 'item', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-2', type: 'item', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-3', type: 'item', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
             ]
         },
         '/about': {
@@ -173,7 +173,7 @@ const defaultSettings = {
                     {text: 'Another item', icon: 'Star'}
                 ]}},
                 {id: 'tut-ex-divider', type: 'divider', props: {}},
-                {id: 'tut-ex-item', type: 'work', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Item tab. Add a picture, set a price (or whatever text you want), and link the whole card to a page.', image: '/placeholder.webp'}},
+                {id: 'tut-ex-item', type: 'item', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Item tab. Add a picture, set a price (or whatever text you want), and link the whole card to a page.', image: '/placeholder.webp'}},
 
                 {id: 'tut-pages-h', type: 'heading', props: {text: '4 · Pages', level: 2}},
                 {id: 'tut-pages-b', type: 'text', props: {text: 'Open “Pages” in the toolbar to add, rename, reorder, or remove pages. Each page has these options:'}},
@@ -321,7 +321,8 @@ export function createApp(options = {}) {
     const S3_SECRET_KEY = options.s3SecretKey ?? process.env.S3_SECRET_KEY ?? '';
     const S3_FORCE_PATH_STYLE = String(options.s3ForcePathStyle ?? process.env.S3_FORCE_PATH_STYLE ?? 'true') !== 'false';
 
-    const DB_FILE = path.join(DATA_DIR, 'works.json');
+    const DB_FILE = path.join(DATA_DIR, 'items.json');
+    const LEGACY_DB_FILE = path.join(DATA_DIR, 'works.json');
     const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
     const USERS_FILE = path.join(DATA_DIR, 'admin-users.json');
     const UPLOAD_DIR = options.uploadDir ?? process.env.UPLOAD_DIR ?? path.join(DATA_DIR, 'uploads');
@@ -330,6 +331,13 @@ export function createApp(options = {}) {
     fs.mkdirSync(DATA_DIR, {recursive: true});
     fs.mkdirSync(UPLOAD_DIR, {recursive: true});
     fs.mkdirSync(SESSION_DIR, {recursive: true});
+    // Migrate the old file-storage name (works.json → items.json) if present.
+    if (!fs.existsSync(DB_FILE) && fs.existsSync(LEGACY_DB_FILE)) {
+        try {
+            fs.renameSync(LEGACY_DB_FILE, DB_FILE);
+        } catch {
+        }
+    }
 
     const execFileAsync = promisify(execFile);
     const pool = DATABASE_URL ? new Pool({connectionString: DATABASE_URL}) : null;
@@ -345,6 +353,16 @@ export function createApp(options = {}) {
 
     async function initSql() {
         if (!pool) return;
+        // Migrate the old table name (cms_works → cms_items) if it exists and the new
+        // one doesn't, preserving existing data.
+        await pool.query(`
+            DO $$ BEGIN
+                IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'cms_works')
+                   AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'cms_items') THEN
+                    ALTER TABLE cms_works RENAME TO cms_items;
+                END IF;
+            END $$;
+        `);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS cms_users (
                 username   TEXT        PRIMARY KEY,
@@ -356,7 +374,7 @@ export function createApp(options = {}) {
                 payload    JSONB       NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
-            CREATE TABLE IF NOT EXISTS cms_works (
+            CREATE TABLE IF NOT EXISTS cms_items (
                 id          UUID        PRIMARY KEY,
                 title       TEXT        NOT NULL,
                 price       TEXT        NOT NULL DEFAULT '',
@@ -380,10 +398,10 @@ export function createApp(options = {}) {
         const sCount = Number((await pool.query('SELECT COUNT(*)::int AS c FROM cms_settings')).rows[0].c || 0);
         if (!sCount) await pool.query('INSERT INTO cms_settings(id, payload) VALUES(1, $1::jsonb)', [JSON.stringify(defaultSettings)]);
 
-        const wCount = Number((await pool.query('SELECT COUNT(*)::int AS c FROM cms_works')).rows[0].c || 0);
+        const wCount = Number((await pool.query('SELECT COUNT(*)::int AS c FROM cms_items')).rows[0].c || 0);
         if (!wCount) {
-            for (const w of seedWorks) {
-                await pool.query('INSERT INTO cms_works(id,title,price,featured,description,media,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)',
+            for (const w of seedItems) {
+                await pool.query('INSERT INTO cms_items(id,title,price,featured,description,media,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)',
                     [w.id, w.title, w.price || '', Boolean(w.featured), w.description, JSON.stringify(w.media || []), w.createdAt, w.updatedAt]);
             }
         }
@@ -419,9 +437,9 @@ export function createApp(options = {}) {
         fs.writeFileSync(file, JSON.stringify(value, null, 2));
     }
 
-    async function readWorks() {
-        if (!pool) return readJson(DB_FILE, seedWorks);
-        const {rows} = await pool.query('SELECT id,title,price,featured,description,media,created_at,updated_at FROM cms_works ORDER BY created_at DESC');
+    async function readItems() {
+        if (!pool) return readJson(DB_FILE, seedItems);
+        const {rows} = await pool.query('SELECT id,title,price,featured,description,media,created_at,updated_at FROM cms_items ORDER BY created_at DESC');
         return rows.map(r => ({
             id: r.id,
             title: r.title,
@@ -434,13 +452,13 @@ export function createApp(options = {}) {
         }));
     }
 
-    async function writeWorks(works) {
-        if (!pool) return writeJson(DB_FILE, works);
+    async function writeItems(items) {
+        if (!pool) return writeJson(DB_FILE, items);
         await pool.query('BEGIN');
         try {
-            await pool.query('DELETE FROM cms_works');
-            for (const w of works) {
-                await pool.query('INSERT INTO cms_works(id,title,price,featured,description,media,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)',
+            await pool.query('DELETE FROM cms_items');
+            for (const w of items) {
+                await pool.query('INSERT INTO cms_items(id,title,price,featured,description,media,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)',
                     [w.id, w.title, w.price || '', Boolean(w.featured), w.description, JSON.stringify(w.media || []), w.createdAt, w.updatedAt]);
             }
             await pool.query('COMMIT');
@@ -536,8 +554,8 @@ export function createApp(options = {}) {
         return media.map(m => mediaWithPlacement(m));
     }
 
-    function publicWork(work) {
-        return {...work, media: normalizeMedia(work.media || [])};
+    function publicItem(item) {
+        return {...item, media: normalizeMedia(item.media || [])};
     }
 
     function isHeicUpload(file) {
@@ -737,7 +755,7 @@ export function createApp(options = {}) {
         return stored;
     }
 
-    function validateWorkInput(req, mediaCount) {
+    function validateItemInput(req, mediaCount) {
         if (!String(req.body.title || '').trim() || !String(req.body.description || '').trim()) return 'Title and description are required.';
         if (mediaCount < 1) return 'At least one image or video is required.';
         return null;
@@ -803,7 +821,7 @@ export function createApp(options = {}) {
         isAdmin: isAdmin(req),
         adminUser: req.session?.adminUser || null
     }));
-    app.get('/api/works', async (_req, res) => res.json((await readWorks()).map(publicWork)));
+    app.get('/api/items', async (_req, res) => res.json((await readItems()).map(publicItem)));
     app.get('/api/settings', async (_req, res) => res.json(await readSettings()));
 
     app.get('/uploads/:key', async (req, res) => {
@@ -852,28 +870,30 @@ export function createApp(options = {}) {
     });
 
     app.get('/api/admin/settings', requireAdmin, async (_req, res) => res.json(await readSettings()));
-    // Sync self-contained "work" blocks in the page layout into the Works DB, so
-    // pieces created on a page also appear in the dashboard. New blocks get a workId
-    // written back into the layout; existing ones are updated in place.
-    async function syncWorkBlocks(settings) {
+    // Sync self-contained "item" blocks in the page layout into the Items DB, so pieces
+    // created on a page also appear in the dashboard. New blocks get an itemId written
+    // back into the layout; existing ones are updated in place. The legacy block type
+    // 'work' and the legacy prop 'workId' are still recognised for older pages.
+    async function syncItemBlocks(settings) {
         if (!settings || !settings.layout) return;
-        const works = await readWorks();
-        const byId = new Map(works.map(w => [w.id, w]));
+        const items = await readItems();
+        const byId = new Map(items.map(w => [w.id, w]));
         for (const route of Object.keys(settings.layout)) {
             const pg = settings.layout[route];
             for (const b of (pg?.blocks || [])) {
-                if (b.type !== 'work' || !b.props || !b.props.image) continue;
-                const {title, description, price, image, workId} = b.props;
+                if ((b.type !== 'item' && b.type !== 'work') || !b.props || !b.props.image) continue;
+                const {title, description, price, image} = b.props;
+                const itemId = b.props.itemId ?? b.props.workId;
 
                 const media = [{
                     url: image,
                     type: image?.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
-                    originalName: title || 'work'
+                    originalName: title || 'item'
                 }];
 
                 const now = new Date().toISOString();
-                if (workId && byId.has(workId)) {
-                    const w = byId.get(workId);
+                if (itemId && byId.has(itemId)) {
+                    const w = byId.get(itemId);
                     Object.assign(w, {
                         title: title || '', description: description || '',
                         price: price || '', media, updatedAt: now
@@ -884,13 +904,14 @@ export function createApp(options = {}) {
                         id, title: title || '', price: price || '', featured: false,
                         description: description || '', media, createdAt: now, updatedAt: now
                     };
-                    works.unshift(w);
+                    items.unshift(w);
                     byId.set(id, w);
-                    b.props.workId = id;
+                    b.props.itemId = id;
+                    delete b.props.workId;
                 }
             }
         }
-        await writeWorks(works);
+        await writeItems(items);
     }
 
     app.put('/api/admin/settings', requireAdmin, async (req, res) => {
@@ -900,7 +921,7 @@ export function createApp(options = {}) {
         // removed theme/layout actually persists.
         if (body.themes) next.themes = body.themes;
         if (body.layouts) next.layouts = body.layouts;
-        if (body.layout) await syncWorkBlocks(next);
+        if (body.layout) await syncItemBlocks(next);
         await writeSettings(next);
         res.json(next);
     });
@@ -927,60 +948,58 @@ export function createApp(options = {}) {
         }
     });
 
-    app.post('/api/admin/works', requireAdmin, upload.array('media', 8), async (req, res) => {
-        const works = await readWorks();
+    app.post('/api/admin/items', requireAdmin, upload.array('media', 8), async (req, res) => {
+        const items = await readItems();
         const now = new Date().toISOString();
         const newMediaPlacement = safeJson(req.body.newMediaPlacement);
         const files = await uploadedFilesToMedia(req.files || [], newMediaPlacement);
-        const validationError = validateWorkInput(req, files.length);
+        const validationError = validateItemInput(req, files.length);
         if (validationError) return res.status(400).json({error: validationError});
-        const work = {
+        const item = {
             id: randomUUID(),
             title: String(req.body.title).trim(),
             price: req.body.price || '',
             description: String(req.body.description).trim(),
-            featured: req.body.featured === 'true' || req.body.featured === 'on',
             media: files,
             createdAt: now,
             updatedAt: now
         };
-        works.unshift(work);
-        await writeWorks(works);
-        res.status(201).json(publicWork(work));
+        items.unshift(item);
+        await writeItems(items);
+        res.status(201).json(publicItem(item));
     });
 
-    app.put('/api/admin/works/:id', requireAdmin, upload.array('media', 8), async (req, res) => {
-        const works = await readWorks();
-        const idx = works.findIndex(w => w.id === req.params.id);
+    app.put('/api/admin/items/:id', requireAdmin, upload.array('media', 8), async (req, res) => {
+        const items = await readItems();
+        const idx = items.findIndex(w => w.id === req.params.id);
         if (idx < 0) return res.status(404).json({error: 'Not found'});
         const keep = new Set(String(req.body.keepMedia || '').split(',').filter(Boolean));
-        const oldMedia = works[idx].media || [];
+        const oldMedia = items[idx].media || [];
         const mediaPlacement = safeJson(req.body.mediaPlacement);
         const newMediaPlacement = safeJson(req.body.newMediaPlacement);
         const keptMedia = oldMedia.filter(m => keep.size === 0 ? true : keep.has(m.url)).map(m => mediaWithPlacement(m, mediaPlacement[m.url]));
         const newFiles = await uploadedFilesToMedia(req.files || [], newMediaPlacement);
-        const validationError = validateWorkInput(req, keptMedia.length + newFiles.length);
+        const validationError = validateItemInput(req, keptMedia.length + newFiles.length);
         if (validationError) return res.status(400).json({error: validationError});
         for (const m of oldMedia.filter(m => !keptMedia.some(k => k.url === m.url) && m.url?.startsWith('/uploads/'))) await deleteMediaByUrl(m.url);
-        works[idx] = {
-            ...works[idx],
+        items[idx] = {
+            ...items[idx],
             title: String(req.body.title).trim(),
             price: req.body.price || '',
             description: String(req.body.description).trim(),
-            featured: req.body.featured === 'true' || req.body.featured === 'on',
             media: [...keptMedia, ...newFiles],
             updatedAt: new Date().toISOString()
         };
-        await writeWorks(works);
-        res.json(publicWork(works[idx]));
+        await writeItems(items);
+        res.json(publicItem(items[idx]));
     });
 
-    app.delete('/api/admin/works/:id', requireAdmin, async (req, res) => {
-        const works = await readWorks();
-        const work = works.find(w => w.id === req.params.id);
-        if (!work) return res.status(404).json({error: 'Not found'});
-        for (const m of (work.media || [])) if (m.url?.startsWith('/uploads/')) await deleteMediaByUrl(m.url);
-        await writeWorks(works.filter(w => w.id !== req.params.id));
+    app.delete('/api/admin/items/:id', requireAdmin, async (req, res) => {
+        const items = await readItems();
+        const item = items.find(w => w.id === req.params.id);
+        if (!item) return res.status(404).json({error: 'Not found'});
+        for (const m of (item.media || [])) if (m.url?.startsWith('/uploads/')) await deleteMediaByUrl(m.url);
+        await writeItems(items.filter(w => w.id !== req.params.id));
         res.json({ok: true});
     });
 
@@ -997,10 +1016,10 @@ export function createApp(options = {}) {
         try {
             const zip = new AdmZip();
             const settings = await readSettings();
-            const works = await readWorks();
+            const items = await readItems();
             const users = await readUsers();
             zip.addFile('settings.json', Buffer.from(JSON.stringify(settings, null, 2)));
-            zip.addFile('works.json', Buffer.from(JSON.stringify(works, null, 2)));
+            zip.addFile('items.json', Buffer.from(JSON.stringify(items, null, 2)));
             // Admin logins (usernames + password hashes). Sensitive — the backup zip
             // must be stored securely.
             zip.addFile('users.json', Buffer.from(JSON.stringify(users, null, 2)));
@@ -1020,7 +1039,7 @@ export function createApp(options = {}) {
             zip.addFile('manifest.json', Buffer.from(JSON.stringify({
                 version: BACKUP_VERSION,
                 createdAt: new Date().toISOString(),
-                counts: {works: works.length, media: media.length, users: users.length},
+                counts: {items: items.length, media: media.length, users: users.length},
                 storage: {sql: Boolean(pool), s3: Boolean(s3)},
                 media
             }, null, 2)));
@@ -1048,12 +1067,13 @@ export function createApp(options = {}) {
         };
         try {
             const settingsRaw = readEntry('settings.json');
-            const worksRaw = readEntry('works.json');
-            if (!settingsRaw || !worksRaw) {
-                return res.status(400).json({error: 'Backup is missing settings.json or works.json.'});
+            // Accept items.json (current) or works.json (older backups).
+            const itemsRaw = readEntry('items.json') || readEntry('works.json');
+            if (!settingsRaw || !itemsRaw) {
+                return res.status(400).json({error: 'Backup is missing settings.json or items.json.'});
             }
             const settings = JSON.parse(settingsRaw.toString('utf8'));
-            const works = JSON.parse(worksRaw.toString('utf8'));
+            const items = JSON.parse(itemsRaw.toString('utf8'));
 
             let manifest = {};
             const mRaw = readEntry('manifest.json');
@@ -1075,7 +1095,7 @@ export function createApp(options = {}) {
             }
 
             await writeSettings(settings);
-            await writeWorks(works);
+            await writeItems(items);
 
             // Restore admin logins last (and only if present + non-empty) so a failure
             // earlier in the restore can never wipe credentials and lock you out. Older
@@ -1090,7 +1110,7 @@ export function createApp(options = {}) {
                 }
             }
 
-            res.json({ok: true, restored: {works: works.length, media: restoredMedia, users: restoredUsers}});
+            res.json({ok: true, restored: {items: items.length, media: restoredMedia, users: restoredUsers}});
         } catch (e) {
             res.status(500).json({error: 'Restore failed: ' + (e?.message || 'unknown error')});
         }
