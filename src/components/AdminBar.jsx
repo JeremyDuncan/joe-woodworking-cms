@@ -6,6 +6,7 @@ import {pageStatus} from '../lib/links.js';
 import {groupPages, pageLabel} from '../lib/pages.js';
 import {PagesPanel} from './PagesPanel.jsx';
 import {ThemePanel} from './ThemePanel.jsx';
+import {PanelHelp} from './PanelHelp.jsx';
 
 // One icon button with an instant custom tooltip (CSS, via data-tip). Renders as a
 // link when `href` is given.
@@ -20,10 +21,20 @@ const STATUS_LABEL = {navigation: 'navigation', linked: 'linked', unlinked: 'unl
 
 // One page row: jump to it, with a status badge. The "linked" badge is clickable to
 // reveal which pages link here.
-function PageRow({p, route, status, onJump, onShowLinks}) {
+function TemplateBadge({name}) {
+    if (!name) return null;
+    return <span className="template-badge" title={`Template: ${name}`}>
+        <LayoutTemplate size={13}/><span>{name}</span>
+    </span>;
+}
+
+function PageRow({p, route, status, templateName, onJump, onShowLinks}) {
     return <div className={`sitemap-link${p.path === route ? ' current' : ''}`}>
         <button type="button" className="sitemap-jump" onClick={() => onJump(p.path)}>
-            <span className="sitemap-name">{pageLabel(p) || '(untitled)'}</span>
+            <span className="page-name-line">
+                <span className="sitemap-name">{pageLabel(p) || '(untitled)'}</span>
+                <TemplateBadge name={templateName}/>
+            </span>
             <span className="sitemap-path">{p.path}</span>
         </button>
         {status === 'linked'
@@ -35,7 +46,7 @@ function PageRow({p, route, status, onJump, onShowLinks}) {
 
 // Read-only overview of every page; click to jump. Searchable, grouped by section
 // (first path segment), with a status badge per page.
-function SitemapPanel({pages, route, linkSources, onClose}) {
+function SitemapPanel({pages, route, layout, linkSources, onClose}) {
     const [query, setQuery] = useState('');
     const [linksFor, setLinksFor] = useState(null);
     const [open, setOpen] = useState({});
@@ -52,12 +63,14 @@ function SitemapPanel({pages, route, linkSources, onClose}) {
         onClose();
     };
     const row = p => <PageRow key={p.path} p={p} route={route} status={pageStatus(p, linkSources)}
+                              templateName={layout?.[p.path]?.templateName}
                               onJump={jump} onShowLinks={setLinksFor}/>;
 
     return <div className="pages-panel docked sitemap-panel">
         <div className="theme-panel-head">
             <strong><ListTree size={18}/> Pages</strong>
             <div className="panel-head-actions">
+                <PanelHelp topic="pages"/>
                 {sectionNames.length > 0 && <button type="button" className="panel-icon-action"
                                                     title={allOpen ? 'Collapse sections' : 'Expand sections'}
                                                     onClick={toggleAll}>
@@ -143,7 +156,7 @@ function DeletePageModal({page, links, onConfirm, onClose}) {
 
 // Top admin banner + top-left icon toolbar. Out of edit mode it shows only Edit site /
 // Dashboard; in edit mode it shows the full set of editing tools.
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, linkSources, onEnter, onSave, onDiscard, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
     const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
@@ -179,6 +192,7 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, l
 
             {currentPage && <div className="admin-bar-page" title="Current page">
                 <FileText size={15}/> <span>{currentPage}</span>
+                <TemplateBadge name={currentTemplate}/>
                 {canDeleteCurrent && <button type="button" className="admin-page-delete" title="Delete this page"
                                              onClick={() => setDeleteOpen(true)}>
                     <Trash2 size={14}/>
@@ -196,7 +210,8 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, l
         </div>
 
         {editing && !preview && panel === 'sitemap' &&
-            <SitemapPanel pages={pagesProps.pages} route={pagesProps.route} linkSources={linkSources}
+            <SitemapPanel pages={pagesProps.pages} route={pagesProps.route} layout={pagesProps.layout}
+                          linkSources={linkSources}
                           onClose={() => setPanel(null)}/>}
         {editing && !preview && panel === 'nav' &&
             <PagesPanel {...pagesProps} tab="nav" docked onClose={() => setPanel(null)}/>}

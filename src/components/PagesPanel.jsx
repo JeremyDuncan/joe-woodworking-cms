@@ -1,10 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, ChevronUp, EyeOff, LayoutTemplate, Map, Save, Search, Trash2} from 'lucide-react';
+import {ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, ChevronUp, EyeOff, LayoutTemplate, Map, RotateCcw, Save, Search, Trash2} from 'lucide-react';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {promptDialog} from '../lib/dialog.jsx';
 import {groupPages, pageLabel} from '../lib/pages.js';
+import {PanelHelp} from './PanelHelp.jsx';
 
-function NavRow({p, route, index, total, onMove, onRename, onChangePath, onToggleNav, onToggleCta}) {
+function NavRow({p, route, index, total, templateName, onMove, onRename, onChangePath, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
     const [path, setPath] = useState(p.path);
     useEffect(() => setPath(p.path), [p.path]);
@@ -17,8 +18,11 @@ function NavRow({p, route, index, total, onMove, onRename, onChangePath, onToggl
                     onClick={() => onMove(p.path, 1)}><ChevronDown size={14}/></button>
         </div>
         <div className="pages-fields">
-            <input className="pages-label-input" value={p.label} placeholder="Name"
-                   onChange={e => onRename(p.path, e.target.value)}/>
+            <div className="pages-label-wrap">
+                <input className="pages-label-input" value={p.label} placeholder="Name"
+                       onChange={e => onRename(p.path, e.target.value)}/>
+                <TemplateBadge name={templateName}/>
+            </div>
             {isHome
                 ? <span className="pages-path">/</span>
                 : <input className="pages-path-input" value={path} placeholder="/path"
@@ -34,8 +38,15 @@ function NavRow({p, route, index, total, onMove, onRename, onChangePath, onToggl
     </div>;
 }
 
+function TemplateBadge({name}) {
+    if (!name) return null;
+    return <span className="template-badge" title={`Template: ${name}`}>
+        <LayoutTemplate size={13}/><span>{name}</span>
+    </span>;
+}
+
 // "+ Nav link": pick an existing (unlinked) page and add it to the nav bar.
-function AddNavLink({pages, onToggleNav}) {
+function AddNavLink({pages, layout, onToggleNav}) {
     const [open, setOpen] = useState(false);
     const [openSections, setOpenSections] = useState({});
     const [q, setQ] = useState('');
@@ -50,6 +61,7 @@ function AddNavLink({pages, onToggleNav}) {
     const row = p => <button key={p.path} type="button" className="nav-add-item"
                              onClick={() => onToggleNav(p.path)}>
         <span className="sitemap-name">{pageLabel(p) || '(untitled)'}</span>
+        <TemplateBadge name={layout?.[p.path]?.templateName}/>
         <span className="sitemap-path">{p.path}</span>
         <span className="nav-add-plus">add</span>
     </button>;
@@ -92,7 +104,7 @@ function AddNavLink({pages, onToggleNav}) {
 
 // `tab`: 'nav' shows the nav-bar links, 'templates' shows layout templates.
 // `docked` renders it as a static left flyout (no drag) for the admin bar.
-export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onToggleNav, onToggleCta, onRename, onChangePath, onMove, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose, docked, tab = 'both'}) {
+export function PagesPanel({pages, route, layout, templates, currentTemplate, onAddPage, onToggleNav, onToggleCta, onRename, onChangePath, onMove, onSaveTemplate, onApplyTemplate, canRevertTemplate, onRevertTemplate, onUpdateTemplate, onDeleteTemplate, onClose, docked, tab = 'both'}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
     const isTemplate = !!(currentTemplate && templateNames.includes(currentTemplate));
@@ -141,7 +153,10 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
                 style={docked ? undefined : style}>
         <div className={`theme-panel-head${docked ? '' : ' theme-drag'}`} onMouseDown={docked ? undefined : onHeadDown}>
             <strong><TitleIcon size={18}/> {title}</strong>
-            <button type="button" className="theme-close" onClick={onClose}>×</button>
+            <div className="panel-head-actions">
+                <PanelHelp topic={tab === 'templates' ? 'templates' : 'nav'}/>
+                <button type="button" className="theme-close" onClick={onClose}>×</button>
+            </div>
         </div>
 
         {showNav && <>
@@ -149,10 +164,11 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
             <div className="pages-list">
                 {navPages.length === 0 && <p className="sitemap-empty">No nav links yet — add one below.</p>}
                 {navPages.map((p, i) => <NavRow key={p.path} p={p} route={route} index={i} total={navPages.length}
+                                                templateName={layout?.[p.path]?.templateName}
                                                 onMove={onMove} onRename={onRename} onChangePath={onChangePath}
                                                 onToggleNav={onToggleNav} onToggleCta={onToggleCta}/>)}
             </div>
-            <AddNavLink pages={pages} onToggleNav={onToggleNav}/>
+            <AddNavLink pages={pages} layout={layout} onToggleNav={onToggleNav}/>
         </>}
 
         {showTemplates && <div className="pages-templates">
@@ -167,6 +183,11 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
                 </select>
             </div>
             <div className="theme-preset-actions">
+                {canRevertTemplate &&
+                    <button type="button" className="button button-ghost template-revert" onClick={() => {
+                        onRevertTemplate();
+                        setMsg('Restored the page layout from before template selection');
+                    }}><RotateCcw size={16}/>Revert selection</button>}
                 <button type="button" className="button button-ghost" onClick={saveTemplate}><Save size={16}/>Save as
                     new
                 </button>

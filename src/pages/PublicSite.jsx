@@ -22,6 +22,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     const [preview, setPreview] = useState(false); // "Web view": render the draft as it'll look, without exiting edit mode
     const [draft, setDraft] = useState(settings);
     const [saveState, setSaveState] = useState(null);
+    const [templateRestore, setTemplateRestore] = useState({});
 
     // The effective editing flag for rendering: in preview we show the draft in view mode.
     const live = editing && !preview;
@@ -72,6 +73,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             if (reloadItems) await reloadItems();
             setEditing(false);
             setPreview(false);
+            setTemplateRestore({});
             setSaveState(null);
             notify('Changes saved', 'success');
         } catch {
@@ -84,6 +86,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
         setDraft(settings);
         setEditing(false);
         setPreview(false);
+        setTemplateRestore({});
         setSaveState(null);
     }
 
@@ -211,11 +214,26 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     function applyTemplate(name) {
         const tpl = (draft.layouts || {})[name];
         if (!tpl) return;
+        const original = draft.layout?.[route];
+        if (original && !templateRestore[route]) {
+            setTemplateRestore(r => ({...r, [route]: JSON.parse(JSON.stringify(original))}));
+        }
         const copy = {
             columns: tpl.columns || 1, templateName: name,
             blocks: (tpl.blocks || []).map(b => ({...b, id: newId(), props: {...b.props}}))
         };
         setField(['layout', route], copy);
+    }
+
+    function revertTemplateApply() {
+        const original = templateRestore[route];
+        if (!original) return;
+        setField(['layout', route], JSON.parse(JSON.stringify(original)));
+        setTemplateRestore(r => {
+            const next = {...r};
+            delete next[route];
+            return next;
+        });
     }
 
     async function updateTemplate() {
@@ -252,16 +270,18 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             {isAdmin &&
                 <AdminBar editing={editing} preview={preview} saveState={saveState} adminPath={adminPath}
                           currentPage={pageLabel((view.nav || []).find(n => n.path === route)) || route}
+                          currentTemplate={view.layout?.[route]?.templateName}
                           linkSources={linkSources}
                           onEnter={() => setEditing(true)} onSave={save} onDiscard={discard} onAddPage={addPage}
                           onDeletePage={deletePage}
                           onTogglePreview={() => setPreview(p => !p)}
                           pagesProps={{
-                              pages: view.nav, route, templates: view.layouts,
+                              pages: view.nav, route, layout: view.layout, templates: view.layouts,
                               currentTemplate: view.layout?.[route]?.templateName,
                               onAddPage: addPage, onToggleNav: toggleNav,
                               onToggleCta: toggleCta, onRename: renamePage, onChangePath: changePath, onMove: moveNav,
                               onSaveTemplate: saveTemplate, onApplyTemplate: applyTemplate,
+                              canRevertTemplate: !!templateRestore[route], onRevertTemplate: revertTemplateApply,
                               onUpdateTemplate: updateTemplate, onDeleteTemplate: deleteTemplate
                           }}
                           themeProps={{

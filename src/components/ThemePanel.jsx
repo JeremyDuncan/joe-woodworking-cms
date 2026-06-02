@@ -3,6 +3,7 @@ import {FONTS, defaultTheme} from '../lib/theme.js';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {confirmDialog, promptDialog} from '../lib/dialog.jsx';
 import {Palette, Save, Trash2, PaintRoller} from 'lucide-react'; // <-- ICONS
+import {PanelHelp} from './PanelHelp.jsx';
 
 
 // Not a <label>: wrapping the text in a label made clicking the text open the
@@ -75,7 +76,10 @@ export function ThemePanel({theme, themes, setField, onSavePreset, onDeletePrese
                 style={docked ? undefined : style}>
         <div className={`theme-panel-head${docked ? '' : ' theme-drag'}`} onMouseDown={docked ? undefined : onHeadDown}>
             <strong><Palette size={18}/> Theme</strong>
-            <button type="button" className="theme-close" onClick={onClose}>×</button>
+            <div className="panel-head-actions">
+                <PanelHelp topic="theme"/>
+                <button type="button" className="theme-close" onClick={onClose}>×</button>
+            </div>
         </div>
 
         <div className="theme-scroll">
