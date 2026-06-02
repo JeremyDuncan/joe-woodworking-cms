@@ -3,6 +3,7 @@ import {Menu, X} from 'lucide-react';
 import {Link} from '../lib/navigation.jsx';
 import {InlineText, useEdit} from '../lib/edit.jsx';
 import {DynamicIcon} from '../lib/icons.jsx';
+import {pageLabel} from '../lib/pages.js';
 import {EditableIcon} from './IconPicker.jsx';
 import {defaultSettings} from '../data/defaults.js';
 
@@ -37,11 +38,11 @@ export function SiteHeader({settings}) {
             ? <span key={n.path} className={`nav-item${n.cta ? ' nav-cta' : ''}`}>
                 <EditableIcon className="ui-icon" name={n.icon} fallback="Star" size={15} editing allowNone
                               onChange={v => setNav(n.path, {icon: v})}/>
-                <InlineText value={n.label} placeholder="Label" onChange={v => setNav(n.path, {label: v})}/>
+                <InlineText value={pageLabel(n)} placeholder="Label" onChange={v => setNav(n.path, {label: v})}/>
               </span>
             : <Link key={n.path} to={n.path} className={`nav-item${n.cta ? ' nav-cta' : ''}`}
                     onClick={() => setOpen(false)}>
-                {n.icon ? <DynamicIcon className="ui-icon" name={n.icon} size={15}/> : null}<span>{n.label}</span>
+                {n.icon ? <DynamicIcon className="ui-icon" name={n.icon} size={15}/> : null}<span>{pageLabel(n)}</span>
               </Link>)}</nav>
     </header>
 }

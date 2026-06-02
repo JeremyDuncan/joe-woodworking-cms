@@ -1635,6 +1635,45 @@ input::placeholder, textarea::placeholder {
     max-width: 100%
 }
 
+.link-ctl {
+    max-width: 260px
+}
+
+.link-picker-trigger {
+    min-width: 84px;
+    max-width: 180px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #101827;
+    color: var(--white);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer
+}
+
+.link-picker-trigger.is-set {
+    border-color: var(--hover-border);
+    background: rgba(var(--accent-rgb, 215, 166, 79), .13)
+}
+
+.link-clear {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    border: 1px solid rgba(227, 52, 69, .35);
+    background: rgba(227, 52, 69, .12);
+    color: #ffb4bd;
+    font-weight: 900;
+    cursor: pointer
+}
+
 /* In a narrow block, each control stacks its dropdown UNDER its label on a full-width
    row, body buttons go full-width, and list-item link pickers drop to their own row —
    so nothing is squeezed off the block's edge. */
@@ -1660,10 +1699,15 @@ input::placeholder, textarea::placeholder {
     }
 
     .block-ctl select,
-    .block-ctl input {
+    .block-ctl input,
+    .link-picker-trigger {
         width: 100%;
         flex: none;
         margin: 0
+    }
+
+    .link-ctl {
+        max-width: 100%
     }
 
     .block-frame-actions > button {
@@ -2821,6 +2865,9 @@ h6 {
 }
 
 .rich-linkbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 5px 10px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, .18);
@@ -2843,6 +2890,10 @@ h6 {
 .rich-linkbar .rich-external {
     border-color: rgba(120, 170, 255, .4);
     color: #bcd4ff
+}
+
+.rich-linkbar button svg {
+    flex: 0 0 auto
 }
 
 /* ---- Pages panel: nav reorder up/down ---- */
@@ -3005,15 +3056,16 @@ h6 {
 }
 
 /* Docked flyouts: anchor to the right of the rail instead of bottom-centered. */
+/* Editing flyouts open just under the top admin toolbar, anchored top-left. */
 .theme-panel.docked,
 .pages-panel.docked {
-    left: 250px;
-    bottom: 18px;
-    top: auto;
+    left: 12px;
+    top: 62px;
+    bottom: auto;
     transform: none;
-    max-height: calc(100vh - 36px);
+    max-height: calc(100vh - 76px);
     overflow-y: auto;
-    z-index: 121
+    z-index: 130
 }
 
 @media (max-width: 640px) {
@@ -3021,9 +3073,8 @@ h6 {
     .pages-panel.docked {
         left: 12px;
         right: 12px;
-        bottom: 92px;
         width: auto;
-        max-height: calc(100vh - 120px)
+        max-height: calc(100vh - 76px)
     }
 }
 
@@ -3141,6 +3192,9 @@ h6 {
 .list-item-link {
     flex: 0 0 auto;
     max-width: 130px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, .06);
     color: var(--cream);
@@ -3148,7 +3202,15 @@ h6 {
     padding: 4px 6px;
     font-size: 12px;
     font-weight: 700;
-    min-height: 0
+    min-height: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer
+}
+
+.list-item-link svg {
+    flex: 0 0 auto
 }
 
 .list-item-link.is-set {
@@ -3191,4 +3253,641 @@ h6 {
     border-color: var(--hover-border);
     background: var(--hover-border);
     color: #0d1c31
+}
+
+/* ===== Admin chrome: top "Admin Mode" banner + top-left icon toolbar ===== */
+.admin-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px;
+    background: linear-gradient(180deg, rgba(20, 33, 58, .92), rgba(13, 22, 40, .92));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(215, 166, 79, .55);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, .4)
+}
+
+.admin-bar-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.admin-icon-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .04));
+    color: #eef2f8;
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease, transform .1s ease, box-shadow .14s ease
+}
+
+.admin-icon-btn:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .08));
+    border-color: rgba(255, 255, 255, .26);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .32)
+}
+
+.admin-icon-btn:active {
+    transform: translateY(0)
+}
+
+.admin-icon-btn:disabled {
+    opacity: .45;
+    cursor: default;
+    transform: none;
+    box-shadow: none
+}
+
+.admin-icon-btn.active {
+    border-color: var(--gold);
+    background: linear-gradient(180deg, rgba(215, 166, 79, .34), rgba(215, 166, 79, .18));
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(215, 166, 79, .35) inset, 0 6px 16px rgba(215, 166, 79, .18)
+}
+
+.admin-icon-btn.primary {
+    border-color: rgba(120, 170, 255, .55);
+    background: linear-gradient(180deg, #3a7bf0, #2f6fe0);
+    color: #fff
+}
+
+.admin-icon-btn.save {
+    border-color: rgba(74, 222, 128, .5);
+    background: linear-gradient(180deg, #2bb56b, #1f9a59);
+    color: #fff
+}
+
+.admin-icon-btn.danger {
+    border-color: rgba(227, 52, 69, .5);
+    background: linear-gradient(180deg, rgba(227, 52, 69, .28), rgba(227, 52, 69, .16));
+    color: #ffc2c8
+}
+
+/* Instant custom tooltip (drops down under the icon, no browser delay). */
+.admin-icon-btn[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 9px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    white-space: nowrap;
+    background: #0d1c31;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    padding: 6px 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease, transform .1s ease;
+    z-index: 260
+}
+
+.admin-icon-btn[data-tip]::before {
+    content: '';
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: #0d1c31;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease;
+    z-index: 260
+}
+
+.admin-icon-btn[data-tip]:hover::after,
+.admin-icon-btn[data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0)
+}
+
+.admin-icon-btn[data-tip]:hover::before,
+.admin-icon-btn[data-tip]:focus-visible::before {
+    opacity: 1
+}
+
+.admin-bar-sep {
+    width: 1px;
+    height: 22px;
+    background: rgba(255, 255, 255, .18);
+    margin: 0 2px
+}
+
+.admin-bar-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--gold)
+}
+
+.admin-bar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 3px rgba(215, 166, 79, .25)
+}
+
+.admin-bar-error {
+    color: #ffb4bd;
+    letter-spacing: .04em
+}
+
+/* Push the fixed site header down so the admin banner doesn't cover it. */
+.admin-chrome .site-header {
+    top: 52px
+}
+
+@media (max-width: 560px) {
+    .admin-bar-label {
+        display: none
+    }
+}
+
+/* Current page shown in the admin bar */
+.admin-bar-page {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 40vw;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .07);
+    color: #eef2f8;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.admin-bar-page svg {
+    flex: 0 0 auto;
+    color: var(--gold)
+}
+
+/* Pages overview (sitemap) flyout */
+.sitemap-panel {
+    width: min(320px, calc(100vw - 24px))
+}
+
+.sitemap-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.sitemap-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, .04);
+    transition: background .14s ease, border-color .14s ease
+}
+
+.sitemap-link:hover {
+    background: rgba(255, 255, 255, .08)
+}
+
+.sitemap-link.current {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .14)
+}
+
+.sitemap-jump {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--white);
+    cursor: pointer;
+    text-align: left;
+    padding: 6px;
+    border-radius: 8px
+}
+
+.sitemap-jump:hover {
+    background: rgba(255, 255, 255, .07)
+}
+
+.sitemap-name {
+    font-weight: 800;
+    font-size: 14px;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.sitemap-path {
+    flex: 1;
+    min-width: 0;
+    color: var(--steel);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+/* Page status badges (unlinked / navigation / linked) */
+.page-status {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap
+}
+
+.page-status.unlinked {
+    background: rgba(227, 52, 69, .16);
+    color: #ff9aa4;
+    border-color: rgba(227, 52, 69, .38)
+}
+
+.page-status.navigation {
+    background: rgba(150, 110, 230, .2);
+    color: #c7b4ff;
+    border-color: rgba(150, 110, 230, .45)
+}
+
+.page-status.linked {
+    background: rgba(52, 199, 123, .16);
+    color: #7ee0a6;
+    border-color: rgba(52, 199, 123, .42);
+    cursor: pointer
+}
+
+.page-status.linked:hover {
+    background: rgba(52, 199, 123, .3)
+}
+
+.sitemap-section {
+    margin-top: 8px
+}
+
+.sitemap-section-head {
+    width: calc(100% - 8px);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 4px 4px 6px;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    cursor: pointer;
+    text-align: left
+}
+
+.sitemap-section-head:hover {
+    background: rgba(255, 255, 255, .07)
+}
+
+.sitemap-section .sitemap-link {
+    margin-left: 12px
+}
+
+/* "What links here" modal */
+.links-modal-list {
+    list-style: none;
+    margin: 4px 0 14px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 50vh;
+    overflow-y: auto
+}
+
+.links-modal-list button {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    color: var(--white);
+    font-weight: 800;
+    cursor: pointer
+}
+
+.links-modal-list button:hover {
+    background: rgba(255, 255, 255, .12)
+}
+
+.links-modal-path {
+    color: var(--steel);
+    font-size: 12px;
+    font-weight: 600
+}
+
+/* Navigation panel: cleaner rows + add-link search */
+.pages-hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--steel)
+}
+
+.pages-btntoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--muted)
+}
+
+.pages-icon-act {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--cream);
+    cursor: pointer
+}
+
+.pages-icon-act:hover {
+    background: rgba(255, 255, 255, .14)
+}
+
+.pages-icon-act.danger {
+    border-color: rgba(227, 52, 69, .35);
+    color: #ffb4bd
+}
+
+.pages-icon-act.danger:hover {
+    background: rgba(227, 52, 69, .18)
+}
+
+.nav-add {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .04)
+}
+
+.nav-add-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 240px;
+    overflow-y: auto
+}
+
+.nav-add-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .05);
+    color: var(--white);
+    cursor: pointer;
+    text-align: left
+}
+
+.nav-add-item:hover {
+    background: rgba(255, 255, 255, .12);
+    border-color: var(--gold)
+}
+
+.nav-add-plus {
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--gold)
+}
+
+@media (max-width: 560px) {
+    .admin-bar-page {
+        display: none
+    }
+}
+
+/* Pages overview search box */
+.sitemap-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06)
+}
+
+.sitemap-search svg {
+    flex: 0 0 auto;
+    color: var(--steel)
+}
+
+.sitemap-search input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    border: 0;
+    background: transparent;
+    color: var(--white);
+    padding: 10px 0;
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    min-height: 0
+}
+
+.sitemap-search-clear {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 0;
+    background: rgba(255, 255, 255, .08);
+    color: var(--cream);
+    cursor: pointer;
+    line-height: 1
+}
+
+.sitemap-search-clear:hover {
+    background: rgba(255, 255, 255, .16)
+}
+
+.sitemap-empty {
+    color: var(--steel);
+    font-size: 13px;
+    padding: 8px 4px;
+    text-align: center
+}
+
+/* Shared searchable page picker */
+.page-picker {
+    width: min(460px, calc(100vw - 28px));
+    max-height: min(620px, calc(100vh - 48px));
+    padding: 16px;
+    gap: 12px
+}
+
+.page-picker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--white)
+}
+
+.page-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: min(420px, calc(100vh - 230px));
+    overflow-y: auto;
+    padding-right: 2px
+}
+
+.picker-row {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .05);
+    color: var(--white);
+    text-align: left;
+    cursor: pointer
+}
+
+.picker-row:hover {
+    background: rgba(255, 255, 255, .12);
+    border-color: var(--gold)
+}
+
+.picker-row.current {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .15)
+}
+
+.picker-row.indent {
+    margin-left: 14px;
+    width: calc(100% - 14px)
+}
+
+.picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px
+}
+
+.picker-section-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    text-align: left
+}
+
+.picker-section-head:hover {
+    background: rgba(255, 255, 255, .07)
+}
+
+.picker-caret {
+    flex: 0 0 auto;
+    transition: transform .14s ease
+}
+
+.picker-caret.open {
+    transform: rotate(90deg)
+}
+
+.picker-section-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase
+}
+
+.picker-count {
+    flex: 0 0 auto;
+    min-width: 22px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .1);
+    color: var(--cream);
+    font-size: 11px;
+    font-weight: 900;
+    text-align: center
+}
+
+.page-picker-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid var(--line)
 }

@@ -1,11 +1,13 @@
 import React, {useState} from 'react';
+import {Link2} from 'lucide-react';
 import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {ItemCard} from '../components/ItemCard.jsx';
 import {ImageAdjust} from '../components/ImageAdjust.jsx';
-import {InlineText, RichHtml, RichText} from '../lib/edit.jsx';
+import {htmlToText, InlineText, RichHtml, RichText} from '../lib/edit.jsx';
 import {EditableIcon} from '../components/IconPicker.jsx';
 import {notify, promptDialog} from '../lib/dialog.jsx';
+import {PagePicker} from '../components/PagePicker.jsx';
 
 function Eyebrow({block, setProp, editing}) {
     return <p className="eyebrow">
@@ -75,7 +77,7 @@ function ListBlock({block, setProp, editing, pages}) {
                 ? <RichText className="list-item-text" html={it.html} text={it.text} pages={pages}
                             placeholder="Item" onChange={h => update(i, {html: h})}/>
                 : (it.to
-                    ? <span className="list-item-text">{it.text}</span>
+                    ? <span className="list-item-text">{it.html != null ? htmlToText(it.html) : it.text}</span>
                     : (it.html != null
                         ? <RichHtml className="list-item-text" html={it.html}/>
                         : <span className="list-item-text">{it.text}</span>));
@@ -213,50 +215,62 @@ function LinkCtl({block, setProp, pages}) {
     const to = block.props.to || '';
     const external = isExternalUrl(to);
     const known = opts.some(p => p.path === to);
+    const [picker, setPicker] = useState(false);
+    const page = opts.find(p => p.path === to);
 
-    async function onChange(e) {
-        const v = e.target.value;
-        if (v === '__external__') {
-            const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
-            if (url && url.trim()) setProp('to', url.trim());
-            return;
-        }
-        setProp('to', v);
+    async function setExternal() {
+        const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
+        if (url && url.trim()) setProp('to', url.trim());
     }
 
-    return <label className="block-ctl">Links to
-        <select value={external ? '__external__' : to} onChange={onChange}>
-            <option value="">— none —</option>
-            {!known && !external && to && <option value={to}>{to}</option>}
-            {opts.map(p => <option key={p.path} value={p.path}>{p.label}</option>)}
-            <option value="__external__">{external ? `External: ${to}` : 'External URL…'}</option>
-        </select>
-    </label>;
+    const label = external ? `External: ${to}` : page ? page.label : known ? to : to || 'None';
+
+    return <div className="block-ctl link-ctl">
+        <span>Links to</span>
+        <button type="button" className={`link-picker-trigger${to ? ' is-set' : ''}`}
+                title={to || 'No link'} onClick={() => setPicker(true)}>{label}</button>
+        {to && <button type="button" className="link-clear" title="Remove link" onClick={() => setProp('to', '')}>×</button>}
+        {picker && <PagePicker pages={opts} current={external ? '' : to} title="Link block to a page"
+                               onPick={path => {
+                                   setProp('to', path);
+                                   setPicker(false);
+                               }}
+                               onExternal={() => {
+                                   setPicker(false);
+                                   setExternal();
+                               }}
+                               onClose={() => setPicker(false)}/>}
+    </div>;
 }
 
 // Compact per-list-item link picker shown inline in edit mode. Links the whole row.
 function ItemLinkCtl({to = '', pages, onChange}) {
     const opts = pages || [];
     const external = isExternalUrl(to);
-    const known = opts.some(p => p.path === to);
+    const page = opts.find(p => p.path === to);
+    const [picker, setPicker] = useState(false);
 
-    async function change(e) {
-        const v = e.target.value;
-        if (v === '__external__') {
-            const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
-            if (url && url.trim()) onChange(url.trim());
-            return;
-        }
-        onChange(v);
+    async function setExternal() {
+        const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
+        if (url && url.trim()) onChange(url.trim());
     }
 
-    return <select className={`list-item-link${to ? ' is-set' : ''}`} title="Link this whole item"
-                   value={external ? '__external__' : to} onChange={change}>
-        <option value="">🔗 no link</option>
-        {!known && !external && to && <option value={to}>{to}</option>}
-        {opts.map(p => <option key={p.path} value={p.path}>{p.label}</option>)}
-        <option value="__external__">{external ? `External: ${to}` : 'External…'}</option>
-    </select>;
+    const label = external ? 'External' : page ? page.label : to || 'No link';
+
+    return <>
+        <button type="button" className={`list-item-link${to ? ' is-set' : ''}`} title={to || 'Link this whole item'}
+                onClick={() => setPicker(true)}><Link2 size={13}/> {label}</button>
+        {picker && <PagePicker pages={opts} current={external ? '' : to} title="Link item to a page"
+                               onPick={path => {
+                                   onChange(path);
+                                   setPicker(false);
+                               }}
+                               onExternal={() => {
+                                   setPicker(false);
+                                   setExternal();
+                               }}
+                               onClose={() => setPicker(false)}/>}
+    </>;
 }
 
 function headingControls({block, setProp, columns, pages}) {

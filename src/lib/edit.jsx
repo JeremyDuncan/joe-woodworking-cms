@@ -1,8 +1,10 @@
 import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Link2} from 'lucide-react';
+import {FileText, Globe, Link2} from 'lucide-react';
 import {navigate} from './navigation.jsx';
 import {promptDialog} from './dialog.jsx';
+import {PagePicker} from '../components/PagePicker.jsx';
+import {pageLabel} from './pages.js';
 
 const EditContext = createContext({editing: false, setField: () => {}});
 
@@ -37,6 +39,16 @@ export function InlineText({value, onChange, as = 'span', className = '', placeh
 
 function escapeHtml(s = '') {
     return s.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+}
+
+// Plain-text content of a rich-text HTML string (tags stripped). Used where rich HTML
+// can't be rendered, e.g. a whole list item that is itself a link.
+export function htmlToText(html) {
+    if (html == null) return '';
+    if (typeof document === 'undefined') return String(html).replace(/<[^>]*>/g, '');
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    return el.textContent || '';
 }
 
 // Whitelist sanitiser for the small set of inline markup our rich editor can produce
@@ -108,6 +120,7 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
     const ref = useRef(null);
     const savedRange = useRef(null);
     const [bar, setBar] = useState(null);
+    const [picker, setPicker] = useState(null);
 
     useEffect(() => {
         const el = ref.current;
@@ -168,16 +181,17 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
         }
     }
 
-    function applyLink(to) {
+    function applyLink(to, target = bar) {
         if (!to) return;
-        reselect(bar?.anchor);
+        reselect(target?.anchor);
         document.execCommand('createLink', false, to);
         emit();
         setBar(null);
+        setPicker(null);
     }
 
-    async function applyExternal() {
-        const anchor = bar?.anchor, current = bar?.href;
+    async function applyExternal(target = bar) {
+        const anchor = target?.anchor, current = target?.href;
         const url = await promptDialog('External link (opens in a new tab):',
             current && /^https?:\/\//.test(current) ? current : 'https://');
         if (!url || !url.trim()) return;
@@ -185,6 +199,7 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
         document.execCommand('createLink', false, url.trim());
         emit();
         setBar(null);
+        setPicker(null);
     }
 
     function unlink() {
@@ -196,7 +211,12 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
 
     function linkLabel(href) {
         const p = (pages || []).find(x => x.path === href);
-        return p ? p.label : href;
+        return p ? pageLabel(p) : href;
+    }
+
+    function openPagePicker() {
+        setPicker({anchor: bar?.anchor || null, href: bar?.href || ''});
+        setBar(null);
     }
 
     const Tag = as;
@@ -214,15 +234,19 @@ export function RichText({as = 'span', className = '', html, text, placeholder =
                     ? <span className="rich-linkbar-current" title={bar.href}>
                         <Link2 size={13}/> Linked to <strong>{linkLabel(bar.href) || '(empty)'}</strong></span>
                     : <span className="rich-linkbar-label">Link to:</span>}
-                {pages.map(p => <button key={p.path} type="button"
-                                        className={p.path === bar.href ? 'is-active' : undefined}
-                                        onClick={() => applyLink(p.path)}>{p.label}</button>)}
+                <button type="button" className="rich-page-link" onClick={openPagePicker}>
+                    <FileText size={14}/> Page
+                </button>
                 <button type="button"
                         className={`rich-external${bar.href && /^https?:\/\//.test(bar.href) ? ' is-active' : ''}`}
-                        onClick={applyExternal}>External…</button>
+                        onClick={() => applyExternal(bar)}><Globe size={14}/> External</button>
                 {bar.href != null &&
                     <button type="button" className="rich-unlink" onClick={unlink}>Remove link</button>}
             </div>, document.body)}
+        {picker && <PagePicker pages={pages} current={picker.href} title="Link selected text to a page"
+                               onPick={path => applyLink(path, picker)}
+                               onExternal={() => applyExternal(picker)}
+                               onClose={() => setPicker(null)}/>}
     </>;
 }
 

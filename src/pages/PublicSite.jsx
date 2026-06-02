@@ -1,10 +1,11 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
+import {buildLinkSources} from '../lib/links.js';
+import {lastSegment, pageLabel, slugifyPath} from '../lib/pages.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
 import {SiteFooter} from '../components/SiteFooter.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
-import {EditBar} from '../components/EditBar.jsx';
-import {EditDock} from '../components/EditDock.jsx';
+import {AdminBar} from '../components/AdminBar.jsx';
 import {EditProvider} from '../lib/edit.jsx';
 import {applyTheme} from '../lib/theme.js';
 import {navigate} from '../lib/navigation.jsx';
@@ -18,8 +19,12 @@ function newId() {
 export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSettings, reloadItems}) {
     const [modalImage, setModalImage] = useState(null);
     const [editing, setEditing] = useState(false);
+    const [preview, setPreview] = useState(false); // "Web view": render the draft as it'll look, without exiting edit mode
     const [draft, setDraft] = useState(settings);
     const [saveState, setSaveState] = useState(null);
+
+    // The effective editing flag for rendering: in preview we show the draft in view mode.
+    const live = editing && !preview;
 
     // Keep the draft in sync with saved settings while not actively editing.
     useEffect(() => {
@@ -31,6 +36,9 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     useEffect(() => {
         applyTheme(view.theme);
     }, [view.theme]);
+
+    // Which pages link to which (for page status badges + "what links here").
+    const linkSources = useMemo(() => buildLinkSources(view.layout, view.nav), [view.layout, view.nav]);
 
     const setField = useCallback((path, value) => {
         setDraft(d => {
@@ -63,6 +71,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             await reloadSettings();
             if (reloadItems) await reloadItems();
             setEditing(false);
+            setPreview(false);
             setSaveState(null);
             notify('Changes saved', 'success');
         } catch {
@@ -74,6 +83,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
         if (!(await confirmDialog('Discard all unsaved changes?', {danger: true, okLabel: 'Discard'}))) return;
         setDraft(settings);
         setEditing(false);
+        setPreview(false);
         setSaveState(null);
     }
 
@@ -104,37 +114,43 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
 
     // ---- Page management ----
     async function addPage() {
-        const name = await promptDialog('New page name', '', {maxLength: 12});
+        const name = await promptDialog('New page name (use a slash for sections, e.g. menu/pizza)');
         if (!name || !name.trim()) return;
-        const label = name.trim();
-        const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        const path = '/' + slug;
-        if (!slug) return;
+        const path = slugifyPath(name);
+        if (path === '/') return;
         const nav = draft.nav || [];
         if (nav.some(n => n.path === path)) {
             notify('A page with that address already exists.', 'error');
             return;
         }
-        const inNav = await confirmDialog('Show this page in the top navigation menu? You can still link to it from buttons either way.',
-            {okLabel: 'Show in menu', cancelLabel: 'Keep hidden'});
-        setField(['nav'], [...nav, {label, path, hidden: !inNav}]);
+        // The nav label defaults to the last path segment (so /menu/pizza shows "pizza").
+        // New pages start unlinked (not in the nav menu) until explicitly added.
+        setField(['nav'], [...nav, {label: lastSegment(path), path, hidden: true}]);
         setField(['layout', path], {columns: 1, blocks: []});
         navigate(path);
     }
 
-    // Reorder a nav link by swapping it with its neighbour (dir = -1 up / +1 down).
+    // Reorder a nav link by swapping it with its nearest *visible* neighbour (dir = -1 up
+    // / +1 down) — hidden pages are ignored so the visible menu order is what changes.
     function moveNav(path, dir) {
         const nav = [...(draft.nav || [])];
-        const i = nav.findIndex(n => n.path === path);
-        const j = i + dir;
-        if (i < 0 || j < 0 || j >= nav.length) return;
+        const visible = nav.map((n, i) => i).filter(i => !nav[i].hidden);
+        const pos = visible.findIndex(i => nav[i].path === path);
+        const target = pos + dir;
+        if (pos < 0 || target < 0 || target >= visible.length) return;
+        const i = visible[pos], j = visible[target];
         [nav[i], nav[j]] = [nav[j], nav[i]];
         setField(['nav'], nav);
     }
 
     function toggleNav(path) {
         if (path === '/') return;
-        setField(['nav'], (draft.nav || []).map(n => n.path === path ? {...n, hidden: !n.hidden} : n));
+        setField(['nav'], (draft.nav || []).map(n => {
+            if (n.path !== path) return n;
+            const nextHidden = !n.hidden;
+            const sectioned = (n.path || '').replace(/^\//, '').split('/').filter(Boolean).length > 1;
+            return {...n, hidden: nextHidden, label: (!nextHidden && sectioned) ? lastSegment(n.path) : n.label};
+        }));
     }
 
     function toggleCta(path) {
@@ -147,8 +163,8 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
 
     function changePath(oldPath, rawNew) {
         if (oldPath === '/') return;
-        let np = '/' + (rawNew || '').trim().toLowerCase()
-            .replace(/^\/+/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+        // Slashes are allowed so pages can be organised into sections, e.g. /pizza/sales.
+        const np = slugifyPath(rawNew);
         if (np === oldPath || np === '/') return;
         const nav = draft.nav || [];
         if (nav.some(n => n.path === np)) {
@@ -164,7 +180,11 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             layout[key] = {...pg, blocks};
         });
         setField(['layout'], layout);
-        setField(['nav'], nav.map(n => n.path === oldPath ? {...n, path: np} : n));
+        setField(['nav'], nav.map(n => {
+            if (n.path !== oldPath) return n;
+            const wasPathLabel = !n.label || n.label === lastSegment(oldPath);
+            return {...n, path: np, label: wasPathLabel ? lastSegment(np) : n.label};
+        }));
         if (route === oldPath) navigate(np);
     }
 
@@ -224,16 +244,18 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     // that has media (no "featured" flag anymore).
     const featured = gallery.find(w => w.media?.length) || gallery[0];
 
-    return <EditProvider editing={editing} setField={setField}>
-        <main className={editing ? 'is-editing' : undefined}>
+    return <EditProvider editing={live} setField={setField}>
+        <main className={`${isAdmin ? 'admin-chrome ' : ''}${live ? 'is-editing' : ''}`.trim() || undefined}>
             <SiteHeader settings={view}/>
             <BuilderPage route={route} settings={view} featured={featured} items={gallery} onImageOpen={setModalImage}/>
             <SiteFooter settings={view} items={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
-            {isAdmin && !editing &&
-                <EditBar editing={false} adminPath={adminPath} onEnter={() => setEditing(true)}/>}
-            {isAdmin && editing &&
-                <EditDock saveState={saveState} onSave={save} onDiscard={discard}
+            {isAdmin &&
+                <AdminBar editing={editing} preview={preview} saveState={saveState} adminPath={adminPath}
+                          currentPage={pageLabel((view.nav || []).find(n => n.path === route)) || route}
+                          linkSources={linkSources}
+                          onEnter={() => setEditing(true)} onSave={save} onDiscard={discard} onAddPage={addPage}
+                          onTogglePreview={() => setPreview(p => !p)}
                           pagesProps={{
                               pages: view.nav, route, templates: view.layouts,
                               currentTemplate: view.layout?.[route]?.templateName,
