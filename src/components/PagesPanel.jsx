@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {ChevronDown, ChevronRight, ChevronUp, EyeOff, LayoutTemplate, Map, Save, Search, Trash2} from 'lucide-react';
+import {ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, ChevronUp, EyeOff, LayoutTemplate, Map, Save, Search, Trash2} from 'lucide-react';
 import {useDragPanel} from '../lib/useDragPanel.js';
 import {promptDialog} from '../lib/dialog.jsx';
 import {groupPages, pageLabel} from '../lib/pages.js';
 
-function NavRow({p, route, index, total, onMove, onRename, onChangePath, onDeletePage, onToggleNav, onToggleCta}) {
+function NavRow({p, route, index, total, onMove, onRename, onChangePath, onToggleNav, onToggleCta}) {
     const isHome = p.path === '/';
     const [path, setPath] = useState(p.path);
     useEffect(() => setPath(p.path), [p.path]);
@@ -30,8 +30,6 @@ function NavRow({p, route, index, total, onMove, onRename, onChangePath, onDelet
             </label>
             {!isHome && <button type="button" className="pages-icon-act" title="Remove from nav (keeps the page)"
                                 onClick={() => onToggleNav(p.path)}><EyeOff size={15}/></button>}
-            {!isHome && <button type="button" className="pages-icon-act danger" title="Delete page"
-                                onClick={() => onDeletePage(p.path)}><Trash2 size={15}/></button>}
         </div>
     </div>;
 }
@@ -45,7 +43,10 @@ function AddNavLink({pages, onToggleNav}) {
     const term = q.trim().toLowerCase();
     const filtered = candidates.filter(p => !term || `${p.label || ''} ${p.path || ''}`.toLowerCase().includes(term));
     const {roots, sections} = groupPages(filtered);
-    const expanded = sec => !Object.prototype.hasOwnProperty.call(openSections, sec) ? true : !!openSections[sec];
+    const sectionNames = Object.keys(sections).sort();
+    const allOpen = sectionNames.length > 0 && sectionNames.every(sec => !!openSections[sec]);
+    const expanded = sec => !!term || !!openSections[sec];
+    const toggleAll = () => setOpenSections(allOpen ? {} : Object.fromEntries(sectionNames.map(sec => [sec, true])));
     const row = p => <button key={p.path} type="button" className="nav-add-item"
                              onClick={() => onToggleNav(p.path)}>
         <span className="sitemap-name">{pageLabel(p) || '(untitled)'}</span>
@@ -60,6 +61,11 @@ function AddNavLink({pages, onToggleNav}) {
         <div className="sitemap-search">
             <Search size={15}/>
             <input autoFocus placeholder="Search pages to add…" value={q} onChange={e => setQ(e.target.value)}/>
+            {sectionNames.length > 0 && <button type="button" className="sitemap-search-clear panel-inline-expand"
+                                                title={allOpen ? 'Collapse sections' : 'Expand sections'}
+                                                onClick={toggleAll}>
+                {allOpen ? <ChevronsDownUp size={14}/> : <ChevronsUpDown size={14}/>}
+            </button>}
             <button type="button" className="sitemap-search-clear" title="Done"
                     onClick={() => {
                         setOpen(false);
@@ -71,7 +77,7 @@ function AddNavLink({pages, onToggleNav}) {
             {filtered.length === 0 &&
                 <p className="sitemap-empty">{candidates.length === 0 ? 'Every page is already a nav link.' : 'No matching pages.'}</p>}
             {roots.map(p => row(p))}
-            {Object.keys(sections).sort().map(sec => <div key={sec} className="picker-section">
+            {sectionNames.map(sec => <div key={sec} className="picker-section">
                 <button type="button" className="picker-section-head"
                         onClick={() => setOpenSections(o => ({...o, [sec]: !o[sec]}))}>
                     <ChevronRight size={15} className={`picker-caret${expanded(sec) ? ' open' : ''}`}/>
@@ -86,7 +92,7 @@ function AddNavLink({pages, onToggleNav}) {
 
 // `tab`: 'nav' shows the nav-bar links, 'templates' shows layout templates.
 // `docked` renders it as a static left flyout (no drag) for the admin bar.
-export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onDeletePage, onToggleNav, onToggleCta, onRename, onChangePath, onMove, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose, docked, tab = 'both'}) {
+export function PagesPanel({pages, route, templates, currentTemplate, onAddPage, onToggleNav, onToggleCta, onRename, onChangePath, onMove, onSaveTemplate, onApplyTemplate, onUpdateTemplate, onDeleteTemplate, onClose, docked, tab = 'both'}) {
     const [msg, setMsg] = useState('');
     const templateNames = Object.keys(templates || {});
     const isTemplate = !!(currentTemplate && templateNames.includes(currentTemplate));
@@ -144,8 +150,7 @@ export function PagesPanel({pages, route, templates, currentTemplate, onAddPage,
                 {navPages.length === 0 && <p className="sitemap-empty">No nav links yet — add one below.</p>}
                 {navPages.map((p, i) => <NavRow key={p.path} p={p} route={route} index={i} total={navPages.length}
                                                 onMove={onMove} onRename={onRename} onChangePath={onChangePath}
-                                                onDeletePage={onDeletePage} onToggleNav={onToggleNav}
-                                                onToggleCta={onToggleCta}/>)}
+                                                onToggleNav={onToggleNav} onToggleCta={onToggleCta}/>)}
             </div>
             <AddNavLink pages={pages} onToggleNav={onToggleNav}/>
         </>}

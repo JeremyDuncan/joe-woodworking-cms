@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ChevronRight, Globe, Search, X} from 'lucide-react';
+import {ChevronsDownUp, ChevronsUpDown, ChevronRight, Globe, Search, X} from 'lucide-react';
 import {groupPages, pageLabel} from '../lib/pages.js';
 
 function PickRow({p, current, indent, onPick}) {
@@ -19,14 +19,24 @@ export function PagePicker({pages, current, title = 'Link to a page', onPick, on
     const q = query.trim().toLowerCase();
     const filtered = (pages || []).filter(p => !q || `${p.label || ''} ${p.path || ''}`.toLowerCase().includes(q));
     const {roots, sections} = groupPages(filtered);
-    const expanded = sec => !Object.prototype.hasOwnProperty.call(open, sec) ? true : !!open[sec];
+    const sectionNames = Object.keys(sections).sort();
+    const allOpen = sectionNames.length > 0 && sectionNames.every(sec => !!open[sec]);
+    const expanded = sec => !!q || !!open[sec];
+    const toggleAll = () => setOpen(allOpen ? {} : Object.fromEntries(sectionNames.map(sec => [sec, true])));
 
     return createPortal(
         <div className="dialog-backdrop" onMouseDown={onClose}>
             <div className="dialog page-picker" onMouseDown={e => e.stopPropagation()}>
                 <div className="page-picker-head">
                     <strong>{title}</strong>
-                    <button type="button" className="theme-close" onClick={onClose}><X size={16}/></button>
+                    <div className="panel-head-actions">
+                        {sectionNames.length > 0 && <button type="button" className="panel-icon-action"
+                                                            title={allOpen ? 'Collapse sections' : 'Expand sections'}
+                                                            onClick={toggleAll}>
+                            {allOpen ? <ChevronsDownUp size={16}/> : <ChevronsUpDown size={16}/>}
+                        </button>}
+                        <button type="button" className="theme-close" onClick={onClose}><X size={16}/></button>
+                    </div>
                 </div>
                 <div className="sitemap-search">
                     <Search size={15}/>
@@ -39,7 +49,7 @@ export function PagePicker({pages, current, title = 'Link to a page', onPick, on
                 <div className="page-picker-list">
                     {filtered.length === 0 && <p className="sitemap-empty">No pages match “{query}”.</p>}
                     {roots.map(p => <PickRow key={p.path} p={p} current={current} onPick={onPick}/>)}
-                    {Object.keys(sections).sort().map(sec => <div key={sec} className="picker-section">
+                    {sectionNames.map(sec => <div key={sec} className="picker-section">
                         <button type="button" className="picker-section-head"
                                 onClick={() => setOpen(o => ({...o, [sec]: !o[sec]}))}>
                             <ChevronRight size={15} className={`picker-caret${expanded(sec) ? ' open' : ''}`}/>

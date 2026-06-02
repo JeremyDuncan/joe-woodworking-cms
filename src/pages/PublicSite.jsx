@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
-import {buildLinkSources} from '../lib/links.js';
+import {buildLinkSources, unlinkLayoutTarget} from '../lib/links.js';
 import {lastSegment, pageLabel, slugifyPath} from '../lib/pages.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
 import {SiteFooter} from '../components/SiteFooter.jsx';
@@ -190,9 +190,8 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
 
     async function deletePage(path) {
         if (path === '/') return;
-        if (!(await confirmDialog('Delete this page? It’s removed when you Save.', {danger: true, okLabel: 'Delete'}))) return;
         setField(['nav'], (draft.nav || []).filter(n => n.path !== path));
-        const nextLayout = {...(draft.layout || {})};
+        const nextLayout = unlinkLayoutTarget(draft.layout || {}, path);
         delete nextLayout[path];
         setField(['layout'], nextLayout);
         if (route === path) navigate('/');
@@ -255,11 +254,12 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                           currentPage={pageLabel((view.nav || []).find(n => n.path === route)) || route}
                           linkSources={linkSources}
                           onEnter={() => setEditing(true)} onSave={save} onDiscard={discard} onAddPage={addPage}
+                          onDeletePage={deletePage}
                           onTogglePreview={() => setPreview(p => !p)}
                           pagesProps={{
                               pages: view.nav, route, templates: view.layouts,
                               currentTemplate: view.layout?.[route]?.templateName,
-                              onAddPage: addPage, onDeletePage: deletePage, onToggleNav: toggleNav,
+                              onAddPage: addPage, onToggleNav: toggleNav,
                               onToggleCta: toggleCta, onRename: renamePage, onChangePath: changePath, onMove: moveNav,
                               onSaveTemplate: saveTemplate, onApplyTemplate: applyTemplate,
                               onUpdateTemplate: updateTemplate, onDeleteTemplate: deleteTemplate

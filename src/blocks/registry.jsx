@@ -46,7 +46,9 @@ function ButtonBlock({block, setProp, editing}) {
     const cls = variant === 'link' ? 'text-link' : `button button-${variant === 'ghost' ? 'ghost' : 'primary'}`;
     const iconEl = <EditableIcon className="ui-icon" name={block.props.icon} fallback="ArrowRight" size={18}
                                  editing={editing} allowNone onChange={v => setProp('icon', v)}/>;
-    if (!editing) return <Link to={block.props.to || '/'} className={cls}>{block.props.label}{iconEl}</Link>;
+    if (!editing) return block.props.to
+        ? <Link to={block.props.to} className={cls}>{block.props.label}{iconEl}</Link>
+        : <span className={cls}>{block.props.label}{iconEl}</span>;
     return <span className={cls}><InlineText value={block.props.label} placeholder="Button text"
                                              onChange={v => setProp('label', v)}/>{iconEl}</span>;
 }

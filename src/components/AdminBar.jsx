@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ChevronRight, Edit3, Eye, FilePlus, FileText, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, Save, Search, Undo2} from 'lucide-react';
+import {AlertTriangle, ChevronsDownUp, ChevronsUpDown, ChevronRight, Edit3, Eye, FilePlus, FileText, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, Save, Search, Trash2, Undo2} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {pageStatus} from '../lib/links.js';
 import {groupPages, pageLabel} from '../lib/pages.js';
@@ -42,7 +42,10 @@ function SitemapPanel({pages, route, linkSources, onClose}) {
     const q = query.trim().toLowerCase();
     const visible = (pages || []).filter(p => !q || `${p.label || ''} ${p.path || ''}`.toLowerCase().includes(q));
     const {roots, sections} = groupPages(visible);
-    const expanded = sec => !Object.prototype.hasOwnProperty.call(open, sec) ? true : !!open[sec];
+    const sectionNames = Object.keys(sections).sort();
+    const allOpen = sectionNames.length > 0 && sectionNames.every(sec => !!open[sec]);
+    const expanded = sec => !!q || !!open[sec];
+    const toggleAll = () => setOpen(allOpen ? {} : Object.fromEntries(sectionNames.map(sec => [sec, true])));
 
     const jump = path => {
         navigate(path);
@@ -54,7 +57,14 @@ function SitemapPanel({pages, route, linkSources, onClose}) {
     return <div className="pages-panel docked sitemap-panel">
         <div className="theme-panel-head">
             <strong><ListTree size={18}/> Pages</strong>
-            <button type="button" className="theme-close" onClick={onClose}>×</button>
+            <div className="panel-head-actions">
+                {sectionNames.length > 0 && <button type="button" className="panel-icon-action"
+                                                    title={allOpen ? 'Collapse sections' : 'Expand sections'}
+                                                    onClick={toggleAll}>
+                    {allOpen ? <ChevronsDownUp size={16}/> : <ChevronsUpDown size={16}/>}
+                </button>}
+                <button type="button" className="theme-close" onClick={onClose}>×</button>
+            </div>
         </div>
         <div className="sitemap-search">
             <Search size={15}/>
@@ -67,7 +77,7 @@ function SitemapPanel({pages, route, linkSources, onClose}) {
         <div className="sitemap-list">
             {visible.length === 0 && <p className="sitemap-empty">No pages match “{query}”.</p>}
             {roots.map(row)}
-            {Object.keys(sections).sort().map(sec => <div key={sec} className="sitemap-section">
+            {sectionNames.map(sec => <div key={sec} className="sitemap-section">
                 <button type="button" className="sitemap-section-head" onClick={() => setOpen(o => ({...o, [sec]: !o[sec]}))}>
                     <ChevronRight size={15} className={`picker-caret${expanded(sec) ? ' open' : ''}`}/>
                     <span className="picker-section-name">{sec}</span>
@@ -100,18 +110,52 @@ function SitemapPanel({pages, route, linkSources, onClose}) {
     </div>;
 }
 
+function DeletePageModal({page, links, onConfirm, onClose}) {
+    const label = pageLabel(page) || page?.path;
+    const hasLinks = links.length > 0;
+    return createPortal(
+        <div className="dialog-backdrop" onMouseDown={onClose}>
+            <div className="dialog delete-page-modal" onMouseDown={e => e.stopPropagation()}>
+                <div className="delete-page-head">
+                    <AlertTriangle size={20}/>
+                    <div>
+                        <strong>Delete {label}?</strong>
+                        <span>{page?.path}</span>
+                    </div>
+                </div>
+                <p className="dialog-text">
+                    This page will be removed when you save your changes.
+                    {hasLinks ? ' The pages below link to it and will be unlinked.' : ' No other pages currently link to it.'}
+                </p>
+                {hasLinks && <ul className="delete-page-links">
+                    {links.map(s => <li key={s.route}>
+                        <span>{s.label}</span>
+                        <small>{s.route}</small>
+                    </li>)}
+                </ul>}
+                <div className="dialog-actions">
+                    <button type="button" className="button button-ghost" onClick={onClose}>Cancel</button>
+                    <button type="button" className="button danger" onClick={onConfirm}>Delete page</button>
+                </div>
+            </div>
+        </div>, document.body);
+}
+
 // Top admin banner + top-left icon toolbar. Out of edit mode it shows only Edit site /
 // Dashboard; in edit mode it shows the full set of editing tools.
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, linkSources, onEnter, onSave, onDiscard, onAddPage, onTogglePreview, pagesProps, themeProps}) {
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, linkSources, onEnter, onSave, onDiscard, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
+    const current = (pagesProps.pages || []).find(p => p.path === pagesProps.route);
+    const canDeleteCurrent = editing && !preview && current?.path && current.path !== '/';
+    const inboundLinks = current?.path ? (linkSources[current.path] || []) : [];
 
     return <>
         <div className="admin-bar">
             <div className="admin-bar-icons">
                 {!editing && <>
                     <IconBtn title="Edit site" variant="primary" onClick={onEnter}><Edit3 size={19}/></IconBtn>
-                    <IconBtn title="Dashboard" href={adminPath}><LayoutDashboard size={19}/></IconBtn>
                 </>}
                 {editing && <>
                     <IconBtn title={saveState === 'saving' ? 'Saving…' : 'Save changes'} variant="save"
@@ -134,13 +178,20 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, l
             </div>
 
             {currentPage && <div className="admin-bar-page" title="Current page">
-                <FileText size={15}/> {currentPage}
+                <FileText size={15}/> <span>{currentPage}</span>
+                {canDeleteCurrent && <button type="button" className="admin-page-delete" title="Delete this page"
+                                             onClick={() => setDeleteOpen(true)}>
+                    <Trash2 size={14}/>
+                </button>}
             </div>}
 
-            <div className="admin-bar-label">
-                <span className="admin-bar-dot"/>
-                {preview ? 'Preview' : editing ? 'Edit Mode' : 'Admin Mode'}
-                {saveState === 'error' && <span className="admin-bar-error">· Save failed</span>}
+            <div className="admin-bar-status">
+                <IconBtn title="Dashboard" href={adminPath}><LayoutDashboard size={19}/></IconBtn>
+                <div className="admin-bar-label">
+                    <span className="admin-bar-dot"/>
+                    {preview ? 'Preview' : editing ? 'Edit Mode' : 'Admin Mode'}
+                    {saveState === 'error' && <span className="admin-bar-error">· Save failed</span>}
+                </div>
             </div>
         </div>
 
@@ -153,5 +204,13 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, l
             <PagesPanel {...pagesProps} tab="templates" docked onClose={() => setPanel(null)}/>}
         {editing && !preview && panel === 'theme' &&
             <ThemePanel {...themeProps} docked onClose={() => setPanel(null)}/>}
+        {deleteOpen && current &&
+            <DeletePageModal page={current} links={inboundLinks}
+                             onClose={() => setDeleteOpen(false)}
+                             onConfirm={() => {
+                                 setDeleteOpen(false);
+                                 setPanel(null);
+                                 onDeletePage(current.path);
+                             }}/>}
     </>;
 }
