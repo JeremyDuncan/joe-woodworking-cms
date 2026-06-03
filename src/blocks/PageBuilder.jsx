@@ -34,6 +34,19 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const blocks = layout.blocks || [];
     const setLayout = patch => setField(['layout', route], {...layout, ...patch});
     const setBlocks = next => setLayout({blocks: next});
+
+    // Changing the column count rescales every block's span proportionally, so blocks keep
+    // their relative width instead of shifting — a full-width block on a 2-col page stays
+    // full-width at 6 columns, and shrinks to 1 when the page drops to a single column.
+    function setColumns(n) {
+        if (n === columns) return;
+        const next = blocks.map(b => {
+            const cur = spanOf(b, columns);
+            const span = Math.max(1, Math.min(n, Math.round((cur / columns) * n)));
+            return {...b, props: {...b.props, span}};
+        });
+        setLayout({columns: n, blocks: next});
+    }
     const [activeId, setActiveId] = useState(null);
     const [resizingId, setResizingId] = useState(null);
     // Stable item-id array for SortableContext: identity only changes when the order
@@ -170,7 +183,7 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
         <div className="builder-toolbar">
             <span>{columnsLabel}</span>
             {[1, 2, 3, 4, 5, 6].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
-                                                 onClick={() => setLayout({columns: n})}>{n}</button>)}
+                                                 onClick={() => setColumns(n)}>{n}</button>)}
             <span className="builder-hint">Drag the ⠿ handle to reorder · drag a block’s side edge to resize</span>
         </div>
 
