@@ -885,7 +885,9 @@ input::placeholder, textarea::placeholder {
     border: 1px solid rgba(255, 255, 255, .14);
     border-radius: 18px;
     overflow: hidden;
-    background: rgba(0, 0, 0, .25)
+    background: rgba(0, 0, 0, .25);
+    display: flex;
+    flex-direction: column
 }
 
 .placement-editor-bar {
@@ -921,10 +923,18 @@ input::placeholder, textarea::placeholder {
 
 .placement-canvas {
     position: relative;
-    width: 100%;
-    height: 420px;
+    align-self: center;
+    aspect-ratio: var(--ar, .86);
+    width: min(100%, calc(340px * var(--ar, .86)));
+    max-height: 340px;
     background: #050912;
-    overflow: hidden
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+}
+
+.placement-canvas:active {
+    cursor: grabbing
 }
 
 .preview-thumb {
@@ -940,11 +950,6 @@ input::placeholder, textarea::placeholder {
     height: 100%;
     object-fit: cover;
     display: block
-}
-
-.item-media {
-    transform-origin: center;
-    will-change: transform
 }
 
 .admin-notice {
@@ -2575,15 +2580,93 @@ main.is-editing {
     overflow: hidden;
     background: rgba(8, 17, 31, .99);
     border: 1px solid var(--line);
-    box-shadow: var(--shadow)
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column
 }
 
+/* The canvas takes the *measured* frame aspect (--ar) and is sized to fit within both
+   the modal width and a height cap, preserving aspect — so even a block stretched wide
+   across all columns (a wide, short frame) previews at its true shape. Width is bound by
+   min(full width, cap-height × aspect); aspect-ratio then derives the height. */
 .adjust-canvas {
     position: relative;
+    align-self: center;
+    aspect-ratio: var(--ar, .86);
+    width: min(100%, calc(min(52vh, 440px) * var(--ar, .86)));
+    max-height: min(52vh, 440px);
+    background: #050912;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+}
+
+.adjust-canvas:active {
+    cursor: grabbing
+}
+
+/* Shared between the modal adjuster and the inline admin placement editor. The image
+   fills its (aspect-shaped) frame and is positioned/zoomed purely via cropStyle. */
+.adjust-img {
     width: 100%;
-    height: 60vh;
-    max-height: 460px;
+    height: 100%;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
     background: #050912
+}
+
+.adjust-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line)
+}
+
+.adjust-fit {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden
+}
+
+.adjust-fit button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    padding: 6px 14px;
+    cursor: pointer
+}
+
+.adjust-fit button.active {
+    background: rgba(255, 255, 255, .14);
+    color: var(--cream)
+}
+
+.adjust-zoom-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--muted)
+}
+
+.adjust-zoom {
+    flex: 1;
+    accent-color: #2f6fe0;
+    cursor: pointer
+}
+
+.adjust-reset {
+    min-height: 34px;
+    padding-inline: 14px;
+    font-size: 12px
 }
 
 .adjust-bar {

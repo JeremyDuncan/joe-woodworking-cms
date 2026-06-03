@@ -1,39 +1,30 @@
-import React, {useCallback, useState} from 'react';
-import Cropper from 'react-easy-crop';
-import {isImageMedia, useImageSrc} from '../lib/media.jsx';
+import React from 'react';
+import {FocalCanvas} from '../components/FocalCanvas.jsx';
+import {isImageMedia, toFocal, useImageSrc} from '../lib/media.jsx';
 
+// Inline image positioner for the admin item form. Same focal-point + zoom model and
+// rendering as the on-page "Adjust image", so the preview matches the live card.
 export function PlacementEditor({media, value, onChange}) {
-    if (!isImageMedia(media)) return null;
     const imgSrc = useImageSrc(media);
-    const [crop, setCrop] = useState({x: 0, y: 0});
-    const [zoom, setZoom] = useState(1);
-    const onCropComplete = useCallback((pct) => onChange(pct), [onChange]);
-
+    if (!isImageMedia(media)) return null;
     if (!imgSrc) return <div className="heic-preview-note">Loading preview…</div>;
+    const pos = toFocal(value);
 
     return (
         <div className="placement-editor">
-            <div className="placement-canvas">
-                <Cropper
-                    image={imgSrc}
-                    crop={crop}
-                    zoom={zoom}
-                    aspect={0.86}
-                    onCropChange={setCrop}
-                    onZoomChange={setZoom}
-                    onCropComplete={onCropComplete}
-                    initialCroppedAreaPercentages={value?.width ? value : undefined}
-                    showGrid={false}
-                    style={{containerStyle: {background: '#050912'}}}
-                />
-            </div>
             <div className="placement-editor-bar">
-                <span>Drag to reposition · Scroll or pinch to zoom</span>
+                <div className="adjust-fit" role="group" aria-label="Fit mode">
+                    <button type="button" className={pos.fit === 'cover' ? 'active' : ''}
+                            onClick={() => onChange({...pos, fit: 'cover'})}>Fill</button>
+                    <button type="button" className={pos.fit === 'contain' ? 'active' : ''}
+                            onClick={() => onChange({...pos, fit: 'contain'})}>Fit</button>
+                </div>
+                <input type="range" className="adjust-zoom" min="1" max="5" step="0.01" value={pos.scale}
+                       onChange={e => onChange({...pos, scale: Number(e.target.value)})}/>
                 <button type="button" className="button button-ghost"
-                        onClick={() => { setCrop({x: 0, y: 0}); setZoom(1); onChange(null); }}>
-                    Reset crop
-                </button>
+                        onClick={() => onChange(null)}>Reset</button>
             </div>
+            <FocalCanvas src={imgSrc} value={value} aspect={0.86} onChange={onChange} className="placement-canvas"/>
         </div>
     );
 }

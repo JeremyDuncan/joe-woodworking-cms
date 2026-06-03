@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {Link2} from 'lucide-react';
 import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
@@ -130,8 +130,22 @@ function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
     </div>;
 }
 
+// Measure the *actual* rendered frame so the adjuster previews at its real shape. A
+// block stretched across many columns is far wider than its base aspect ratio (and
+// frames with a max-height go wide-and-short), so a fixed guess won't match.
+function frameAspect(rootRef, fallback) {
+    const fr = rootRef.current?.querySelector('.media-frame');
+    if (fr) {
+        const r = fr.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) return r.width / r.height;
+    }
+    return fallback;
+}
+
 function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
     const [adjust, setAdjust] = useState(false);
+    const [aspect, setAspect] = useState(0.72);
+    const rootRef = useRef(null);
     const url = block.props.url;
     const placement = block.props.placement;
     const src = url || featured?.media?.[0]?.url || '';
@@ -139,8 +153,12 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
     const to = !editing ? block.props.to : null;
     const caption = block.props.caption;
     // In edit mode, clicking the image opens the crop adjuster instead of the lightbox.
-    const onImg = editing ? (src ? () => setAdjust(true) : undefined) : (to ? undefined : onImageOpen);
-    return <div className="home-visual">
+    const openAdjust = () => {
+        setAspect(frameAspect(rootRef, 0.72));
+        setAdjust(true);
+    };
+    const onImg = editing ? (src ? openAdjust : undefined) : (to ? undefined : onImageOpen);
+    return <div className="home-visual" ref={rootRef}>
         <MediaPreview media={media} linkTo={to} onImageOpen={onImg}/>
         {editing
             ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
@@ -149,8 +167,8 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
         {editing && <ImageUpload hasImage={!!url} clearLabel="Use item image" onUploaded={u => setProp('url', u)}
                                  onClear={() => setProp('url', '')}/>}
         {editing && src && <button type="button" className="button button-ghost adjust-trigger"
-                                   onClick={() => setAdjust(true)}>Adjust image</button>}
-        {adjust && src && <ImageAdjust src={src} value={placement} onApply={p => setProp('placement', p)}
+                                   onClick={openAdjust}>Adjust image</button>}
+        {adjust && src && <ImageAdjust src={src} value={placement} aspect={aspect} onApply={p => setProp('placement', p)}
                                        onClose={() => setAdjust(false)}/>}
     </div>;
 }
@@ -159,10 +177,16 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
 // the collection. Either way it syncs to the Items DB and shows in the dashboard.
 function ItemBlock({block, setProp, editing, onImageOpen}) {
     const [adjust, setAdjust] = useState(false);
+    const [aspect, setAspect] = useState(0.86);
+    const rootRef = useRef(null);
     const {title, description, price, image, to, placement} = block.props;
     const media = image ? [{url: image, type: 'image/*', placement}] : [];
-    const onImg = editing ? (image ? () => setAdjust(true) : undefined) : onImageOpen;
-    const card = <article className="gallery-card item-card">
+    const openAdjust = () => {
+        setAspect(frameAspect(rootRef, 0.86));
+        setAdjust(true);
+    };
+    const onImg = editing ? (image ? openAdjust : undefined) : onImageOpen;
+    const card = <article className="gallery-card item-card" ref={rootRef}>
         <MediaPreview media={media} compact onImageOpen={onImg}/>
         <div className="card-copy">
             {editing
@@ -179,12 +203,13 @@ function ItemBlock({block, setProp, editing, onImageOpen}) {
         </div>
         {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
         {editing && image && <button type="button" className="button button-ghost adjust-trigger"
-                                     onClick={() => setAdjust(true)}>Adjust image</button>}
+                                     onClick={openAdjust}>Adjust image</button>}
         {editing && !image && <p className="item-img-required">A picture is required before saving.</p>}
     </article>;
     return <>
         {(!editing && to) ? <div className="item-card-clickable" onClick={() => navigate(to)}>{card}</div> : card}
-        {adjust && image && <ImageAdjust src={image} value={placement} onApply={p => setProp('placement', p)}
+        {adjust && image && <ImageAdjust src={image} value={placement} aspect={aspect}
+                                         onApply={p => setProp('placement', p)}
                                          onClose={() => setAdjust(false)}/>}
     </>;
 }

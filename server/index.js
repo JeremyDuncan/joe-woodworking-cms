@@ -527,13 +527,21 @@ export function createApp(options = {}) {
         return Math.min(max, Math.max(min, n));
     }
 
+    // Placement is a focal-point + zoom model: {fit, x, y, scale}. `x`/`y` are
+    // object-position percentages (50 = centre), `scale` zooms in, `fit` is
+    // 'cover' (crop to fill) or 'contain' (letterbox). Old {x, y, width, height}
+    // crop rectangles are converted to a focal centre + zoom for back-compat.
     function sanitizePlacement(input) {
-        if (!input || typeof input !== 'object' || typeof input.width !== 'number') return null;
+        if (!input || typeof input !== 'object') return null;
+        let c = input;
+        if (typeof c.scale !== 'number' && typeof c.width === 'number' && c.width > 0) {
+            c = {fit: 'cover', x: c.x + c.width / 2, y: c.y + (c.height || c.width) / 2, scale: 100 / c.width};
+        }
         return {
-            x: clampNumber(input.x, 0, 100, 0),
-            y: clampNumber(input.y, 0, 100, 0),
-            width: clampNumber(input.width, 0.1, 100, 100),
-            height: clampNumber(input.height, 0.1, 100, 100),
+            fit: c.fit === 'contain' ? 'contain' : 'cover',
+            x: clampNumber(c.x, 0, 100, 50),
+            y: clampNumber(c.y, 0, 100, 50),
+            scale: clampNumber(c.scale, 1, 8, 1),
         };
     }
 
@@ -542,11 +550,8 @@ export function createApp(options = {}) {
             const {placement: _ignored, ...withoutPlacement} = media || {};
             return withoutPlacement;
         }
-        const sanitized = sanitizePlacement(placement ?? media.placement);
-        if (sanitized === null) {
-            const {placement: _ignored, ...withoutPlacement} = {...(media || {})};
-            return withoutPlacement;
-        }
+        // Every image carries a placement; absent/invalid input falls back to centred cover.
+        const sanitized = sanitizePlacement(placement ?? media.placement) ?? {fit: 'cover', x: 50, y: 50, scale: 1};
         return {...media, placement: sanitized};
     }
 
