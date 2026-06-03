@@ -1271,6 +1271,8 @@ input::placeholder, textarea::placeholder {
 /* Editable headings/paragraphs span the full block width (cancelling the block-frame's
    12px padding) so their line-wrapping in edit mode matches the saved/live view. */
 .block-frame-body > :is(h1, h2, h3, h4, h5, h6, p).inline-edit {
+    display: block;
+    max-width: none;
     margin-inline: -12px
 }
 
@@ -1435,11 +1437,16 @@ input::placeholder, textarea::placeholder {
 .block-frame-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 10px
 }
 
 .block-frame-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 11px;
     font-weight: 900;
     letter-spacing: .12em;
@@ -1449,6 +1456,9 @@ input::placeholder, textarea::placeholder {
 
 .block-frame-actions {
     display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 5px
 }
 
@@ -1679,70 +1689,152 @@ input::placeholder, textarea::placeholder {
     cursor: pointer
 }
 
-/* In a narrow block, each control stacks its dropdown UNDER its label on a full-width
-   row, body buttons go full-width, and list-item link pickers drop to their own row —
-   so nothing is squeezed off the block's edge. */
-@container (max-width: 380px) {
+/* ---- Compact icon controls in the block bar (replace cramped dropdowns) ---- */
+.block-frame-actions .block-ctl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px
+}
+
+.block-frame-actions .block-ctl-btn.has-badge {
+    width: auto;
+    min-width: 28px;
+    padding-inline: 6px
+}
+
+.ctl-badge {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: -.02em
+}
+
+.block-frame-actions .block-ctl-btn:hover {
+    color: var(--cream);
+    border-color: var(--hover-border)
+}
+
+.block-frame-actions .block-ctl-btn.is-open {
+    color: var(--cream);
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .14)
+}
+
+/* Link icon: grey when nothing is linked, green when it points somewhere. */
+.block-frame-actions .link-btn {
+    color: var(--steel)
+}
+
+.block-frame-actions .link-btn.is-linked {
+    color: #43d68a;
+    border-color: rgba(67, 214, 138, .4);
+    background: rgba(67, 214, 138, .12)
+}
+
+/* Popover that an icon control opens (portalled to body, positioned at the button). */
+.ctl-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 240
+}
+
+.ctl-menu-pop {
+    position: fixed;
+    min-width: 168px;
+    max-width: 240px;
+    max-height: 60vh;
+    overflow: auto;
+    background: rgba(10, 18, 32, .99);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 6px
+}
+
+.ctl-menu-head {
+    padding: 4px 8px 6px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--steel)
+}
+
+.ctl-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 0;
+    background: transparent;
+    color: var(--cream);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer
+}
+
+.ctl-menu-item:hover {
+    background: rgba(255, 255, 255, .08)
+}
+
+.ctl-menu-item.active {
+    color: var(--gold)
+}
+
+/* ---- Image / Item body action row (upload + adjust on one tidy line) ---- */
+.img-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px
+}
+
+.img-act-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px
+}
+
+/* In a narrow block the type label gives way to the icon controls, body buttons shrink
+   to fit, and list rows wrap — so the bar stays on one line with nothing squeezed off. */
+@container (max-width: 260px) {
+    /* The type label gives way to the icon controls. */
+    .block-frame-label {
+        display: none
+    }
+
+    /* Let the action icons fill the row and wrap to a second line instead of spilling
+       past the block's right edge (the List block, with the most controls, needs this). */
     .block-frame-bar {
-        flex-wrap: wrap;
-        row-gap: 8px;
         align-items: flex-start
     }
 
     .block-frame-actions {
-        flex: 1 1 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: flex-end
     }
+}
 
-    .block-ctl {
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 3px
-    }
-
-    .block-ctl select,
-    .block-ctl input,
-    .link-picker-trigger {
-        width: 100%;
-        flex: none;
-        margin: 0
-    }
-
-    .link-ctl {
-        max-width: 100%
-    }
-
-    .block-frame-actions > button {
-        align-self: flex-end
-    }
-
-    /* Keep block-body buttons / uploads inside the block */
+@container (max-width: 380px) {
     .block-frame-body .button,
     .block-frame-body .text-link {
-        width: 100%;
         min-width: 0;
         padding-inline: 10px;
         font-size: 12px;
         white-space: normal
     }
 
-    .image-upload {
-        flex-direction: column;
-        align-items: stretch
-    }
-
-    /* List items: the per-item link picker drops onto its own full-width row */
     .list-block .list-item {
         flex-wrap: wrap
-    }
-
-    .list-item-link {
-        flex: 1 1 100%;
-        max-width: 100%;
-        margin-top: 4px
     }
 }
 
@@ -2038,20 +2130,12 @@ input::placeholder, textarea::placeholder {
     user-select: none
 }
 
-.image-upload {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 12px
-}
-
-.image-upload .button {
-    min-height: 40px;
+.img-actions .button {
     cursor: pointer
 }
 
-.image-upload input {
+/* The file picker lives inside its label button — keep the raw input hidden. */
+.img-actions input[type="file"] {
     display: none
 }
 
@@ -3185,8 +3269,9 @@ h6 {
     font-weight: 700
 }
 
-/* Chips: each item is a rounded pill */
-.list-chips .list-item {
+/* Chips: the bullet + text content is a rounded pill — edit controls sit OUTSIDE it so
+   the item looks just like the live view. */
+.list-chips .list-item-inner {
     padding: 8px 14px;
     border: 1px solid rgba(255, 255, 255, .14);
     border-radius: 999px;
@@ -3194,7 +3279,7 @@ h6 {
 }
 
 /* Plain: just an icon (bullet) + text, no pill */
-.list-plain .list-item {
+.list-plain .list-item-inner {
     padding: 2px 0
 }
 
@@ -3246,14 +3331,25 @@ h6 {
     border-radius: 1px
 }
 
-/* Whole-item links */
+/* The visible item: bullet on the left, then text — matching the live view exactly. */
 .list-item-inner {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
     min-width: 0;
     color: inherit
+}
+
+.list-item-inner .ui-icon {
+    flex: 0 0 auto
+}
+
+/* Edit-mode controls (link + remove) sit to the right of the item, never inside it. */
+.list-item-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto
 }
 
 .list-item-linked {
@@ -3261,7 +3357,7 @@ h6 {
     transition: border-color .15s ease, background .15s ease
 }
 
-.list-chips .list-item-linked:hover {
+.list-chips .list-item-linked:hover .list-item-inner {
     border-color: var(--hover-border);
     background: rgba(255, 255, 255, .09)
 }
@@ -3271,34 +3367,31 @@ h6 {
     text-underline-offset: 3px
 }
 
-/* Inline per-item link picker (edit mode) */
+/* Inline per-item link picker (edit mode): a compact icon — grey when unlinked,
+   green when the row points somewhere. */
 .list-item-link {
     flex: 0 0 auto;
-    max-width: 130px;
+    width: 28px;
+    height: 28px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, .06);
-    color: var(--cream);
+    color: var(--steel);
     border-radius: 8px;
-    padding: 4px 6px;
-    font-size: 12px;
-    font-weight: 700;
-    min-height: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     cursor: pointer
 }
 
-.list-item-link svg {
-    flex: 0 0 auto
+.list-item-link:hover {
+    color: var(--cream);
+    border-color: var(--hover-border)
 }
 
 .list-item-link.is-set {
-    border-color: var(--hover-border);
-    color: var(--white)
+    color: #43d68a;
+    border-color: rgba(67, 214, 138, .4);
+    background: rgba(67, 214, 138, .12)
 }
 
 /* Current link target shown in the rich-text link bar — an accent chip so it's
@@ -3472,6 +3565,88 @@ h6 {
 
 .admin-icon-btn[data-tip]:hover::before,
 .admin-icon-btn[data-tip]:focus-visible::before {
+    opacity: 1
+}
+
+/* Same instant tooltip for the in-block edit-mode icon controls (native `title` lagged
+   ~1s before showing). */
+.block-ctl-btn,
+.list-item-link,
+.block-frame-grip,
+.block-remove-btn,
+.chip-remove {
+    position: relative
+}
+
+.block-ctl-btn[data-tip]::after,
+.list-item-link[data-tip]::after,
+.block-frame-grip[data-tip]::after,
+.block-remove-btn[data-tip]::after,
+.chip-remove[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    white-space: nowrap;
+    background: #0d1c31;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-transform: none;
+    padding: 6px 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease, transform .1s ease;
+    z-index: 260
+}
+
+.block-ctl-btn[data-tip]::before,
+.list-item-link[data-tip]::before,
+.block-frame-grip[data-tip]::before,
+.block-remove-btn[data-tip]::before,
+.chip-remove[data-tip]::before {
+    content: '';
+    position: absolute;
+    top: calc(100% + 1px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: #0d1c31;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease;
+    z-index: 260
+}
+
+.block-ctl-btn[data-tip]:hover::after,
+.block-ctl-btn[data-tip]:focus-visible::after,
+.list-item-link[data-tip]:hover::after,
+.list-item-link[data-tip]:focus-visible::after,
+.block-frame-grip[data-tip]:hover::after,
+.block-frame-grip[data-tip]:focus-visible::after,
+.block-remove-btn[data-tip]:hover::after,
+.block-remove-btn[data-tip]:focus-visible::after,
+.chip-remove[data-tip]:hover::after,
+.chip-remove[data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0)
+}
+
+.block-ctl-btn[data-tip]:hover::before,
+.block-ctl-btn[data-tip]:focus-visible::before,
+.list-item-link[data-tip]:hover::before,
+.list-item-link[data-tip]:focus-visible::before,
+.block-frame-grip[data-tip]:hover::before,
+.block-frame-grip[data-tip]:focus-visible::before,
+.block-remove-btn[data-tip]:hover::before,
+.block-remove-btn[data-tip]:focus-visible::before,
+.chip-remove[data-tip]:hover::before,
+.chip-remove[data-tip]:focus-visible::before {
     opacity: 1
 }
 
@@ -4191,9 +4366,20 @@ h6 {
 
 .page-picker-foot {
     display: flex;
-    justify-content: flex-end;
-    padding-top: 4px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
     border-top: 1px solid var(--line)
+}
+
+.picker-remove {
+    color: #ffb4bd;
+    border-color: rgba(227, 52, 69, .35)
+}
+
+.picker-remove:hover {
+    background: rgba(227, 52, 69, .12)
 }
 
 .template-revert {

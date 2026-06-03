@@ -1,5 +1,6 @@
 import React, {useRef, useState} from 'react';
-import {Link2} from 'lucide-react';
+import {createPortal} from 'react-dom';
+import {Check, CircleDot, Crop, FolderOpen, Heading as HeadingIcon, Link2, List, RectangleHorizontal, Type, Upload} from 'lucide-react';
 import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {ItemCard} from '../components/ItemCard.jsx';
@@ -83,14 +84,16 @@ function ListBlock({block, setProp, editing, pages}) {
                     : (it.html != null
                         ? <RichHtml className="list-item-text" html={it.html}/>
                         : <span className="list-item-text">{it.text}</span>));
-            const inner = <>{bulletEl}{textEl}</>;
+            const content = <>{bulletEl}{textEl}</>;
             return <li key={i} className={`list-item${it.to ? ' list-item-linked' : ''}`}>
                 {(!editing && it.to)
-                    ? <Link to={it.to} className="list-item-inner">{inner}</Link>
-                    : inner}
-                {editing && <ItemLinkCtl to={it.to} pages={pages} onChange={v => update(i, {to: v})}/>}
-                {editing && <button type="button" className="chip-remove" title="Remove"
-                                    onClick={() => setProp('items', items.filter((_, j) => j !== i))}>×</button>}
+                    ? <Link to={it.to} className="list-item-inner">{content}</Link>
+                    : <span className="list-item-inner">{content}</span>}
+                {editing && <span className="list-item-edit">
+                    <ItemLinkCtl to={it.to} pages={pages} onChange={v => update(i, {to: v})}/>
+                    <button type="button" className="chip-remove" data-tip="Remove item" aria-label="Remove item"
+                            onClick={() => setProp('items', items.filter((_, j) => j !== i))}>×</button>
+                </span>}
             </li>;
         })}
         {editing && <li className="list-add-row">
@@ -122,12 +125,13 @@ function ImageUpload({hasImage, onUploaded, onClear, clearLabel}) {
         }
     }
 
-    return <div className="image-upload">
-        <label className="button button-ghost">{busy ? 'Uploading…' : (hasImage ? 'Replace image' : 'Upload image')}
+    return <>
+        <label className="button button-ghost img-act-btn">
+            <Upload size={15}/>{busy ? 'Uploading…' : (hasImage ? 'Replace' : 'Upload')}
             <input type="file" accept="image/*,.heic,.heif" onChange={onChange}/></label>
         {hasImage && onClear && clearLabel &&
-            <button type="button" className="button button-ghost" onClick={onClear}>{clearLabel}</button>}
-    </div>;
+            <button type="button" className="button button-ghost img-act-btn" onClick={onClear}>{clearLabel}</button>}
+    </>;
 }
 
 // Measure the *actual* rendered frame so the adjuster previews at its real shape. A
@@ -164,10 +168,11 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
             ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
                           onChange={v => setProp('caption', v)}/>
             : (caption ? <p className="image-caption">{caption}</p> : null)}
-        {editing && <ImageUpload hasImage={!!url} clearLabel="Use item image" onUploaded={u => setProp('url', u)}
-                                 onClear={() => setProp('url', '')}/>}
-        {editing && src && <button type="button" className="button button-ghost adjust-trigger"
-                                   onClick={openAdjust}>Adjust image</button>}
+        {editing && <div className="img-actions">
+            <ImageUpload hasImage={!!url} onUploaded={u => setProp('url', u)}/>
+            {src && <button type="button" className="button button-ghost img-act-btn adjust-trigger"
+                            onClick={openAdjust}><Crop size={15}/>Adjust</button>}
+        </div>}
         {adjust && src && <ImageAdjust src={src} value={placement} aspect={aspect} onApply={p => setProp('placement', p)}
                                        onClose={() => setAdjust(false)}/>}
     </div>;
@@ -201,9 +206,11 @@ function ItemBlock({block, setProp, editing, onImageOpen}) {
                               onChange={v => setProp('description', v)}/>
                 : <p>{description}</p>}
         </div>
-        {editing && <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>}
-        {editing && image && <button type="button" className="button button-ghost adjust-trigger"
-                                     onClick={openAdjust}>Adjust image</button>}
+        {editing && <div className="img-actions">
+            <ImageUpload hasImage={!!image} onUploaded={u => setProp('image', u)}/>
+            {image && <button type="button" className="button button-ghost img-act-btn adjust-trigger"
+                              onClick={openAdjust}><Crop size={15}/>Adjust</button>}
+        </div>}
         {editing && !image && <p className="item-img-required">A picture is required before saving.</p>}
     </article>;
     return <>
@@ -237,26 +244,67 @@ function SavedItemBlock({block, items, editing, onImageOpen}) {
     return card;
 }
 
+// A compact block-bar control: an icon button (with optional value badge) that opens a
+// small popover of choices. Replaces cramped <select> dropdowns so the bar stays on one
+// tidy line even in narrow multi-column blocks; the current choice shows in the tooltip.
+function CtlMenu({icon, title, value, options, onChange, badge}) {
+    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState(null);
+    const ref = useRef(null);
+    const current = options.find(o => String(o.value) === String(value));
+    const tip = `${title}: ${current?.label ?? '—'}`;
+
+    function toggle() {
+        if (open) return setOpen(false);
+        const r = ref.current.getBoundingClientRect();
+        setPos({top: r.bottom + 6, left: r.left});
+        setOpen(true);
+    }
+
+    return <>
+        <button ref={ref} type="button"
+                className={`block-ctl-btn${open ? ' is-open' : ''}${badge != null ? ' has-badge' : ''}`}
+                data-tip={tip} aria-label={tip} onClick={toggle}>
+            {icon}{badge != null && <span className="ctl-badge">{badge}</span>}
+        </button>
+        {open && createPortal(
+            <div className="ctl-menu-backdrop" onMouseDown={() => setOpen(false)}>
+                <div className="ctl-menu-pop" style={pos || undefined} onMouseDown={e => e.stopPropagation()}>
+                    <div className="ctl-menu-head">{title}</div>
+                    {options.map(o => <button key={String(o.value)} type="button"
+                            className={`ctl-menu-item${String(o.value) === String(value) ? ' active' : ''}`}
+                            onClick={() => {
+                                onChange(o.value);
+                                setOpen(false);
+                            }}>
+                        <span>{o.label}</span>
+                        {String(o.value) === String(value) && <Check size={14}/>}
+                    </button>)}
+                </div>
+            </div>, document.body)}
+    </>;
+}
+
+// Block-level link control: one link icon — grey when nothing is linked, green when it
+// points somewhere. Opens the searchable page picker (which is also where a link is
+// removed). The tooltip reads "Link to Page" / "Linked to <page>".
 function LinkCtl({block, setProp, pages}) {
     const opts = pages || [];
     const to = block.props.to || '';
     const external = isExternalUrl(to);
-    const known = opts.some(p => p.path === to);
-    const [picker, setPicker] = useState(false);
     const page = opts.find(p => p.path === to);
+    const [picker, setPicker] = useState(false);
+    const target = external ? to : (page ? page.label : to);
+    const tip = to ? `Linked to ${target}` : 'Link to Page';
 
     async function setExternal() {
         const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
         if (url && url.trim()) setProp('to', url.trim());
     }
 
-    const label = external ? `External: ${to}` : page ? page.label : known ? to : to || 'None';
-
-    return <div className="block-ctl link-ctl">
-        <span>Links to</span>
-        <button type="button" className={`link-picker-trigger${to ? ' is-set' : ''}`}
-                title={to || 'No link'} onClick={() => setPicker(true)}>{label}</button>
-        {to && <button type="button" className="link-clear" title="Remove link" onClick={() => setProp('to', '')}>×</button>}
+    return <>
+        <button type="button" className={`block-ctl-btn link-btn${to ? ' is-linked' : ''}`}
+                data-tip={tip} aria-label={tip} onClick={() => setPicker(true)}><Link2 size={15}/></button>
         {picker && <PagePicker pages={opts} current={external ? '' : to} title="Link block to a page"
                                onPick={path => {
                                    setProp('to', path);
@@ -266,27 +314,32 @@ function LinkCtl({block, setProp, pages}) {
                                    setPicker(false);
                                    setExternal();
                                }}
+                               onRemove={to ? () => {
+                                   setProp('to', '');
+                                   setPicker(false);
+                               } : undefined}
                                onClose={() => setPicker(false)}/>}
-    </div>;
+    </>;
 }
 
-// Compact per-list-item link picker shown inline in edit mode. Links the whole row.
+// Compact per-list-item link picker shown inline in edit mode — an icon that goes green
+// when the row links somewhere. Links the whole row.
 function ItemLinkCtl({to = '', pages, onChange}) {
     const opts = pages || [];
     const external = isExternalUrl(to);
     const page = opts.find(p => p.path === to);
     const [picker, setPicker] = useState(false);
+    const target = external ? to : (page ? page.label : to);
+    const tip = to ? `Linked to ${target}` : 'Link to Page';
 
     async function setExternal() {
         const url = await promptDialog('External link (opens in a new tab):', external ? to : 'https://');
         if (url && url.trim()) onChange(url.trim());
     }
 
-    const label = external ? 'External' : page ? page.label : to || 'No link';
-
     return <>
-        <button type="button" className={`list-item-link${to ? ' is-set' : ''}`} title={to || 'Link this whole item'}
-                onClick={() => setPicker(true)}><Link2 size={13}/> {label}</button>
+        <button type="button" className={`list-item-link${to ? ' is-set' : ''}`} data-tip={tip} aria-label={tip}
+                onClick={() => setPicker(true)}><Link2 size={14}/></button>
         {picker && <PagePicker pages={opts} current={external ? '' : to} title="Link item to a page"
                                onPick={path => {
                                    onChange(path);
@@ -296,74 +349,67 @@ function ItemLinkCtl({to = '', pages, onChange}) {
                                    setPicker(false);
                                    setExternal();
                                }}
+                               onRemove={to ? () => {
+                                   onChange('');
+                                   setPicker(false);
+                               } : undefined}
                                onClose={() => setPicker(false)}/>}
     </>;
 }
 
-function headingControls({block, setProp, columns, pages}) {
+function headingControls({block, setProp, pages}) {
+    const lvl = block.props.level || 2;
     return <>
-        <label className="block-ctl">Size
-            <select value={String(block.props.level || 2)}
-                    onChange={e => setProp('level', e.target.value === 'p' ? 'p' : Number(e.target.value))}>
-                <option value="1">H1</option>
-                <option value="2">H2</option>
-                <option value="3">H3</option>
-                <option value="4">H4</option>
-                <option value="5">H5</option>
-                <option value="6">H6</option>
-                <option value="p">Paragraph</option>
-            </select>
-        </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
+        <CtlMenu icon={<HeadingIcon size={15}/>} title="Heading size" value={String(lvl)}
+                 badge={lvl === 'p' ? 'P' : `H${lvl}`}
+                 options={[
+                     {value: '1', label: 'Heading 1'},
+                     {value: '2', label: 'Heading 2'},
+                     {value: '3', label: 'Heading 3'},
+                     {value: '4', label: 'Heading 4'},
+                     {value: '5', label: 'Heading 5'},
+                     {value: '6', label: 'Heading 6'},
+                     {value: 'p', label: 'Paragraph'},
+                 ]}
+                 onChange={v => setProp('level', v === 'p' ? 'p' : Number(v))}/>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
+    </>;
 }
 
-function listControls({block, setProp, columns}) {
+function listControls({block, setProp}) {
     return <>
-        <label className="block-ctl">Style
-            <select value={block.props.variant || 'chips'} onChange={e => setProp('variant', e.target.value)}>
-                <option value="chips">Chips</option>
-                <option value="plain">Text only</option>
-            </select>
-        </label>
-        <label className="block-ctl">Bullets
-            <select value={block.props.bullet || 'icon'} onChange={e => setProp('bullet', e.target.value)}>
-                <option value="icon">Icons</option>
-                <option value="disc">Circle</option>
-                <option value="square">Square</option>
-                <option value="none">None</option>
-            </select>
-        </label>
-        <label className="block-ctl">Size
-            <select value={block.props.size || 'md'} onChange={e => setProp('size', e.target.value)}>
-                <option value="sm">Small</option>
-                <option value="md">Medium</option>
-                <option value="lg">Large</option>
-            </select>
-        </label>    </>;
+        <CtlMenu icon={<List size={15}/>} title="List style" value={block.props.variant || 'chips'}
+                 options={[{value: 'chips', label: 'Chips'}, {value: 'plain', label: 'Text only'}]}
+                 onChange={v => setProp('variant', v)}/>
+        <CtlMenu icon={<CircleDot size={15}/>} title="Bullets" value={block.props.bullet || 'icon'}
+                 options={[{value: 'icon', label: 'Icons'}, {value: 'disc', label: 'Circle'},
+                     {value: 'square', label: 'Square'}, {value: 'none', label: 'None'}]}
+                 onChange={v => setProp('bullet', v)}/>
+        <CtlMenu icon={<Type size={15}/>} title="Text size" value={block.props.size || 'md'}
+                 badge={({sm: 'S', md: 'M', lg: 'L'})[block.props.size || 'md']}
+                 options={[{value: 'sm', label: 'Small'}, {value: 'md', label: 'Medium'}, {value: 'lg', label: 'Large'}]}
+                 onChange={v => setProp('size', v)}/>
+    </>;
 }
 
-function imageControls({block, setProp, columns, pages}) {
-    return <>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
+function imageControls({block, setProp, pages}) {
+    return <LinkCtl block={block} setProp={setProp} pages={pages}/>;
 }
 
-function buttonControls({block, setProp, pages, columns}) {
+function buttonControls({block, setProp, pages}) {
     return <>
-        <label className="block-ctl">Style
-            <select value={block.props.variant || 'primary'} onChange={e => setProp('variant', e.target.value)}>
-                <option value="primary">Primary</option>
-                <option value="ghost">Ghost</option>
-                <option value="link">Text link</option>
-            </select>
-        </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
+        <CtlMenu icon={<RectangleHorizontal size={15}/>} title="Button style" value={block.props.variant || 'primary'}
+                 options={[{value: 'primary', label: 'Primary'}, {value: 'ghost', label: 'Ghost'},
+                     {value: 'link', label: 'Text link'}]}
+                 onChange={v => setProp('variant', v)}/>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
+    </>;
 }
 
-function itemControls({block, setProp, setProps, items, columns, pages}) {
+function itemControls({block, setProp, setProps, items, pages}) {
     const list = items || [];
 
-    function onLoad(e) {
-        const id = e.target.value;
+    function load(id) {
         if (!id) return;
         if (id === '__new__') {
             setProps({itemId: '', title: 'New item', description: 'Describe this item.', price: '', image: ''});
@@ -377,25 +423,22 @@ function itemControls({block, setProp, setProps, items, columns, pages}) {
     }
 
     return <>
-        <label className="block-ctl">Load
-            <select value="" onChange={onLoad}>
-                <option value="">Load saved item…</option>
-                <option value="__new__">— Blank new item —</option>
-                {list.map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
-            </select>
-        </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
+        <CtlMenu icon={<FolderOpen size={15}/>} title="Load item" value=""
+                 options={[{value: '__new__', label: 'Blank new item'},
+                     ...list.map(w => ({value: w.id, label: w.title || 'Untitled'}))]}
+                 onChange={load}/>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
+    </>;
 }
 
-function savedItemControls({block, setProp, items, columns, pages}) {
+function savedItemControls({block, setProp, items, pages}) {
     return <>
-        <label className="block-ctl">Item
-            <select value={block.props.itemId || ''} onChange={e => setProp('itemId', e.target.value)}>
-                <option value="">— choose —</option>
-                {(items || []).map(w => <option key={w.id} value={w.id}>{w.title || 'Untitled'}</option>)}
-            </select>
-        </label>
-        <LinkCtl block={block} setProp={setProp} pages={pages}/>    </>;
+        <CtlMenu icon={<FolderOpen size={15}/>} title="Saved item" value={block.props.itemId || ''}
+                 options={[{value: '', label: '— choose —'},
+                     ...(items || []).map(w => ({value: w.id, label: w.title || 'Untitled'}))]}
+                 onChange={v => setProp('itemId', v)}/>
+        <LinkCtl block={block} setProp={setProp} pages={pages}/>
+    </>;
 }
 
 // Each block type is self-contained: it carries its own content in `props`, so a

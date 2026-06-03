@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ChevronsDownUp, ChevronsUpDown, ChevronRight, Globe, Search, X} from 'lucide-react';
+import {ChevronsDownUp, ChevronsUpDown, ChevronRight, Globe, Search, Unlink, X} from 'lucide-react';
 import {groupPages, pageLabel} from '../lib/pages.js';
 
 function PickRow({p, current, indent, onPick}) {
@@ -13,7 +13,7 @@ function PickRow({p, current, indent, onPick}) {
 
 // A searchable, section-grouped modal for choosing a page to link to. `onPick(path)`
 // selects a page; `onExternal` (optional) switches to entering an external URL.
-export function PagePicker({pages, current, title = 'Link to a page', onPick, onExternal, onClose}) {
+export function PagePicker({pages, current, title = 'Link to a page', onPick, onExternal, onRemove, onClose}) {
     const [query, setQuery] = useState('');
     const [open, setOpen] = useState({});
     const q = query.trim().toLowerCase();
@@ -61,10 +61,13 @@ export function PagePicker({pages, current, title = 'Link to a page', onPick, on
                     </div>)}
                 </div>
 
-                {onExternal && <div className="page-picker-foot">
-                    <button type="button" className="button button-ghost" onClick={onExternal}>
+                {(onExternal || onRemove) && <div className="page-picker-foot">
+                    {onExternal && <button type="button" className="button button-ghost" onClick={onExternal}>
                         <Globe size={16}/> External link instead…
-                    </button>
+                    </button>}
+                    {onRemove && <button type="button" className="button button-ghost picker-remove" onClick={onRemove}>
+                        <Unlink size={16}/> Remove link
+                    </button>}
                 </div>}
             </div>
         </div>, document.body);

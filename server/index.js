@@ -628,18 +628,21 @@ export function createApp(options = {}) {
             }
         }
 
-        // Final optimized image output.
+        // Final optimized image output. Keep uploads compact by default; the site
+        // displays images in cards/blocks, so 1200px WebP is enough while saving a lot
+        // of storage and bandwidth compared with large originals.
         const output = await sharp(inputBuffer)
             .rotate()
             .resize({
-                width: 1600,
-                height: 1600,
+                width: 800,
+                height: 800,
                 fit: 'inside',
                 withoutEnlargement: true
             })
             .webp({
-                quality: 82,
-                effort: 4
+                quality: 70,
+                effort: 6,
+                smartSubsample: true
             })
             .toBuffer();
 
