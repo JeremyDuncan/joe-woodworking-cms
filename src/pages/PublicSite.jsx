@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
-import {buildLinkSources, unlinkLayoutTarget} from '../lib/links.js';
+import {buildLinkSources, retargetLayout, unlinkLayoutTarget} from '../lib/links.js';
 import {lastSegment, pageLabel, sectionOf, slugifyPath} from '../lib/pages.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
 import {SiteFooter} from '../components/SiteFooter.jsx';
@@ -234,21 +234,27 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             notify('That address is already used by another page.', 'error');
             return;
         }
-        // Move the layout to the new key and repoint any links that pointed at the old path.
-        const layout = {};
+        // Move the layout to the new key, then retarget every link that pointed at the old
+        // path (block links, inline text links, and per-list-item links).
+        const moved = {};
         Object.entries(draft.layout || {}).forEach(([rk, pg]) => {
-            const key = rk === oldPath ? np : rk;
-            const blocks = (pg?.blocks || []).map(b =>
-                (b.props && b.props.to === oldPath) ? {...b, props: {...b.props, to: np}} : b);
-            layout[key] = {...pg, blocks};
+            moved[rk === oldPath ? np : rk] = pg;
         });
-        setField(['layout'], layout);
+        setField(['layout'], retargetLayout(moved, oldPath, np));
         setField(['nav'], nav.map(n => {
             if (n.path !== oldPath) return n;
             const wasPathLabel = !n.label || n.label === lastSegment(oldPath);
             return {...n, path: np, label: wasPathLabel ? lastSegment(np) : n.label};
         }));
         if (route === oldPath) navigate(np);
+    }
+
+    // Move a page into a section (or out of any section when `section` is blank) by changing
+    // its address to <section>/<leaf>; changePath repoints every link to it.
+    function movePageToSection(path, section) {
+        if (path === '/') return;
+        const leaf = lastSegment(path);
+        changePath(path, section ? `${section}/${leaf}` : leaf);
     }
 
     async function deletePage(path) {
@@ -336,7 +342,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                               resetHistory();
                               setEditing(true);
                           }} onSave={save} onDiscard={discard} onAddPage={addPage} onAddSection={addSection}
-                          sections={view.sections || []}
+                          onMovePage={movePageToSection} sections={view.sections || []}
                           onDeletePage={deletePage}
                           onUndo={undo} canUndo={undoCount > 0}
                           onTogglePreview={() => setPreview(p => !p)}

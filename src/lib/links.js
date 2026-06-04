@@ -98,6 +98,59 @@ export function unlinkLayoutTarget(layout, target) {
     return next;
 }
 
+// Repoint a link target rather than remove it: swap exact href/`to` values of `from` for
+// `to` (used when a page's path changes, e.g. moving it into a section).
+function retargetHtmlTarget(html, from, to) {
+    if (typeof html !== 'string' || !from) return html;
+    const esc = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return html.replace(new RegExp(`href=(["'])${esc}\\1`, 'gi'), `href=$1${to}$1`);
+}
+
+function retargetBlock(block, from, to) {
+    const props = block.props || {};
+    let nextProps = props;
+    const patch = change => {
+        if (nextProps === props) nextProps = {...props};
+        Object.assign(nextProps, change);
+    };
+    if (props.to === from) patch({to});
+    if (typeof props.html === 'string') {
+        const html = retargetHtmlTarget(props.html, from, to);
+        if (html !== props.html) patch({html});
+    }
+    if (block.type === 'list' && Array.isArray(props.items)) {
+        let changed = false;
+        const items = props.items.map(raw => {
+            if (typeof raw === 'string') return raw;
+            const item = raw || {};
+            let next = item;
+            if (item.to === from) {
+                next = {...next, to};
+                changed = true;
+            }
+            if (typeof item.html === 'string') {
+                const html = retargetHtmlTarget(item.html, from, to);
+                if (html !== item.html) {
+                    next = next === item ? {...item} : next;
+                    next.html = html;
+                    changed = true;
+                }
+            }
+            return next;
+        });
+        if (changed) patch({items});
+    }
+    return nextProps === props ? block : {...block, props: nextProps};
+}
+
+export function retargetLayout(layout, from, to) {
+    const next = {};
+    for (const [route, page] of Object.entries(layout || {})) {
+        next[route] = {...page, blocks: (page?.blocks || []).map(b => retargetBlock(b, from, to))};
+    }
+    return next;
+}
+
 // Map of targetPath -> [{route, label}] — every page (and the footer) that links to it.
 // Self-links are ignored.
 export function buildLinkSources(layout, nav) {
