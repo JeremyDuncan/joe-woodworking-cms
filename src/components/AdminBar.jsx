@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
-import {AlertTriangle, ChevronsDownUp, ChevronsUpDown, ChevronRight, Edit3, Eye, FilePlus, FileText, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, Save, Search, Trash2, Undo2} from 'lucide-react';
+import {AlertTriangle, ChevronsDownUp, ChevronsUpDown, ChevronRight, Edit3, Eye, FilePlus, FileText, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, RotateCcw, Save, Search, Trash2, Undo2} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {pageStatus} from '../lib/links.js';
 import {groupPages, pageLabel} from '../lib/pages.js';
@@ -156,7 +156,7 @@ function DeletePageModal({page, links, onConfirm, onClose}) {
 
 // Top admin banner + top-left icon toolbar. Out of edit mode it shows only Edit site /
 // Dashboard; in edit mode it shows the full set of editing tools.
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
     const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
@@ -174,6 +174,8 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
                     <IconBtn title={saveState === 'saving' ? 'Saving…' : 'Save changes'} variant="save"
                              onClick={onSave} disabled={saveState === 'saving'}><Save size={19}/></IconBtn>
                     <IconBtn title="Discard changes" variant="danger" onClick={onDiscard}><Undo2 size={19}/></IconBtn>
+                    <IconBtn title={canUndo ? 'Undo last change' : 'Nothing to undo'} onClick={onUndo}
+                             disabled={!canUndo}><RotateCcw size={19}/></IconBtn>
                     <span className="admin-bar-sep"/>
                     <IconBtn title="Pages" active={panel === 'sitemap'} onClick={() => toggle('sitemap')}>
                         <ListTree size={19}/></IconBtn>

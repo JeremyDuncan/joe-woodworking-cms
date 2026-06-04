@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
 import {buildLinkSources, unlinkLayoutTarget} from '../lib/links.js';
 import {lastSegment, pageLabel, slugifyPath} from '../lib/pages.js';
@@ -41,7 +41,37 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     // Which pages link to which (for page status badges + "what links here").
     const linkSources = useMemo(() => buildLinkSources(view.layout, view.nav), [view.layout, view.nav]);
 
+    // Undo history for the current edit session: each setField snapshots the draft *before*
+    // the change. Rapid edits to the same path (typing, or the many updates during one drag)
+    // are coalesced into a single step so one undo reverts the whole gesture, not each frame.
+    const history = useRef([]);
+    const undoMark = useRef({path: null, time: 0});
+    const draftRef = useRef(settings);
+    const [undoCount, setUndoCount] = useState(0);
+    useEffect(() => {
+        draftRef.current = draft;
+    });
+
+    const resetHistory = useCallback(() => {
+        history.current = [];
+        undoMark.current = {path: null, time: 0};
+        setUndoCount(0);
+    }, []);
+
     const setField = useCallback((path, value) => {
+        const key = path.join('|');
+        const now = Date.now();
+        const mark = undoMark.current;
+        const coalesce = key === mark.path && (now - mark.time) < 600;
+        const prev = draftRef.current;
+        // One snapshot per gesture; the reference check also collapses a synchronous batch of
+        // edits (e.g. add-page touches nav + layout) into a single undo step.
+        if (!coalesce && history.current[history.current.length - 1] !== prev) {
+            history.current.push(prev);
+            if (history.current.length > 200) history.current.shift();
+            setUndoCount(history.current.length);
+        }
+        undoMark.current = {path: key, time: now};
         setDraft(d => {
             const n = structuredClone(d);
             let cur = n;
@@ -49,6 +79,14 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             cur[path.at(-1)] = value;
             return n;
         });
+    }, []);
+
+    const undo = useCallback(() => {
+        if (!history.current.length) return;
+        const prev = history.current.pop();
+        undoMark.current = {path: null, time: 0};
+        setUndoCount(history.current.length);
+        setDraft(prev);
     }, []);
 
     async function save() {
@@ -74,6 +112,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             setEditing(false);
             setPreview(false);
             setTemplateRestore({});
+            resetHistory();
             setSaveState(null);
             notify('Changes saved', 'success');
         } catch {
@@ -87,6 +126,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
         setEditing(false);
         setPreview(false);
         setTemplateRestore({});
+        resetHistory();
         setSaveState(null);
     }
 
@@ -272,8 +312,12 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                           currentPage={pageLabel((view.nav || []).find(n => n.path === route)) || route}
                           currentTemplate={view.layout?.[route]?.templateName}
                           linkSources={linkSources}
-                          onEnter={() => setEditing(true)} onSave={save} onDiscard={discard} onAddPage={addPage}
+                          onEnter={() => {
+                              resetHistory();
+                              setEditing(true);
+                          }} onSave={save} onDiscard={discard} onAddPage={addPage}
                           onDeletePage={deletePage}
+                          onUndo={undo} canUndo={undoCount > 0}
                           onTogglePreview={() => setPreview(p => !p)}
                           pagesProps={{
                               pages: view.nav, route, layout: view.layout, templates: view.layouts,

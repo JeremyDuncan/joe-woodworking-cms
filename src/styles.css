@@ -1426,7 +1426,7 @@ input::placeholder, textarea::placeholder {
 .block-frame {
     position: relative;
     width: 100%;
-    border: 1px dashed rgba(255, 255, 255, .2);
+    border: 3px dashed rgba(255, 255, 255, .42);
     border-radius: 14px;
     padding: 12px;
     text-align: left;
@@ -1990,8 +1990,8 @@ input::placeholder, textarea::placeholder {
 .grid-guides-cols.cols-6 { grid-template-columns: repeat(6, 1fr) }
 
 .grid-guide-col {
-    border-inline: 1px dashed rgba(var(--guide-rgb), .55);
-    background: rgba(var(--guide-rgb), .09);
+    border-inline: 1px dashed rgba(var(--guide-rgb), .28);
+    background: rgba(var(--guide-rgb), .035);
     border-radius: 4px
 }
 
@@ -2003,7 +2003,7 @@ input::placeholder, textarea::placeholder {
     width: 100vw;
     margin-left: -50vw;
     height: 0;
-    border-top: 1px dashed rgba(var(--guide-rgb), .85)
+    border-top: 1px dashed rgba(var(--guide-rgb), .4)
 }
 
 @media (max-width: 1150px) {
