@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
-import {AlertTriangle, ChevronsDownUp, ChevronsUpDown, ChevronRight, Edit3, Eye, FilePlus, FileText, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, RotateCcw, Save, Search, Trash2, Undo2} from 'lucide-react';
+import {AlertTriangle, ChevronsDownUp, ChevronsUpDown, ChevronRight, Edit3, Eye, FilePlus, FileText, FolderPlus, LayoutDashboard, LayoutTemplate, ListTree, Map, Palette, RotateCcw, Save, Search, Trash2, Undo2} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {pageStatus} from '../lib/links.js';
 import {groupPages, pageLabel} from '../lib/pages.js';
@@ -44,19 +44,26 @@ function PageRow({p, route, status, templateName, onJump, onShowLinks}) {
     </div>;
 }
 
-// Read-only overview of every page; click to jump. Searchable, grouped by section
-// (first path segment), with a status badge per page.
-function SitemapPanel({pages, route, layout, linkSources, onClose}) {
+// Pages overview + management. Navigation links are grouped at the top; the remaining pages
+// are grouped by section (the part before the slash). Admins can add a page, add a section,
+// or add a page directly inside a section (which prefixes the section automatically).
+function SitemapPanel({pages, route, layout, linkSources, sections: extraSections = [], onAddPage, onAddSection, onClose}) {
     const [query, setQuery] = useState('');
     const [linksFor, setLinksFor] = useState(null);
-    const [open, setOpen] = useState({});
+    const [open, setOpen] = useState({nav: true});
     const q = query.trim().toLowerCase();
-    const visible = (pages || []).filter(p => !q || `${p.label || ''} ${p.path || ''}`.toLowerCase().includes(q));
-    const {roots, sections} = groupPages(visible);
-    const sectionNames = Object.keys(sections).sort();
-    const allOpen = sectionNames.length > 0 && sectionNames.every(sec => !!open[sec]);
-    const expanded = sec => !!q || !!open[sec];
-    const toggleAll = () => setOpen(allOpen ? {} : Object.fromEntries(sectionNames.map(sec => [sec, true])));
+    const match = p => !q || `${p.label || ''} ${p.path || ''}`.toLowerCase().includes(q);
+    const all = pages || [];
+    const navPages = all.filter(p => !p.hidden && match(p));
+    const others = all.filter(p => p.hidden && match(p));
+    const {roots, sections} = groupPages(others);
+    const sectionNames = [...new Set([...Object.keys(sections), ...extraSections])].sort();
+
+    const groupKeys = ['nav', ...sectionNames];
+    const allOpen = groupKeys.every(k => !!open[k]);
+    const expanded = k => !!q || !!open[k];
+    const toggle = k => setOpen(o => ({...o, [k]: !o[k]}));
+    const toggleAll = () => setOpen(allOpen ? {} : Object.fromEntries(groupKeys.map(k => [k, true])));
 
     const jump = path => {
         navigate(path);
@@ -65,17 +72,22 @@ function SitemapPanel({pages, route, layout, linkSources, onClose}) {
     const row = p => <PageRow key={p.path} p={p} route={route} status={pageStatus(p, linkSources)}
                               templateName={layout?.[p.path]?.templateName}
                               onJump={jump} onShowLinks={setLinksFor}/>;
+    const visibleSections = sectionNames.filter(sec => !q || (sections[sec] || []).length);
+    const nothing = q && !navPages.length && !roots.length && !visibleSections.length;
 
     return <div className="pages-panel docked sitemap-panel">
         <div className="theme-panel-head">
             <strong><ListTree size={18}/> Pages</strong>
             <div className="panel-head-actions">
                 <PanelHelp topic="pages"/>
-                {sectionNames.length > 0 && <button type="button" className="panel-icon-action"
-                                                    title={allOpen ? 'Collapse sections' : 'Expand sections'}
-                                                    onClick={toggleAll}>
+                <button type="button" className="panel-icon-action" title="Add a page"
+                        onClick={() => onAddPage()}><FilePlus size={16}/></button>
+                <button type="button" className="panel-icon-action" title="Add a section"
+                        onClick={onAddSection}><FolderPlus size={16}/></button>
+                <button type="button" className="panel-icon-action"
+                        title={allOpen ? 'Collapse all' : 'Expand all'} onClick={toggleAll}>
                     {allOpen ? <ChevronsDownUp size={16}/> : <ChevronsUpDown size={16}/>}
-                </button>}
+                </button>
                 <button type="button" className="theme-close" onClick={onClose}>×</button>
             </div>
         </div>
@@ -88,15 +100,34 @@ function SitemapPanel({pages, route, layout, linkSources, onClose}) {
         </div>
 
         <div className="sitemap-list">
-            {visible.length === 0 && <p className="sitemap-empty">No pages match “{query}”.</p>}
-            {roots.map(row)}
-            {sectionNames.map(sec => <div key={sec} className="sitemap-section">
-                <button type="button" className="sitemap-section-head" onClick={() => setOpen(o => ({...o, [sec]: !o[sec]}))}>
-                    <ChevronRight size={15} className={`picker-caret${expanded(sec) ? ' open' : ''}`}/>
-                    <span className="picker-section-name">{sec}</span>
-                    <span className="picker-count">{sections[sec].length}</span>
+            {nothing && <p className="sitemap-empty">No pages match “{query}”.</p>}
+
+            {(!q || navPages.length > 0) && <div className="sitemap-section">
+                <button type="button" className="sitemap-section-head" onClick={() => toggle('nav')}>
+                    <ChevronRight size={15} className={`picker-caret${expanded('nav') ? ' open' : ''}`}/>
+                    <span className="picker-section-name"><Map size={13}/> Navigation</span>
+                    <span className="picker-count">{navPages.length}</span>
                 </button>
-                {expanded(sec) && sections[sec].map(row)}
+                {expanded('nav') && (navPages.length
+                    ? navPages.map(row)
+                    : <p className="sitemap-empty">No menu links yet — add pages to the menu from the Navigation panel.</p>)}
+            </div>}
+
+            {roots.map(row)}
+
+            {visibleSections.map(sec => <div key={sec} className="sitemap-section">
+                <div className="sitemap-section-row">
+                    <button type="button" className="sitemap-section-head" onClick={() => toggle(sec)}>
+                        <ChevronRight size={15} className={`picker-caret${expanded(sec) ? ' open' : ''}`}/>
+                        <span className="picker-section-name">{sec}</span>
+                        <span className="picker-count">{(sections[sec] || []).length}</span>
+                    </button>
+                    <button type="button" className="sitemap-section-add" title={`Add a page in “${sec}”`}
+                            onClick={() => onAddPage(sec)}><FilePlus size={14}/></button>
+                </div>
+                {expanded(sec) && ((sections[sec] || []).length
+                    ? sections[sec].map(row)
+                    : <p className="sitemap-empty">Empty section — use the + to add a page here.</p>)}
             </div>)}
         </div>
 
@@ -156,7 +187,7 @@ function DeletePageModal({page, links, onConfirm, onClose}) {
 
 // Top admin banner + top-left icon toolbar. Out of edit mode it shows only Edit site /
 // Dashboard; in edit mode it shows the full set of editing tools.
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onAddSection, sections, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
     const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
@@ -181,7 +212,7 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
                         <ListTree size={19}/></IconBtn>
                     <IconBtn title="Navigation" active={panel === 'nav'} onClick={() => toggle('nav')}>
                         <Map size={19}/></IconBtn>
-                    <IconBtn title="New page" onClick={onAddPage}><FilePlus size={19}/></IconBtn>
+                    <IconBtn title="New page" onClick={() => onAddPage()}><FilePlus size={19}/></IconBtn>
                     <IconBtn title="Page templates" active={panel === 'templates'} onClick={() => toggle('templates')}>
                         <LayoutTemplate size={19}/></IconBtn>
                     <IconBtn title="Theme" active={panel === 'theme'} onClick={() => toggle('theme')}>
@@ -213,7 +244,8 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
 
         {editing && !preview && panel === 'sitemap' &&
             <SitemapPanel pages={pagesProps.pages} route={pagesProps.route} layout={pagesProps.layout}
-                          linkSources={linkSources}
+                          linkSources={linkSources} sections={sections}
+                          onAddPage={onAddPage} onAddSection={onAddSection}
                           onClose={() => setPanel(null)}/>}
         {editing && !preview && panel === 'nav' &&
             <PagesPanel {...pagesProps} tab="nav" docked onClose={() => setPanel(null)}/>}

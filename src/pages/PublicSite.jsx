@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
 import {buildLinkSources, unlinkLayoutTarget} from '../lib/links.js';
-import {lastSegment, pageLabel, slugifyPath} from '../lib/pages.js';
+import {lastSegment, pageLabel, sectionOf, slugifyPath} from '../lib/pages.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
 import {SiteFooter} from '../components/SiteFooter.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
@@ -156,10 +156,15 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     }
 
     // ---- Page management ----
-    async function addPage() {
-        const name = await promptDialog('New page name (use a slash for sections, e.g. menu/pizza)');
+    // Create a page. When `section` is given the name is placed inside it, so the page's
+    // address becomes <section>/<name> automatically. New pages start hidden (not in nav).
+    async function addPage(section) {
+        const sec = typeof section === 'string' ? section : '';
+        const name = await promptDialog(sec
+            ? `New page name inside “${sec}” (becomes ${sec}/your-name)`
+            : 'New page name (use a slash for sections, e.g. menu/pizza)');
         if (!name || !name.trim()) return;
-        const path = slugifyPath(name);
+        const path = slugifyPath(sec ? `${sec}/${name}` : name);
         if (path === '/') return;
         const nav = draft.nav || [];
         if (nav.some(n => n.path === path)) {
@@ -167,10 +172,25 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             return;
         }
         // The nav label defaults to the last path segment (so /menu/pizza shows "pizza").
-        // New pages start unlinked (not in the nav menu) until explicitly added.
         setField(['nav'], [...nav, {label: lastSegment(path), path, hidden: true}]);
         setField(['layout', path], {columns: 1, blocks: []});
         navigate(path);
+    }
+
+    // Create an (initially empty) section so pages can be filed under it. Sections are just
+    // the first path segment; we remember empty ones in settings.sections so they still show.
+    async function addSection() {
+        const name = await promptDialog('New section name (e.g. Menu)');
+        if (!name || !name.trim()) return;
+        const sec = slugifyPath(name).replace(/^\//, '').split('/').filter(Boolean)[0];
+        if (!sec) return;
+        const sections = draft.sections || [];
+        const taken = sections.includes(sec) || (draft.nav || []).some(n => sectionOf(n.path) === sec);
+        if (taken) {
+            notify('That section already exists.', 'error');
+            return;
+        }
+        setField(['sections'], [...sections, sec]);
     }
 
     // Reorder a nav link by swapping it with its nearest *visible* neighbour (dir = -1 up
@@ -315,7 +335,8 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                           onEnter={() => {
                               resetHistory();
                               setEditing(true);
-                          }} onSave={save} onDiscard={discard} onAddPage={addPage}
+                          }} onSave={save} onDiscard={discard} onAddPage={addPage} onAddSection={addSection}
+                          sections={view.sections || []}
                           onDeletePage={deletePage}
                           onUndo={undo} canUndo={undoCount > 0}
                           onTogglePreview={() => setPreview(p => !p)}

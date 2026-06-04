@@ -6,10 +6,12 @@ const HELP = {
     pages: {
         title: 'Pages',
         items: [
-            'Use this panel to find and open any page on the site.',
-            'A page named pizza/pie-patterns appears inside a pizza section. The page itself shows as pie-patterns.',
-            'Sections stay closed until you open them, search for a page inside them, or use the expand button.',
-            'Navigation means the page is in the top menu. Linked means another page points to it. Unlinked means it is hidden and nothing points to it.'
+            'This panel lists every page and lets you create new ones. Click a page to open it.',
+            'Navigation (at the top) groups the pages currently in your menu. All other pages are grouped by section.',
+            'Use the page icon (+) to add a page, and the folder icon to add a section.',
+            'Each section has its own + button — adding a page there files it automatically as section/your-page (e.g. menu/pizza).',
+            'A page named pizza/pie-patterns lives in the pizza section and shows as pie-patterns.',
+            'The badge shows navigation (in the menu), linked (another page points to it), or unlinked (hidden and not linked).'
         ]
     },
     nav: {

@@ -139,7 +139,8 @@ const defaultSettings = {
                 {id: 'tut-edit-l', type: 'list', props: {icon: 'BadgeCheck', items: [
                     {text: 'Click any text or icon on the page to change it', icon: 'Pencil'},
                     {text: 'Save — the green button — makes your changes live', icon: 'BadgeCheck'},
-                    {text: 'Discard throws away unsaved changes (it asks first)', icon: 'Trash2'}
+                    {text: 'Undo (↺) steps back through your changes before you save', icon: 'RotateCcw'},
+                    {text: 'Discard throws away all unsaved changes (it asks first)', icon: 'Trash2'}
                 ]}},
 
                 {id: 'tut-text-h', type: 'heading', props: {text: '2 · Editing text & icons', level: 2}},
@@ -148,7 +149,7 @@ const defaultSettings = {
                 {id: 'tut-text-link-b', type: 'text', props: {text: 'Select any words inside a heading or paragraph and a small bar appears. Pick a page to link to, or choose “External…” to link to another website — external links always open in a new tab.'}},
 
                 {id: 'tut-blocks-h', type: 'heading', props: {text: '3 · Building pages with blocks', level: 2}},
-                {id: 'tut-blocks-b', type: 'text', props: {text: 'Every page is built from blocks. Choose a 1, 2, or 3 column grid with the “Columns” buttons, drag the ⠿ handle to reorder, set each block’s Width to span columns, and press × to remove one. Add new blocks from the “Add:” row.'}},
+                {id: 'tut-blocks-b', type: 'text', props: {text: 'Every page is built from blocks. Pick a 1–6 column grid with the column buttons, drag the ⠿ handle to reorder, drag a block’s right edge to resize it across columns, and press × to remove one. Add new blocks from the “Add:” row.'}},
                 {id: 'tut-blocks-l', type: 'list', props: {icon: 'Star', items: [
                     {text: 'Eyebrow — a small label with an icon', icon: 'Star'},
                     {text: 'Heading — H1 through H6, or a paragraph', icon: 'Bookmark'},
@@ -175,25 +176,38 @@ const defaultSettings = {
                 {id: 'tut-ex-divider', type: 'divider', props: {}},
                 {id: 'tut-ex-item', type: 'item', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Item tab. Add a picture, set a price (or whatever text you want), and link the whole card to a page.', image: '/placeholder.webp'}},
 
-                {id: 'tut-pages-h', type: 'heading', props: {text: '4 · Pages', level: 2}},
-                {id: 'tut-pages-b', type: 'text', props: {text: 'Open “Pages” in the toolbar to add, rename, reorder, or remove pages. Each page has these options:'}},
-                {id: 'tut-pages-l', type: 'list', props: {icon: 'Folder', items: [
-                    {text: 'Nav — show or hide the page in the top menu', icon: 'Eye'},
-                    {text: 'Btn — style its menu link as a call-to-action button', icon: 'ArrowRight'},
-                    {text: 'Path — the page’s web address, e.g. /about', icon: 'Link'},
-                    {text: 'Layout templates — save a layout and reuse it on other pages', icon: 'Folder'}
+                {id: 'tut-arrange-h', type: 'heading', props: {text: '4 · Arranging blocks', level: 2}},
+                {id: 'tut-arrange-b', type: 'text', props: {text: 'The builder toolbar has two placement modes. They change how blocks behave when you move and resize them:'}},
+                {id: 'tut-arrange-l', type: 'list', props: {icon: 'LayoutGrid', items: [
+                    {text: 'Flow (magnet icon) — the default; blocks shift to make room as you drag and resize', icon: 'Magnet'},
+                    {text: 'Free (grid icon) — drop blocks into any open cell and they stay put; you make room yourself', icon: 'LayoutGrid'},
+                    {text: 'Guides (gridlines icon) — overlay column and row lines to line blocks up', icon: 'Grid3x3'}
                 ]}},
 
-                {id: 'tut-theme-h', type: 'heading', props: {text: '5 · Theme & colors', level: 2}},
+                {id: 'tut-img-h', type: 'heading', props: {text: 'Adjusting pictures', level: 3}},
+                {id: 'tut-img-b', type: 'text', props: {text: 'After adding an Image — or a picture on an Item — click “Adjust image”. Drag to reposition, scroll or use the slider to zoom, and switch between Fill (crop to the frame) and Fit (show the whole photo). The preview matches exactly how it will look.'}},
+
+                {id: 'tut-pages-h', type: 'heading', props: {text: '5 · Pages & sections', level: 2}},
+                {id: 'tut-pages-b', type: 'text', props: {text: 'Open the Pages panel (the list icon) to see every page. Navigation groups the pages in your menu; everything else is grouped by section (the part before the slash in an address like menu/pizza).'}},
+                {id: 'tut-pages-l', type: 'list', props: {icon: 'Folder', items: [
+                    {text: 'Add a page with the page (+) icon at the top of the panel', icon: 'FilePlus'},
+                    {text: 'Add a section with the folder (+) icon', icon: 'FolderPlus'},
+                    {text: 'Each section has its own + that files the new page as section/your-page automatically', icon: 'FolderPlus'},
+                    {text: 'A badge shows navigation (in the menu), linked, or unlinked', icon: 'Eye'},
+                    {text: 'The Navigation panel reorders the menu, toggles call-to-action buttons, and removes pages from the menu', icon: 'Map'},
+                    {text: 'Layout templates save a page’s layout to reuse on other pages', icon: 'LayoutTemplate'}
+                ]}},
+
+                {id: 'tut-theme-h', type: 'heading', props: {text: '6 · Theme & colors', level: 2}},
                 {id: 'tut-theme-b', type: 'text', props: {text: 'Open “Theme” to change the font; the background and its four corner glows; the button, icon, and divider colors; the card hover border; and every text color. The header can be translucent or a solid color. Save favorite combinations as named presets to reuse later.'}},
 
-                {id: 'tut-hf-h', type: 'heading', props: {text: '6 · Header & footer', level: 2}},
+                {id: 'tut-hf-h', type: 'heading', props: {text: '7 · Header & footer', level: 2}},
                 {id: 'tut-hf-b', type: 'text', props: {text: 'Your brand name, brand icon, and menu links live in the header and are edited in place. The footer at the bottom appears on every page and is edited just like a page. On phones the menu collapses into a ☰ button.'}},
 
-                {id: 'tut-dash-h', type: 'heading', props: {text: '7 · The dashboard', level: 2}},
+                {id: 'tut-dash-h', type: 'heading', props: {text: '8 · The dashboard', level: 2}},
                 {id: 'tut-dash-b', type: 'text', props: {text: 'Your private dashboard has three tabs: Item (add and manage items with photos or videos), Password (change your login), and Backup.'}},
 
-                {id: 'tut-backup-h', type: 'heading', props: {text: '8 · Backups — important!', level: 2}},
+                {id: 'tut-backup-h', type: 'heading', props: {text: '9 · Backups — important!', level: 2}},
                 {id: 'tut-backup-b', type: 'text', props: {text: 'In the dashboard’s Backup tab, click “Download backup” to save one .zip containing every page, template, theme, item, image, and admin login. Keep it somewhere safe, off the server. If anything is ever lost, “Restore from backup” rebuilds the entire site from that file — even onto brand-new, empty storage. Download a fresh backup regularly.'}},
 
                 {id: 'tut-end-h', type: 'heading', props: {text: 'You’re ready', level: 2}},
