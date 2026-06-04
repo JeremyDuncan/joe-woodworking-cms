@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {Plus} from 'lucide-react';
-import {DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors} from '@dnd-kit/core';
+import {Grid3x3, LayoutGrid, Magnet, Plus} from 'lucide-react';
+import {DndContext, DragOverlay, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors} from '@dnd-kit/core';
 import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
 import {useEdit} from '../lib/edit.jsx';
 import {BlockFrame} from './BlockFrame.jsx';
@@ -9,20 +9,60 @@ function spanOf(block, columns) {
     return Math.min(Math.max(1, block.props?.span || 1), columns);
 }
 
-// One sortable block. The grip handle carries the drag listeners so editable text
-// inside the block isn't hijacked by the drag.
-function SortableBlock({block, columns, label, extra, onRemove, onResizeStart, resizing, children}) {
-    // No transform/transition from dnd-kit: on a variable-span grid those break. We
-    // reorder live on drag-over and animate resize reflow with FLIP (in PageBuilder).
+// Explicit start column (1-based) clamped so the block always fits; 0 = auto (flow mode).
+function colOf(block, columns) {
+    const c = block.props?.col;
+    return c ? Math.max(1, Math.min(columns - spanOf(block, columns) + 1, c)) : 0;
+}
+
+function rowOf(block) {
+    return Math.max(1, block.props?.row || 1);
+}
+
+// Free-mode collision test: are the columns col..col+span-1 on `row` clear of every other
+// block? Used so placed blocks never overlap and never auto-shift.
+function cellFree(blocks, columns, id, row, col, span) {
+    if (col < 1 || col + span - 1 > columns) return false;
+    return !blocks.some(b => {
+        if (b.id === id || rowOf(b) !== row) return false;
+        const bc = colOf(b, columns) || 1;
+        return col <= bc + spanOf(b, columns) - 1 && bc <= col + span - 1;
+    });
+}
+
+// Resolve any overlaps by pushing the colliding block down to the next free row — used after
+// a column change so blocks that no longer fit side by side fall into their own rows rather
+// than stacking on top of each other. Reading order is preserved; non-colliding gaps stay.
+function packFree(blocks, columns) {
+    const order = blocks.map((b, i) => ({i, row: rowOf(b), col: colOf(b, columns) || 1, span: spanOf(b, columns)}))
+        .sort((a, z) => (a.row - z.row) || (a.col - z.col) || (a.i - z.i));
+    const taken = {};
+    const hits = (r, c, s) => (taken[r] || []).some(([s0, e0]) => c <= e0 && s0 <= c + s - 1);
+    const out = blocks.slice();
+    order.forEach(({i, row, col, span}) => {
+        let r = row;
+        while (hits(r, col, span)) r++;
+        (taken[r] = taken[r] || []).push([col, col + span - 1]);
+        out[i] = {...blocks[i], props: {...blocks[i].props, row: r}};
+    });
+    return out;
+}
+
+// One draggable block. In flow mode it sizes by the .span-N class and the grid packs it; in
+// free mode it's placed explicitly via CSS custom properties (overridable on mobile).
+function SortableBlock({block, columns, free, col, span, row, label, extra, onRemove, onResizeStart, resizing, children}) {
     const {attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging} = useSortable({id: block.id});
-    const style = {opacity: isDragging ? 0.4 : 1};
-    return <div className={`page-block span-${spanOf(block, columns)}${resizing ? ' is-resizing' : ''}`}
-                ref={setNodeRef} style={style} data-bid={block.id}>
+    const style = free
+        ? {opacity: isDragging ? 0.4 : 1, '--bcol': col || 1, '--bspan': span, '--brow': row}
+        : {opacity: isDragging ? 0.4 : 1};
+    const cls = free
+        ? `page-block free${resizing ? ' is-resizing' : ''}`
+        : `page-block span-${span}${resizing ? ' is-resizing' : ''}`;
+    return <div className={cls} ref={setNodeRef} style={style} data-bid={block.id}>
         <BlockFrame label={label} handleRef={setActivatorNodeRef} handleProps={{...attributes, ...listeners}}
-                    onRemove={onRemove} extra={extra}>
+                    onRemove={onRemove} extra={extra} wrapActions={block.type === 'list'}>
             {children}
         </BlockFrame>
-        {/* Right edge only: a block can only grow/shrink rightward in this flow grid. */}
         {columns > 1 && <span className="block-resize block-resize-right" title="Drag to resize"
                               onPointerDown={onResizeStart}/>}
     </div>;
@@ -32,23 +72,39 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const {editing, setField} = useEdit();
     const columns = Math.min(6, Math.max(1, layout.columns || 1));
     const blocks = layout.blocks || [];
+    const free = layout.mode === 'free';
+    const maxRow = blocks.reduce((m, b) => Math.max(m, rowOf(b)), 0);
     const setLayout = patch => setField(['layout', route], {...layout, ...patch});
     const setBlocks = next => setLayout({blocks: next});
 
-    // Changing the column count rescales every block's span proportionally, so blocks keep
-    // their relative width instead of shifting — a full-width block on a 2-col page stays
-    // full-width at 6 columns, and shrinks to 1 when the page drops to a single column.
+    // Changing the column count rescales blocks proportionally so they keep their relative
+    // width — and, in Free mode, their relative position too (using 0-based column math so a
+    // block at the left edge stays at the left edge instead of drifting right).
     function setColumns(n) {
         if (n === columns) return;
-        const next = blocks.map(b => {
-            const cur = spanOf(b, columns);
-            const span = Math.max(1, Math.min(n, Math.round((cur / columns) * n)));
-            return {...b, props: {...b.props, span}};
+        let next = blocks.map(b => {
+            const span = Math.max(1, Math.min(n, Math.round((spanOf(b, columns) / columns) * n)));
+            const patch = {span};
+            if (free) {
+                const oldCol = colOf(b, columns);
+                if (oldCol) patch.col = Math.max(1, Math.min(n - span + 1, Math.round((oldCol - 1) / columns * n) + 1));
+            }
+            return {...b, props: {...b.props, ...patch}};
         });
+        // Free mode: after rescaling, make sure nothing ended up overlapping (e.g. several
+        // blocks squeezed onto column 1 when dropping to a single column) — push them apart.
+        if (free) next = packFree(next, n);
         setLayout({columns: n, blocks: next});
     }
+
     const [activeId, setActiveId] = useState(null);
     const [resizingId, setResizingId] = useState(null);
+    const [guides, setGuides] = useState(false);
+    const [rowTops, setRowTops] = useState([]);
+    const rowKey = useRef('');
+    const dragLeft = useRef(null);
+    const dragTop = useRef(null);
+    const lastSwapAt = useRef(0);
     // Stable item-id array for SortableContext: identity only changes when the order
     // actually changes (not on every prop edit / re-render), avoiding dnd-kit churn.
     const idsKey = blocks.map(b => b.id).join('|');
@@ -62,17 +118,11 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const setProps = (idx, patch) => setBlocks(blocks.map((b, i) =>
         i === idx ? {...b, props: {...b.props, ...patch}} : b));
 
-    // FLIP: after a resize changes spans and shoves neighbours, let each block glide
-    // from its old spot to its new one with a springy ease, like iOS icons settling.
-    // We measure with offsetLeft/offsetTop (relative to the grid; immune to in-flight
-    // transforms + page scroll, so neither can fake a layout change). We deliberately
-    // skip this *during a dnd-kit drag* (activeId set): transforming the blocks while
-    // dnd-kit is live-measuring them feeds back into its state and loops infinitely.
+    // FLIP: after a move/resize shoves blocks, let each glide from its old spot to its new
+    // one. We measure with offsetLeft/offsetTop (immune to in-flight transforms + scroll) and
+    // skip *during* a drag (activeId set) so we never feed transforms back into dnd-kit.
     useLayoutEffect(() => {
         if (!editing || !gridRef.current) return;
-        // Keep measuring even while dragging (so prevRects stays current and there's no
-        // jump on drop), but only *animate* when not dragging. We never write transforms
-        // during a drag — that would change the rects dnd-kit measures and loop.
         const dragging = activeId != null;
         const next = new Map();
         gridRef.current.querySelectorAll('.page-block').forEach(el => {
@@ -95,8 +145,113 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
         prevRects.current = next;
     });
 
-    // Drag a block's right edge to change how many columns it spans. The span snaps to
-    // whole columns, measured against the grid's column width + gap.
+    // While guides are on, find the distinct top of each block row so we can draw a
+    // horizontal line per row. Runs every render but only updates state when the set of row
+    // positions changes, so it can't loop.
+    useLayoutEffect(() => {
+        if (!editing || !guides || !gridRef.current) return;
+        const els = [...gridRef.current.querySelectorAll('.page-block')];
+        const ys = els.map(el => Math.round(el.offsetTop));
+        if (els.length) ys.push(Math.round(Math.max(...els.map(el => el.offsetTop + el.offsetHeight))));
+        const lines = [...new Set(ys)].sort((a, b) => a - b);
+        const key = lines.join(',');
+        if (key !== rowKey.current) {
+            rowKey.current = key;
+            setRowTops(lines);
+        }
+    });
+
+    // ---- Mode switching: snapshot the current visual layout into explicit row/col when
+    // turning Free on (so it looks identical), and sort blocks row-major when turning it off
+    // (so Flow packs them in the same visual order). ----
+    function enableFree() {
+        const gridEl = gridRef.current;
+        if (!gridEl) return setLayout({mode: 'free'});
+        const rect = gridEl.getBoundingClientRect();
+        const slot = (rect.width + (parseFloat(getComputedStyle(gridEl).columnGap) || 0)) / columns;
+        const tops = [...new Set(blocks.map(b => {
+            const el = gridEl.querySelector(`[data-bid="${b.id}"]`);
+            return el ? Math.round(el.offsetTop) : 0;
+        }))].sort((a, b) => a - b);
+        const next = blocks.map(b => {
+            const el = gridEl.querySelector(`[data-bid="${b.id}"]`);
+            if (!el) return b;
+            const col = Math.max(1, Math.min(columns, Math.round(el.offsetLeft / slot) + 1));
+            const row = tops.indexOf(Math.round(el.offsetTop)) + 1;
+            return {...b, props: {...b.props, col, row}};
+        });
+        setLayout({mode: 'free', blocks: next});
+    }
+
+    function enableFlow() {
+        const sorted = [...blocks].sort((a, b) => (rowOf(a) - rowOf(b)) || ((colOf(a, columns) || 1) - (colOf(b, columns) || 1)));
+        setLayout({mode: 'flow', blocks: sorted});
+    }
+
+    // ---- Drag ----
+    function onDragStart(e) {
+        setActiveId(e.active.id);
+        const r = gridRef.current?.querySelector(`[data-bid="${e.active.id}"]`)?.getBoundingClientRect();
+        dragLeft.current = r ? r.left : null;
+        dragTop.current = r ? r.top : null;
+    }
+
+    // Flow only: live reorder driven by real pointer MOVEMENT (not re-measurement), throttled
+    // so a held pointer never oscillates. Free mode never reorders — it places on drop.
+    function onDragMove(e) {
+        if (free) return;
+        const {active, over} = e;
+        if (!over || active.id === over.id) return;
+        const now = Date.now();
+        if (now - lastSwapAt.current < 70) return;
+        const oldI = blocks.findIndex(b => b.id === active.id);
+        const newI = blocks.findIndex(b => b.id === over.id);
+        if (oldI < 0 || newI < 0 || oldI === newI) return;
+        lastSwapAt.current = now;
+        setBlocks(arrayMove(blocks, oldI, newI));
+    }
+
+    function onDragEnd(e) {
+        if (free) placeFree(e);
+        setActiveId(null);
+    }
+
+    function rowFromY(cs, y) {
+        const rowGap = parseFloat(cs.rowGap) || 0;
+        const tracks = (cs.gridTemplateRows || '').split(' ').map(parseFloat).filter(n => !isNaN(n));
+        let acc = 0;
+        for (let i = 0; i < tracks.length; i++) {
+            if (y < acc + tracks[i] + rowGap / 2) return i + 1;
+            acc += tracks[i] + rowGap;
+        }
+        return tracks.length + 1;
+    }
+
+    // Drop the block into the cell under the pointer. If that exact cell is taken, snap to the
+    // nearest free column in the same row; if the row is full, leave it where it was (you make
+    // the room). Nothing else moves.
+    function placeFree(e) {
+        const idx = blocks.findIndex(b => b.id === e.active.id);
+        if (idx < 0 || !gridRef.current || dragLeft.current == null) return;
+        const gridEl = gridRef.current;
+        const rect = gridEl.getBoundingClientRect();
+        const cs = getComputedStyle(gridEl);
+        const slot = (rect.width + (parseFloat(cs.columnGap) || 0)) / columns;
+        const span = spanOf(blocks[idx], columns);
+        const id = blocks[idx].id;
+        const wantCol = Math.max(1, Math.min(columns - span + 1,
+            Math.round(((dragLeft.current + (e.delta?.x || 0)) - rect.left) / slot) + 1));
+        const wantRow = rowFromY(cs, (dragTop.current + (e.delta?.y || 0)) - rect.top);
+        let placed = cellFree(blocks, columns, id, wantRow, wantCol, span) ? {row: wantRow, col: wantCol} : null;
+        for (let d = 1; d < columns && !placed; d++) {
+            if (cellFree(blocks, columns, id, wantRow, wantCol - d, span)) placed = {row: wantRow, col: wantCol - d};
+            else if (cellFree(blocks, columns, id, wantRow, wantCol + d, span)) placed = {row: wantRow, col: wantCol + d};
+        }
+        if (placed) setProps(idx, {col: placed.col, row: placed.row});
+    }
+
+    // Drag a block's right edge to change its span. In flow it can grow to the grid edge; in
+    // free it can only grow into the empty cells to its right (stops at the next block).
     function startResize(e, idx) {
         e.preventDefault();
         e.stopPropagation();
@@ -108,10 +263,21 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
         const slot = (gridRect.width + gap) / columns;
         const fixedLeft = blockEl.getBoundingClientRect().left;
         let last = spanOf(blocks[idx], columns);
+        let maxSpan = columns;
+        if (free) {
+            const r = rowOf(blocks[idx]);
+            const col = colOf(blocks[idx], columns) || 1;
+            maxSpan = columns - col + 1;
+            blocks.forEach(b => {
+                if (b.id === blocks[idx].id || rowOf(b) !== r) return;
+                const bc = colOf(b, columns) || 1;
+                if (bc > col) maxSpan = Math.min(maxSpan, bc - col);
+            });
+        }
         setResizingId(blocks[idx].id);
 
         function onMove(ev) {
-            const span = Math.max(1, Math.min(columns, Math.round((ev.clientX - fixedLeft + gap) / slot)));
+            const span = Math.max(1, Math.min(maxSpan, Math.round((ev.clientX - fixedLeft + gap) / slot)));
             if (span !== last) {
                 last = span;
                 setProp(idx, 'span', span);
@@ -132,32 +298,18 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
 
     function addBlock(type) {
         const def = registry[type];
-        const block = {id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, props: {...def.defaults}};
+        const props = {...def.defaults};
+        // New blocks land on a fresh row at the bottom in free mode (never on top of others).
+        if (free) {
+            props.col = 1;
+            props.row = maxRow + 1;
+        }
+        const block = {id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, props};
         setBlocks([...blocks, block]);
     }
 
     function removeBlock(idx) {
         setBlocks(blocks.filter((_, i) => i !== idx));
-    }
-
-    // Live reorder while dragging — but driven by real pointer MOVEMENT (onDragMove),
-    // not by re-measurement (onDragOver). The old onDragOver approach re-fired every time
-    // a swap changed the layout, so holding the block near a boundary made two blocks flip
-    // back and forth forever (and crash with "max update depth"). onDragMove only fires on
-    // actual pointer motion, so a still pointer never swaps; a short throttle also caps the
-    // swap rate during fast jiggles. Stable, and blocks still move out of the way live.
-    const lastSwapAt = useRef(0);
-
-    function onDragMove(e) {
-        const {active, over} = e;
-        if (!over || active.id === over.id) return;
-        const now = Date.now();
-        if (now - lastSwapAt.current < 70) return;
-        const oldI = blocks.findIndex(b => b.id === active.id);
-        const newI = blocks.findIndex(b => b.id === over.id);
-        if (oldI < 0 || newI < 0 || oldI === newI) return;
-        lastSwapAt.current = now;
-        setBlocks(arrayMove(blocks, oldI, newI));
     }
 
     function content(b, i) {
@@ -167,15 +319,19 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     }
 
     if (!editing) {
-        return <div className={`page-grid cols-${columns}`}>
-            {blocks.map((b, i) => <div className={`page-block span-${spanOf(b, columns)}`}
-                                       key={b.id}>{content(b, i)}</div>)}
+        return <div className={`page-grid cols-${columns}${free ? ' free-grid' : ''}`}>
+            {blocks.map((b, i) => {
+                const span = spanOf(b, columns);
+                return free
+                    ? <div className="page-block free" key={b.id}
+                           style={{'--bcol': colOf(b, columns) || 1, '--bspan': span, '--brow': rowOf(b)}}>{content(b, i)}</div>
+                    : <div className={`page-block span-${span}`} key={b.id}>{content(b, i)}</div>;
+            })}
         </div>;
     }
 
     const activeIndex = blocks.findIndex(b => b.id === activeId);
     const activeBlock = activeIndex >= 0 ? blocks[activeIndex] : null;
-
 
     const isFooter = context === 'footer';
     const columnsLabel = isFooter ? 'Footer Columns:' : 'Main Page Columns:';
@@ -184,24 +340,47 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
             <span>{columnsLabel}</span>
             {[1, 2, 3, 4, 5, 6].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
                                                  onClick={() => setColumns(n)}>{n}</button>)}
-            <span className="builder-hint">Drag the ⠿ handle to reorder · drag a block’s side edge to resize</span>
+            <span className="builder-sep"/>
+            <span>Placement:</span>
+            <button type="button" className={`builder-toggle block-ctl-btn${!free ? ' active' : ''}`}
+                    aria-label="Flow placement" data-tip="Flow: blocks shift to make room (default)"
+                    onClick={enableFlow}><Magnet size={16}/></button>
+            <button type="button" className={`builder-toggle block-ctl-btn${free ? ' active' : ''}`}
+                    aria-label="Free placement" data-tip="Free: place blocks in any open cell; they stay put"
+                    onClick={enableFree}><LayoutGrid size={16}/></button>
+            <span className="builder-sep"/>
+            <button type="button" className={`builder-toggle block-ctl-btn${guides ? ' active' : ''}`}
+                    aria-pressed={guides} aria-label="Toggle layout guides"
+                    data-tip={guides ? 'Hide column & row guides' : 'Show column & row guides'}
+                    onClick={() => setGuides(g => !g)}><Grid3x3 size={16}/></button>
+            <span className="builder-hint">{free
+                ? 'Drag a block into any open cell · drag its side edge to resize into the space'
+                : 'Drag the ⠿ handle to reorder · drag a block’s side edge to resize'}</span>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter}
-                    onDragStart={e => setActiveId(e.active.id)} onDragMove={onDragMove}
-                    onDragEnd={() => setActiveId(null)} onDragCancel={() => setActiveId(null)}>
+        <DndContext sensors={sensors} collisionDetection={free ? pointerWithin : closestCenter}
+                    onDragStart={onDragStart} onDragMove={onDragMove}
+                    onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
             <SortableContext items={sortableItems} strategy={rectSortingStrategy}>
-                <div className={`page-grid cols-${columns}`} ref={gridRef}>
+                <div className={`page-grid cols-${columns}${free ? ' free-grid' : ''}${guides ? ' show-guides' : ''}`} ref={gridRef}>
+                    {guides && <div className="grid-guides" aria-hidden="true">
+                        <div className={`grid-guides-cols cols-${columns}`}>
+                            {Array.from({length: columns}, (_, i) => <span key={i} className="grid-guide-col"/>)}
+                        </div>
+                        {rowTops.map((t, i) => <span key={i} className="grid-guide-row" style={{top: `${t}px`}}/>)}
+                    </div>}
                     {blocks.map((b, i) => {
                         const def = registry[b.type];
-                        return <SortableBlock key={b.id} block={b} columns={columns} label={def?.label || b.type}
+                        return <SortableBlock key={b.id} block={b} columns={columns} free={free}
+                                              col={colOf(b, columns)} span={spanOf(b, columns)} row={rowOf(b)}
+                                              label={def?.label || b.type}
                                               onRemove={() => removeBlock(i)} resizing={resizingId === b.id}
                                               onResizeStart={e => startResize(e, i)}
                                               extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), setProps: patch => setProps(i, patch), pages, columns, items}) : null}>
                             {content(b, i)}
                         </SortableBlock>;
                     })}
-                    <div className="block-add" style={{gridColumn: '1 / -1'}}>
+                    <div className="block-add" style={free ? {gridColumn: '1 / -1', gridRow: maxRow + 1} : {gridColumn: '1 / -1'}}>
                         <span><Plus size={14}/> Add:</span>
                         {Object.keys(registry).filter(type => !registry[type].legacy).map(type =>
                             <button key={type} type="button"

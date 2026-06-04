@@ -1457,9 +1457,15 @@ input::placeholder, textarea::placeholder {
 .block-frame-actions {
     display: flex;
     flex: 0 0 auto;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
     gap: 5px
+}
+
+/* Only blocks with a lot of controls (the List block) are allowed to wrap their icons to a
+   second row when compressed; every other block keeps them on one line. */
+.block-frame-actions.block-actions-wrap {
+    flex-wrap: wrap
 }
 
 .block-frame-actions button {
@@ -1477,6 +1483,17 @@ input::placeholder, textarea::placeholder {
 .block-frame-actions button:disabled {
     opacity: .35;
     cursor: default
+}
+
+/* Remove-block "×" reads as a destructive action. */
+.block-frame-actions .block-remove-btn {
+    color: #ff8a98;
+    border-color: rgba(227, 52, 69, .4)
+}
+
+.block-frame-actions .block-remove-btn:hover {
+    background: rgba(227, 52, 69, .16);
+    color: #ffb4bd
 }
 
 .block-add {
@@ -1576,6 +1593,17 @@ input::placeholder, textarea::placeholder {
     grid-column: span 6
 }
 
+/* Explicit start column: "place" a block at a chosen column so it stays there instead of
+   packing to the left. Defined after .span-* so the start overrides the span shorthand's
+   auto start (end/span is still set by .span-*). Reset to auto when the grid collapses on
+   narrower screens (see the responsive section) so it flows normally on mobile. */
+.col-1 { grid-column-start: 1 }
+.col-2 { grid-column-start: 2 }
+.col-3 { grid-column-start: 3 }
+.col-4 { grid-column-start: 4 }
+.col-5 { grid-column-start: 5 }
+.col-6 { grid-column-start: 6 }
+
 .page-col {
     display: flex;
     flex-direction: column;
@@ -1594,7 +1622,8 @@ input::placeholder, textarea::placeholder {
     color: var(--muted);
     font-size: 13px;
     position: relative;
-    z-index: 1
+    /* Above the grid (which follows in the DOM) so the toggle's tooltip isn't covered. */
+    z-index: 10
 }
 
 .builder-toolbar button {
@@ -1639,11 +1668,6 @@ input::placeholder, textarea::placeholder {
 
 .block-ctl input {
     width: 90px
-}
-
-.block-frame-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end
 }
 
 .block-ctl select, .block-ctl input {
@@ -1848,6 +1872,11 @@ input::placeholder, textarea::placeholder {
     .span-5, .span-6 {
         grid-column: span 4
     }
+
+    /* Collapsed grids ignore explicit placement and flow instead. */
+    .page-grid.cols-5 > [class*="col-"], .page-grid.cols-6 > [class*="col-"] {
+        grid-column-start: auto
+    }
 }
 
 @media (max-width: 940px) {
@@ -1858,6 +1887,10 @@ input::placeholder, textarea::placeholder {
     .span-4, .span-5, .span-6 {
         grid-column: span 3
     }
+
+    .page-grid.cols-4 > [class*="col-"], .page-grid.cols-5 > [class*="col-"], .page-grid.cols-6 > [class*="col-"] {
+        grid-column-start: auto
+    }
 }
 
 @media (max-width: 760px) {
@@ -1867,6 +1900,10 @@ input::placeholder, textarea::placeholder {
 
     .span-3, .span-4, .span-5, .span-6 {
         grid-column: span 2
+    }
+
+    .page-grid.cols-3 > [class*="col-"], .page-grid.cols-4 > [class*="col-"], .page-grid.cols-5 > [class*="col-"], .page-grid.cols-6 > [class*="col-"] {
+        grid-column-start: auto
     }
 }
 
@@ -1881,6 +1918,119 @@ input::placeholder, textarea::placeholder {
 
     .span-2, .span-3, .span-4, .span-5, .span-6 {
         grid-column: span 1
+    }
+
+    .page-grid.cols-2 > [class*="col-"], .page-grid.cols-3 > [class*="col-"], .page-grid.cols-4 > [class*="col-"], .page-grid.cols-5 > [class*="col-"], .page-grid.cols-6 > [class*="col-"] {
+        grid-column-start: auto
+    }
+}
+
+/* ---- Placement mode toggle + layout guides (toolbar) ---- */
+.builder-sep {
+    width: 1px;
+    height: 22px;
+    background: var(--line);
+    margin: 0 4px
+}
+
+.builder-toggle {
+    display: grid;
+    place-items: center
+}
+
+/* Free placement: blocks are positioned explicitly (CSS vars set inline, applied here so a
+   media query can override them). A minimum auto-row height keeps empty rows droppable. */
+.page-grid.free-grid {
+    grid-auto-rows: minmax(64px, auto)
+}
+
+.page-grid.free-grid .page-block.free {
+    grid-column: var(--bcol) / span var(--bspan);
+    grid-row: var(--brow)
+}
+
+/* Free placement is a wide-screen layout; below the full column count it stacks so it never
+   overflows on tablet/phone. */
+@media (max-width: 1150px) {
+    .page-grid.free-grid {
+        grid-template-columns: 1fr !important;
+        grid-auto-rows: auto !important
+    }
+
+    .page-grid.free-grid .page-block.free {
+        grid-column: auto !important;
+        grid-row: auto !important
+    }
+}
+
+/* A faint band per column + a dashed line per block row, overlaid while editing so blocks
+   are easy to line up. pointer-events:none keeps everything underneath clickable. */
+.grid-guides {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+    /* A distinct cyan so the guides don't blend with the gold block outlines. */
+    --guide-rgb: 34, 211, 238
+}
+
+.grid-guides-cols {
+    display: grid;
+    gap: 28px;
+    height: 100%
+}
+
+/* Column tracks mirror .page-grid.cols-N (incl. the responsive caps below) so the bands
+   line up with the real columns at any width. */
+.grid-guides-cols.cols-1 { grid-template-columns: 1fr }
+.grid-guides-cols.cols-2 { grid-template-columns: repeat(2, 1fr) }
+.grid-guides-cols.cols-3 { grid-template-columns: repeat(3, 1fr) }
+.grid-guides-cols.cols-4 { grid-template-columns: repeat(4, 1fr) }
+.grid-guides-cols.cols-5 { grid-template-columns: repeat(5, 1fr) }
+.grid-guides-cols.cols-6 { grid-template-columns: repeat(6, 1fr) }
+
+.grid-guide-col {
+    border-inline: 1px dashed rgba(var(--guide-rgb), .55);
+    background: rgba(var(--guide-rgb), .09);
+    border-radius: 4px
+}
+
+/* Row lines bleed to the full page width (body clips overflow-x), so each block row reads
+   as a band across the whole page — distinct from the column bands inside the content. */
+.grid-guide-row {
+    position: absolute;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    height: 0;
+    border-top: 1px dashed rgba(var(--guide-rgb), .85)
+}
+
+@media (max-width: 1150px) {
+    .grid-guides-cols.cols-5, .grid-guides-cols.cols-6 {
+        grid-template-columns: repeat(4, 1fr)
+    }
+}
+
+@media (max-width: 940px) {
+    .grid-guides-cols.cols-4, .grid-guides-cols.cols-5, .grid-guides-cols.cols-6 {
+        grid-template-columns: repeat(3, 1fr)
+    }
+}
+
+@media (max-width: 760px) {
+    .grid-guides-cols.cols-3, .grid-guides-cols.cols-4, .grid-guides-cols.cols-5, .grid-guides-cols.cols-6 {
+        grid-template-columns: 1fr 1fr
+    }
+}
+
+@media (max-width: 520px) {
+    .grid-guides-cols {
+        gap: 16px
+    }
+
+    .grid-guides-cols.cols-2, .grid-guides-cols.cols-3, .grid-guides-cols.cols-4, .grid-guides-cols.cols-5, .grid-guides-cols.cols-6 {
+        grid-template-columns: 1fr
     }
 }
 
