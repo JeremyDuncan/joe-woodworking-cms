@@ -4705,3 +4705,334 @@ h6 {
         grid-template-columns: 1fr
     }
 }
+
+/* ---- Publish workflow (admin bar) ---- */
+.publish-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 6px
+}
+
+.publish-badge {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap
+}
+
+.publish-badge.published {
+    background: rgba(43, 191, 118, .18);
+    color: #6fe0a6;
+    border-color: rgba(43, 191, 118, .4)
+}
+
+.publish-badge.modified {
+    background: rgba(215, 166, 79, .18);
+    color: var(--gold);
+    border-color: rgba(215, 166, 79, .4)
+}
+
+.publish-badge.draft {
+    background: rgba(255, 255, 255, .08);
+    color: var(--steel);
+    border-color: var(--line)
+}
+
+.publish-btn {
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    white-space: nowrap
+}
+
+.publish-btn.go {
+    background: linear-gradient(135deg, #2bbf76, #1c8a55);
+    border-color: transparent;
+    color: #fff
+}
+
+.publish-btn.stop {
+    background: rgba(255, 255, 255, .07);
+    color: var(--cream)
+}
+
+.publish-btn.stop:hover {
+    border-color: rgba(227, 52, 69, .45);
+    color: #ffb4bd
+}
+
+.page-unavailable {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted)
+}
+
+/* ---- Dashboard: publish history table ---- */
+.publish-history {
+    margin-top: 8px
+}
+
+.ph-title {
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.ph-empty {
+    color: var(--muted);
+    padding: 14px 0
+}
+
+.ph-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 14px
+}
+
+.ph-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px
+}
+
+.ph-table th {
+    text-align: left;
+    background: rgba(255, 255, 255, .05);
+    border-bottom: 1px solid var(--line)
+}
+
+.ph-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--cream);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer
+}
+
+.ph-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06)
+}
+
+.ph-table tr:last-child td {
+    border-bottom: 0
+}
+
+.ph-path {
+    color: var(--muted);
+    font-size: 13px
+}
+
+.ph-action {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px
+}
+
+.ph-action.published {
+    background: rgba(43, 191, 118, .18);
+    color: #6fe0a6
+}
+
+.ph-action.unpublished {
+    background: rgba(227, 52, 69, .16);
+    color: #ff9aa4
+}
+
+/* ---- Dashboard: page-status overview ---- */
+.ph-intro {
+    color: var(--muted);
+    margin: 2px 0 16px
+}
+
+.ph-status {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 26px
+}
+
+.ph-status-col {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, .03)
+}
+
+.ph-status-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-size: 14px
+}
+
+.ph-status-head.live {
+    color: #6fe0a6
+}
+
+.ph-status-head.off {
+    color: var(--steel)
+}
+
+.ph-count {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    color: var(--cream)
+}
+
+.ph-status-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.ph-status-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 7px 9px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .04)
+}
+
+.ph-status-name {
+    font-weight: 800
+}
+
+.ph-status-path {
+    font-size: 12px;
+    color: var(--muted)
+}
+
+.ph-pending {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(215, 166, 79, .15);
+    border: 1px solid rgba(215, 166, 79, .35);
+    padding: 2px 7px;
+    border-radius: 999px
+}
+
+.ph-subhead {
+    font-size: 14px;
+    margin: 0 0 10px
+}
+
+@media (max-width: 680px) {
+    .ph-status {
+        grid-template-columns: 1fr
+    }
+}
+
+/* ---- Publishing dashboard: search, scroll, clickable pages ---- */
+.ph-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 18px;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .04)
+}
+
+.ph-search > svg {
+    color: var(--muted);
+    flex: 0 0 auto
+}
+
+.ph-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    color: var(--white);
+    font: inherit;
+    outline: none
+}
+
+.ph-search-clear {
+    background: transparent;
+    border: 0;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer
+}
+
+.ph-scroll {
+    max-height: 360px;
+    overflow-y: auto
+}
+
+.ph-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #14233b
+}
+
+.ph-page-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 0;
+    color: var(--cream);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left
+}
+
+.ph-page-link:hover {
+    color: var(--gold);
+    text-decoration: underline
+}
+
+.ph-page-link svg {
+    color: var(--muted);
+    flex: 0 0 auto
+}
+
+.ph-subhead .ph-count {
+    margin-left: 8px
+}
+
+.publish-badge.unpublished {
+    background: rgba(227, 52, 69, .14);
+    color: #ff9aa4;
+    border-color: rgba(227, 52, 69, .35)
+}

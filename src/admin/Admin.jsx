@@ -1,10 +1,11 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Archive, Edit3, ImagePlus, Lock, LogOut} from 'lucide-react';
+import {Archive, Edit3, History, ImagePlus, Lock, LogOut} from 'lucide-react';
 import {navigate} from '../lib/navigation.jsx';
 import {ItemForm} from './ItemForm.jsx';
 import {ItemList} from './ItemList.jsx';
 import {PasswordForm} from './PasswordForm.jsx';
 import {BackupPanel} from './BackupPanel.jsx';
+import {PublishHistory} from './PublishHistory.jsx';
 
 export function Admin({items, reload, onAuthChange}) {
     const [me, setMe] = useState(null), [login, setLogin] = useState({
@@ -77,6 +78,9 @@ export function Admin({items, reload, onAuthChange}) {
             <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
                 size={16}/> Password
             </button>
+            <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}><History
+                size={16}/> Publishing
+            </button>
             <button className={tab === 'backup' ? 'active' : ''} onClick={() => setTab('backup')}><Archive
                 size={16}/> Backup
             </button>
@@ -85,6 +89,7 @@ export function Admin({items, reload, onAuthChange}) {
                                        setNotice={setNotice}/><ItemList items={items} setEditing={setEditing}
                                                                         reload={reload} startEdit={startEdit}/></>}
         {tab === 'password' && <PasswordForm/>}
+        {tab === 'history' && <PublishHistory/>}
         {tab === 'backup' && <BackupPanel reload={reload}/>}
     </main>
 }

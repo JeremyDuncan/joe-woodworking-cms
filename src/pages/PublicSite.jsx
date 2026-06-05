@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {fallbackGallery} from '../data/defaults.js';
 import {buildLinkSources, retargetLayout, unlinkLayoutTarget} from '../lib/links.js';
-import {lastSegment, pageLabel, sectionOf, slugifyPath} from '../lib/pages.js';
+import {lastSegment, pageLabel, samePage, sectionOf, slugifyPath} from '../lib/pages.js';
 import {SiteHeader} from '../components/SiteHeader.jsx';
-import {SiteFooter} from '../components/SiteFooter.jsx';
+import {FOOTER_KEY, SiteFooter} from '../components/SiteFooter.jsx';
 import {ImageModal} from '../components/ImageModal.jsx';
 import {AdminBar} from '../components/AdminBar.jsx';
 import {EditProvider} from '../lib/edit.jsx';
@@ -37,6 +37,25 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     useEffect(() => {
         applyTheme(view.theme);
     }, [view.theme]);
+
+    // Publish workflow. Once a site is "migrated", pages are only live for visitors after
+    // they're published (a snapshot kept in view.published). Admins always see the draft.
+    // The footer is global, so it's never staged — it always shows the live version.
+    const staging = !!view.publishMigrated;
+    const publishStatusOf = path => {
+        if (!staging) return 'published';
+        const pub = view.published?.[path];
+        if (!pub) return 'draft';
+        return samePage(pub, view.layout?.[path]) ? 'published' : 'modified';
+    };
+    // What visitors render: published page bodies (+ the live footer), with the menu limited
+    // to published pages. Admins (and un-migrated sites) render everything as a draft.
+    const renderView = (isAdmin || !staging) ? view : {
+        ...view,
+        layout: {...(view.published || {}), [FOOTER_KEY]: view.layout?.[FOOTER_KEY]},
+        nav: (view.nav || []).filter(n => view.published?.[n.path])
+    };
+    const visitorUnavailable = !isAdmin && staging && route !== FOOTER_KEY && !view.published?.[route];
 
     // Which pages link to which (for page status badges + "what links here").
     const linkSources = useMemo(() => buildLinkSources(view.layout, view.nav), [view.layout, view.nav]);
@@ -266,6 +285,54 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
         if (route === path) navigate('/');
     }
 
+    // ---- Publish / unpublish ----
+    // These commit immediately (they persist the draft and stay in edit mode) and append to
+    // the publish log shown in the dashboard. They're not part of the undo stack.
+    async function persistDraft(next) {
+        setDraft(next);
+        try {
+            await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(next)
+            });
+            await reloadSettings();
+        } catch {
+            notify('Could not save the publish change.', 'error');
+        }
+    }
+
+    function logEntry(path, action) {
+        const label = pageLabel((draft.nav || []).find(n => n.path === path)) || path;
+        return {path, label, action, at: new Date().toISOString()};
+    }
+
+    function publishPage(path) {
+        if (!path) return;
+        const snapshot = structuredClone(draft.layout?.[path] || {columns: 1, blocks: []});
+        const entry = logEntry(path, 'published');
+        persistDraft({
+            ...draft,
+            published: {...(draft.published || {}), [path]: snapshot},
+            publishLog: [entry, ...(draft.publishLog || [])].slice(0, 1000),
+            publishMigrated: true
+        });
+        notify(`Published “${entry.label}”`, 'success');
+    }
+
+    function unpublishPage(path) {
+        if (!path) return;
+        const published = {...(draft.published || {})};
+        delete published[path];
+        const entry = logEntry(path, 'unpublished');
+        persistDraft({
+            ...draft, published,
+            publishLog: [entry, ...(draft.publishLog || [])].slice(0, 1000),
+            publishMigrated: true
+        });
+        notify(`Unpublished “${entry.label}”`, 'success');
+    }
+
     // ---- Layout templates ----
     async function saveTemplate(name) {
         const cur = draft.layout?.[route];
@@ -329,15 +396,23 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
 
     return <EditProvider editing={live} setField={setField}>
         <main className={`${isAdmin ? 'admin-chrome ' : ''}${live ? 'is-editing' : ''}`.trim() || undefined}>
-            <SiteHeader settings={view}/>
-            <BuilderPage route={route} settings={view} featured={featured} items={gallery} onImageOpen={setModalImage}/>
-            <SiteFooter settings={view} items={gallery} onImageOpen={setModalImage}/>
+            <SiteHeader settings={renderView}/>
+            {visitorUnavailable
+                ? <section className="page section page-unavailable">
+                    <h1>Page not available</h1>
+                    <p>This page hasn’t been published yet.</p>
+                </section>
+                : <BuilderPage route={route} settings={renderView} featured={featured} items={gallery}
+                               onImageOpen={setModalImage}/>}
+            <SiteFooter settings={renderView} items={gallery} onImageOpen={setModalImage}/>
             <ImageModal image={modalImage} onClose={() => setModalImage(null)}/>
             {isAdmin &&
                 <AdminBar editing={editing} preview={preview} saveState={saveState} adminPath={adminPath}
                           currentPage={pageLabel((view.nav || []).find(n => n.path === route)) || route}
                           currentTemplate={view.layout?.[route]?.templateName}
                           linkSources={linkSources}
+                          staging={staging} publishStatus={publishStatusOf(route)}
+                          onPublish={() => publishPage(route)} onUnpublish={() => unpublishPage(route)}
                           onEnter={() => {
                               resetHistory();
                               setEditing(true);

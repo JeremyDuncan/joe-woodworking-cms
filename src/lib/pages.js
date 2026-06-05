@@ -33,6 +33,22 @@ export function sectionOf(path) {
     return segs.length > 1 ? segs[0] : null;
 }
 
+// Order-insensitive deep stringify: equal content compares equal regardless of the order
+// keys happened to be serialized in (the server merges defaults into layout pages, which
+// can reorder their keys relative to a published snapshot of the same content).
+function stable(v) {
+    if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
+    if (v && typeof v === 'object') {
+        return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+    }
+    return JSON.stringify(v);
+}
+
+// True when two page layouts have the same content — used to tell "published" from "edited".
+export function samePage(a, b) {
+    return stable(a) === stable(b);
+}
+
 // Split a list of pages into top-level `roots` and a `sections` map (section -> pages).
 export function groupPages(pages) {
     const roots = [];

@@ -56,162 +56,313 @@ const defaultSettings = {
     email: 'hello@example.com',
     phone: '(555) 123-4567',
     nav: [
-        {label: 'Tutorial', path: '/tutorial', icon: 'GraduationCap'},
+        {label: 'Guide', path: '/tutorial', icon: 'GraduationCap'},
         {label: 'Home', path: '/'},
         {label: 'Services', path: '/services'},
         {label: 'Gallery', path: '/gallery'},
         {label: 'About', path: '/about'},
-        {label: 'Contact', path: '/contact', cta: true}
+        {label: 'Contact', path: '/contact', cta: true},
+        {label: 'editing', path: '/tutorial/editing', hidden: true},
+        {label: 'blocks', path: '/tutorial/blocks', hidden: true},
+        {label: 'columns', path: '/tutorial/columns', hidden: true},
+        {label: 'pages', path: '/tutorial/pages', hidden: true},
+        {label: 'publishing', path: '/tutorial/publishing', hidden: true},
+        {label: 'design', path: '/tutorial/design', hidden: true},
+        {label: 'images', path: '/tutorial/images', hidden: true},
+        {label: 'backups', path: '/tutorial/backups', hidden: true}
     ],
     layout: {
         '/': {
-            columns: 2,
+            columns: 6,
             blocks: [
-                {id: 'home-eyebrow', type: 'eyebrow', props: {text: 'Welcome', icon: 'Sparkles', span: 2}},
-                {id: 'home-heading', type: 'heading', props: {text: 'A beautiful website you can edit yourself.', level: 1, span: 2}},
-                {id: 'home-body', type: 'text', props: {text: 'This is a starter template. Click anything to edit it, rearrange the blocks, choose your colors, and make it your own — no code required.', span: 2}},
-                {id: 'home-cta1', type: 'button', props: {label: 'Get in touch', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
-                {id: 'home-cta2', type: 'button', props: {label: 'See our work', to: '/gallery', variant: 'ghost'}},
-                {id: 'home-proof', type: 'list', props: {items: [{text: 'Fully editable pages', icon: 'Pencil'}, {text: 'Your own colors & fonts', icon: 'Palette'}, {text: 'Looks great on phones & desktops', icon: 'Check'}], icon: 'BadgeCheck', span: 2}},
-                {id: 'home-image', type: 'image', props: {url: '/build-your-site.webp', caption: 'Replace this with your own image', span: 2}},
-                {id: 'home-divider', type: 'divider', props: {span: 2}},
-                {id: 'home-h2', type: 'heading', props: {text: 'What we do', level: 2, span: 2}},
-                {id: 'home-h2-body', type: 'text', props: {text: 'Briefly describe what your business offers and why people should choose you.', span: 2}},
-                {id: 'home-learn', type: 'button', props: {label: 'Learn more about us', to: '/about', variant: 'link', icon: ''}}
+                {id: 'home-eyebrow', type: 'eyebrow', props: {text: 'Welcome', icon: 'Sparkles', span: 6}},
+                {id: 'home-h1', type: 'heading', props: {text: 'A website that grows with your business.', level: 1, span: 6}},
+                {id: 'home-lead', type: 'text', props: {text: 'A fast, modern site you can edit yourself — no code and no monthly designer. Click anything to change it, drag blocks into place, and publish when you’re ready.', span: 6}},
+                {id: 'home-cta1', type: 'button', props: {label: 'Get started', to: '/contact', variant: 'primary', icon: 'ArrowRight', span: 2}},
+                {id: 'home-cta2', type: 'button', props: {label: 'See our work', to: '/gallery', variant: 'ghost', icon: 'Image', span: 2}},
+                {id: 'home-cta3', type: 'button', props: {label: 'Read the guide', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'home-d1', type: 'divider', props: {span: 6}},
+                {id: 'home-why-eb', type: 'eyebrow', props: {text: 'Why choose us', icon: 'Star', span: 6}},
+                {id: 'home-why-h', type: 'heading', props: {text: 'Built to make a great first impression.', level: 2, span: 6}},
+                {id: 'home-f1-h', type: 'heading', props: {text: 'Fast & modern', level: 3, span: 2}},
+                {id: 'home-f2-h', type: 'heading', props: {text: 'Edit it yourself', level: 3, span: 2}},
+                {id: 'home-f3-h', type: 'heading', props: {text: 'Works everywhere', level: 3, span: 2}},
+                {id: 'home-f1-b', type: 'text', props: {text: 'Loads instantly and looks polished on every device, right out of the box.', span: 2}},
+                {id: 'home-f2-b', type: 'text', props: {text: 'Click any text, image, or button to change it — then save when you like it.', span: 2}},
+                {id: 'home-f3-b', type: 'text', props: {text: 'Beautiful on phones, tablets, and large desktop screens alike.', span: 2}},
+                {id: 'home-d2', type: 'divider', props: {span: 6}},
+                {id: 'home-work-eb', type: 'eyebrow', props: {text: 'Our work', icon: 'Image', span: 6}},
+                {id: 'home-work-h', type: 'heading', props: {text: 'A look at what we do.', level: 2, span: 6}},
+                {id: 'home-work-b', type: 'text', props: {text: 'Browse a few recent projects, then picture yours here.', span: 6}},
+                {id: 'home-work-img', type: 'image', props: {url: '/build-your-site.webp', caption: 'Replace this with a photo of your own work', span: 6}},
+                {id: 'home-work-cta', type: 'button', props: {label: 'Browse the gallery', to: '/gallery', variant: 'primary', icon: 'ArrowRight', span: 2}},
+                {id: 'home-d3', type: 'divider', props: {span: 6}},
+                {id: 'home-cta-h', type: 'heading', props: {text: 'Ready to start your project?', level: 2, span: 6}},
+                {id: 'home-cta-b', type: 'text', props: {text: 'Tell us what you have in mind and we’ll take it from there.', span: 6}},
+                {id: 'home-cta-btn', type: 'button', props: {label: 'Contact us', to: '/contact', variant: 'primary', icon: 'Send', span: 2}}
             ]
         },
         '/services': {
-            columns: 1,
+            columns: 6,
             blocks: [
-                {id: 'srv-eyebrow', type: 'eyebrow', props: {text: 'What we offer', icon: 'Star'}},
-                {id: 'srv-heading', type: 'heading', props: {text: 'Services', level: 1}},
-                {id: 'srv-body', type: 'text', props: {text: 'A short introduction to the services your business provides.'}},
-                {id: 'srv-list', type: 'list', props: {items: [{text: 'Service one — a short description', icon: 'Check'}, {text: 'Service two — a short description', icon: 'Check'}, {text: 'Service three — a short description', icon: 'Check'}], icon: 'BadgeCheck'}},
-                {id: 'srv-divider', type: 'divider', props: {}},
-                {id: 'srv-cta-h', type: 'heading', props: {text: 'Ready to get started?', level: 3}},
-                {id: 'srv-cta-b', type: 'text', props: {text: 'Tell us what you need and we’ll take it from there.'}},
-                {id: 'srv-cta', type: 'button', props: {label: 'Contact us', to: '/contact', variant: 'primary', icon: 'ArrowRight'}}
+                {id: 'srv-eyebrow', type: 'eyebrow', props: {text: 'What we offer', icon: 'Star', span: 6}},
+                {id: 'srv-h1', type: 'heading', props: {text: 'Services', level: 1, span: 6}},
+                {id: 'srv-lead', type: 'text', props: {text: 'A short introduction to what your business does and who you help. Replace these three services with your own.', span: 6}},
+                {id: 'srv-s1-h', type: 'heading', props: {text: 'Service one', level: 3, span: 2}},
+                {id: 'srv-s2-h', type: 'heading', props: {text: 'Service two', level: 3, span: 2}},
+                {id: 'srv-s3-h', type: 'heading', props: {text: 'Service three', level: 3, span: 2}},
+                {id: 'srv-s1-b', type: 'text', props: {text: 'Describe this service in a sentence or two — what it is and why it helps.', span: 2}},
+                {id: 'srv-s2-b', type: 'text', props: {text: 'Describe this service in a sentence or two — what it is and why it helps.', span: 2}},
+                {id: 'srv-s3-b', type: 'text', props: {text: 'Describe this service in a sentence or two — what it is and why it helps.', span: 2}},
+                {id: 'srv-s1-l', type: 'button', props: {label: 'Ask about this', to: '/contact', variant: 'link', icon: 'ArrowRight', span: 2}},
+                {id: 'srv-s2-l', type: 'button', props: {label: 'Ask about this', to: '/contact', variant: 'link', icon: 'ArrowRight', span: 2}},
+                {id: 'srv-s3-l', type: 'button', props: {label: 'Ask about this', to: '/contact', variant: 'link', icon: 'ArrowRight', span: 2}},
+                {id: 'srv-d1', type: 'divider', props: {span: 6}},
+                {id: 'srv-how-eb', type: 'eyebrow', props: {text: 'How it works', icon: 'Workflow', span: 6}},
+                {id: 'srv-how-h', type: 'heading', props: {text: 'A simple, clear process', level: 2, span: 6}},
+                {id: 'srv-how-l', type: 'list', props: {span: 6, variant: 'plain', size: 'lg', icon: 'Check', items: [{text: 'Get in touch and tell us what you need', icon: 'MessageSquare'}, {text: 'We share a plan and a clear quote', icon: 'ClipboardList'}, {text: 'We do the work and keep you updated', icon: 'Hammer'}, {text: 'You review, we deliver — done right', icon: 'BadgeCheck'}]}},
+                {id: 'srv-d2', type: 'divider', props: {span: 6}},
+                {id: 'srv-cta-h', type: 'heading', props: {text: 'Ready to get started?', level: 2, span: 6}},
+                {id: 'srv-cta', type: 'button', props: {label: 'Contact us', to: '/contact', variant: 'primary', icon: 'ArrowRight', span: 2}}
             ]
         },
         '/gallery': {
             columns: 3,
             blocks: [
                 {id: 'gal-eyebrow', type: 'eyebrow', props: {text: 'Our work', icon: 'Image', span: 3}},
-                {id: 'gal-heading', type: 'heading', props: {text: 'Gallery', level: 1, span: 3}},
-                {id: 'gal-body', type: 'text', props: {text: 'A selection of recent projects. Replace these examples with your own.', span: 3}},
+                {id: 'gal-h1', type: 'heading', props: {text: 'Gallery', level: 1, span: 3}},
+                {id: 'gal-lead', type: 'text', props: {text: 'A selection of recent projects. Replace these with your own photos, titles, and descriptions — each card can link to its own page.', span: 3}},
                 {id: 'gal-1', type: 'item', props: {title: 'Project One', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
                 {id: 'gal-2', type: 'item', props: {title: 'Project Two', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
-                {id: 'gal-3', type: 'item', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}}
+                {id: 'gal-3', type: 'item', props: {title: 'Project Three', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-4', type: 'item', props: {title: 'Project Four', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-5', type: 'item', props: {title: 'Project Five', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-6', type: 'item', props: {title: 'Project Six', price: '', description: 'A short description of this project.', image: '/placeholder.webp'}},
+                {id: 'gal-d', type: 'divider', props: {span: 3}},
+                {id: 'gal-cta-h', type: 'heading', props: {text: 'Like what you see?', level: 3, span: 3}},
+                {id: 'gal-cta', type: 'button', props: {label: 'Start a project', to: '/contact', variant: 'primary', icon: 'ArrowRight', span: 1}}
             ]
         },
         '/about': {
-            columns: 2,
+            columns: 6,
             blocks: [
-                {id: 'abt-eyebrow', type: 'eyebrow', props: {text: 'Our story', icon: 'BookOpen', span: 2}},
-                {id: 'abt-heading', type: 'heading', props: {text: 'About us', level: 1, span: 2}},
-                {id: 'abt-body', type: 'text', props: {text: 'Tell your story here — who you are, what you value, and why customers choose you.'}},
-                {id: 'abt-image', type: 'image', props: {url: '/placeholder.webp', caption: ''}},
-                {id: 'abt-divider', type: 'divider', props: {span: 2}},
-                {id: 'abt-values-h', type: 'heading', props: {text: 'What we value', level: 3, span: 2}},
-                {id: 'abt-values', type: 'list', props: {items: [{text: 'Quality work', icon: 'BadgeCheck'}, {text: 'Honest service', icon: 'Heart'}, {text: 'Real craftsmanship', icon: 'Hammer'}], icon: 'Star', span: 2}}
+                {id: 'abt-eyebrow', type: 'eyebrow', props: {text: 'Our story', icon: 'BookOpen', span: 6}},
+                {id: 'abt-h1', type: 'heading', props: {text: 'About us', level: 1, span: 6}},
+                {id: 'abt-body', type: 'text', props: {text: 'Tell your story here — who you are, how you started, what you care about, and why customers choose you. A short, honest paragraph goes a long way.', span: 4}},
+                {id: 'abt-img', type: 'image', props: {url: '/placeholder.webp', caption: 'A photo of you or your team', span: 2}},
+                {id: 'abt-d1', type: 'divider', props: {span: 6}},
+                {id: 'abt-val-eb', type: 'eyebrow', props: {text: 'What we value', icon: 'Heart', span: 6}},
+                {id: 'abt-val-h', type: 'heading', props: {text: 'What drives our work', level: 2, span: 6}},
+                {id: 'abt-v1-h', type: 'heading', props: {text: 'Quality', level: 3, span: 2}},
+                {id: 'abt-v2-h', type: 'heading', props: {text: 'Honesty', level: 3, span: 2}},
+                {id: 'abt-v3-h', type: 'heading', props: {text: 'Craft', level: 3, span: 2}},
+                {id: 'abt-v1-b', type: 'text', props: {text: 'We sweat the details and take pride in doing things right.', span: 2}},
+                {id: 'abt-v2-b', type: 'text', props: {text: 'Clear quotes, honest timelines, and no surprises.', span: 2}},
+                {id: 'abt-v3-b', type: 'text', props: {text: 'Real skill and genuine care in everything we make.', span: 2}},
+                {id: 'abt-d2', type: 'divider', props: {span: 6}},
+                {id: 'abt-cta-h', type: 'heading', props: {text: 'Want to work with us?', level: 2, span: 6}},
+                {id: 'abt-cta', type: 'button', props: {label: 'Get in touch', to: '/contact', variant: 'primary', icon: 'ArrowRight', span: 2}}
             ]
         },
         '/contact': {
-            columns: 1,
+            columns: 6,
             blocks: [
-                {id: 'con-eyebrow', type: 'eyebrow', props: {text: 'Get in touch', icon: 'Mail'}},
-                {id: 'con-heading', type: 'heading', props: {text: 'Contact', level: 1}},
-                {id: 'con-body', type: 'text', props: {text: 'We’d love to hear from you. Reach out and we’ll get back to you soon.'}},
-                {id: 'con-list', type: 'list', props: {items: [{text: 'hello@example.com', icon: 'Mail'}, {text: '(555) 123-4567', icon: 'Phone'}], icon: 'Mail'}},
-                {id: 'con-cta', type: 'button', props: {label: 'Email us', to: 'mailto:hello@example.com', variant: 'primary', icon: 'Send'}}
+                {id: 'con-eyebrow', type: 'eyebrow', props: {text: 'Get in touch', icon: 'Mail', span: 6}},
+                {id: 'con-h1', type: 'heading', props: {text: 'Contact', level: 1, span: 6}},
+                {id: 'con-lead', type: 'text', props: {text: 'We’d love to hear from you. Reach out with the details below and we’ll get back to you soon.', span: 6}},
+                {id: 'con-reach-h', type: 'heading', props: {text: 'Reach us', level: 3, span: 3}},
+                {id: 'con-next-h', type: 'heading', props: {text: 'What happens next', level: 3, span: 3}},
+                {id: 'con-reach-l', type: 'list', props: {span: 3, variant: 'plain', size: 'md', icon: 'Mail', items: [{text: 'hello@example.com', icon: 'Mail'}, {text: '(555) 123-4567', icon: 'Phone'}, {text: '123 Main Street, Your City', icon: 'MapPin'}]}},
+                {id: 'con-next-l', type: 'list', props: {span: 3, variant: 'plain', size: 'md', icon: 'Check', items: [{text: 'We read every message ourselves', icon: 'Eye'}, {text: 'You’ll hear back within one business day', icon: 'Clock'}, {text: 'We’ll set up a quick call if it helps', icon: 'Phone'}]}},
+                {id: 'con-d', type: 'divider', props: {span: 6}},
+                {id: 'con-cta', type: 'button', props: {label: 'Email us', to: 'mailto:hello@example.com', variant: 'primary', icon: 'Send', span: 2}}
             ]
         },
-        // Built-in admin tutorial (shown in nav on a fresh install).
+        // Built-in admin guide: a hub page that links to focused topic pages (the tutorial
+        // section). Shown in nav on a fresh install; hide or delete it when you're done.
         '/tutorial': {
-            columns: 1,
+            columns: 6,
             blocks: [
-                {id: 'tut-eyebrow', type: 'eyebrow', props: {text: 'Admin guide', icon: 'GraduationCap'}},
-                {id: 'tut-h1', type: 'heading', props: {text: 'How to run your website', level: 1}},
-                {id: 'tut-intro', type: 'text', props: {text: 'Welcome! This page explains everything you can do as the site admin, with live examples. When you’re comfortable, hide this page from the menu (Pages → uncheck “Nav”) or delete it entirely.'}},
-
-                {id: 'tut-edit-h', type: 'heading', props: {text: '1 · Edit mode', level: 2}},
-                {id: 'tut-edit-b', type: 'text', props: {text: 'Sign in at your private admin address and click “Edit site”. A toolbar appears with Pages, Theme, Save, and Discard. Every change is a draft until you press Save.'}},
-                {id: 'tut-edit-l', type: 'list', props: {icon: 'BadgeCheck', items: [
-                    {text: 'Click any text or icon on the page to change it', icon: 'Pencil'},
-                    {text: 'Save — the green button — makes your changes live', icon: 'BadgeCheck'},
-                    {text: 'Undo (↺) steps back through your changes before you save', icon: 'RotateCcw'},
-                    {text: 'Discard throws away all unsaved changes (it asks first)', icon: 'Trash2'}
+                {id: 'tut-eyebrow', type: 'eyebrow', props: {text: 'Admin guide', icon: 'GraduationCap', span: 6}},
+                {id: 'tut-h1', type: 'heading', props: {text: 'How to run your website', level: 1, span: 6}},
+                {id: 'tut-intro', type: 'text', props: {text: 'Welcome! This guide walks through everything you can do as the site admin. Pick a topic below — each page is short and to the point. When you’re comfortable, unpublish or delete this guide from the Pages panel.', span: 6}},
+                {id: 'tut-toc-eb', type: 'eyebrow', props: {text: 'Topics', icon: 'BookOpen', span: 6}},
+                {id: 'tut-toc', type: 'list', props: {span: 6, variant: 'chips', size: 'lg', icon: 'BookOpen', items: [
+                    {text: 'Editing basics — click, save, undo, publish', icon: 'MousePointerClick', to: '/tutorial/editing'},
+                    {text: 'Blocks — the building blocks of a page', icon: 'Blocks', to: '/tutorial/blocks'},
+                    {text: 'Columns & placement — flexible layouts', icon: 'Columns3', to: '/tutorial/columns'},
+                    {text: 'Pages & sections — add and organize pages', icon: 'FileText', to: '/tutorial/pages'},
+                    {text: 'Publishing — drafts, publish, unpublish', icon: 'Send', to: '/tutorial/publishing'},
+                    {text: 'Design & theme — colors, fonts, header', icon: 'Palette', to: '/tutorial/design'},
+                    {text: 'Images & media — upload, crop, position', icon: 'Image', to: '/tutorial/images'},
+                    {text: 'Backups — keep your whole site safe', icon: 'Archive', to: '/tutorial/backups'}
                 ]}},
-
-                {id: 'tut-text-h', type: 'heading', props: {text: '2 · Editing text & icons', level: 2}},
-                {id: 'tut-text-b', type: 'text', props: {text: 'In edit mode, click directly on any heading, paragraph, label, or list item and start typing. Click any icon to open the picker and choose a new one.'}},
-                {id: 'tut-text-link-h', type: 'heading', props: {text: 'Links inside text', level: 3}},
-                {id: 'tut-text-link-b', type: 'text', props: {text: 'Select any words inside a heading or paragraph and a small bar appears. Pick a page to link to, or choose “External…” to link to another website — external links always open in a new tab.'}},
-
-                {id: 'tut-blocks-h', type: 'heading', props: {text: '3 · Building pages with blocks', level: 2}},
-                {id: 'tut-blocks-b', type: 'text', props: {text: 'Every page is built from blocks. Pick a 1–6 column grid with the column buttons, drag the ⠿ handle to reorder, drag a block’s right edge to resize it across columns, and press × to remove one. Add new blocks from the “Add:” row.'}},
-                {id: 'tut-blocks-l', type: 'list', props: {icon: 'Star', items: [
+                {id: 'tut-d', type: 'divider', props: {span: 6}},
+                {id: 'tut-start-h', type: 'heading', props: {text: 'New here? Start with the basics.', level: 2, span: 6}},
+                {id: 'tut-start', type: 'button', props: {label: 'Editing basics', to: '/tutorial/editing', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/editing': {
+            columns: 6,
+            blocks: [
+                {id: 'g-ed-eb', type: 'eyebrow', props: {text: 'Guide · Editing basics', icon: 'MousePointerClick', span: 6}},
+                {id: 'g-ed-h1', type: 'heading', props: {text: 'Editing basics', level: 1, span: 6}},
+                {id: 'g-ed-intro', type: 'text', props: {text: 'Sign in at your private admin address and click “Edit site”. A toolbar appears at the top with everything you need. Every change is a draft until you save — and only goes live to visitors once you publish.', span: 6}},
+                {id: 'g-ed-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Click any text, heading, or label and start typing', icon: 'Pencil'},
+                    {text: 'Click an icon to pick a different one', icon: 'Sparkles'},
+                    {text: 'Save (green button) keeps your changes', icon: 'BadgeCheck'},
+                    {text: 'Undo (↺) steps back through changes before saving', icon: 'RotateCcw'},
+                    {text: 'Discard throws away all unsaved changes', icon: 'Trash2'},
+                    {text: 'Web view previews the page as visitors will see it', icon: 'Eye'}
+                ]}},
+                {id: 'g-ed-tip-h', type: 'heading', props: {text: 'Linking text', level: 3, span: 6}},
+                {id: 'g-ed-tip-b', type: 'text', props: {text: 'Select words inside any heading or paragraph and a small bar appears — link them to one of your pages, or to another website (which opens in a new tab).', span: 6}},
+                {id: 'g-ed-d', type: 'divider', props: {span: 6}},
+                {id: 'g-ed-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-ed-next', type: 'button', props: {label: 'Next: Blocks', to: '/tutorial/blocks', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/blocks': {
+            columns: 6,
+            blocks: [
+                {id: 'g-bl-eb', type: 'eyebrow', props: {text: 'Guide · Blocks', icon: 'Blocks', span: 6}},
+                {id: 'g-bl-h1', type: 'heading', props: {text: 'Building pages with blocks', level: 1, span: 6}},
+                {id: 'g-bl-intro', type: 'text', props: {text: 'Every page is built from blocks. Add them from the “Add:” row, drag the ⠿ handle to reorder, drag a block’s right edge to resize, and press × to remove one.', span: 6}},
+                {id: 'g-bl-l', type: 'list', props: {span: 6, variant: 'chips', size: 'md', icon: 'Square', items: [
                     {text: 'Eyebrow — a small label with an icon', icon: 'Star'},
-                    {text: 'Heading — H1 through H6, or a paragraph', icon: 'Bookmark'},
-                    {text: 'Paragraph — body text with inline links', icon: 'BookOpen'},
-                    {text: 'Button — primary, ghost, or text-link style', icon: 'ArrowRight'},
-                    {text: 'List — bullet items, each with its own icon', icon: 'Check'},
-                    {text: 'Image — upload, crop, caption, and link it', icon: 'Image'},
-                    {text: 'Item — a card that also appears on your dashboard', icon: 'Package'},
-                    {text: 'Divider — a horizontal line', icon: 'Ruler'},
+                    {text: 'Heading — H1 to H6, or a paragraph', icon: 'Heading'},
+                    {text: 'Paragraph — body text with inline links', icon: 'Pilcrow'},
+                    {text: 'Button — primary, ghost, or text-link', icon: 'MousePointerClick'},
+                    {text: 'List — items with their own icons and links', icon: 'List'},
+                    {text: 'Image — upload, crop, caption, and link', icon: 'Image'},
+                    {text: 'Item — a card that also shows in your dashboard', icon: 'LayoutGrid'},
+                    {text: 'Divider — a simple horizontal line', icon: 'Minus'},
                     {text: 'Copyright — shows the current year automatically', icon: 'Calendar'}
                 ]}},
-
-                {id: 'tut-ex-h', type: 'heading', props: {text: 'Live examples', level: 2}},
-                {id: 'tut-ex-b', type: 'text', props: {text: 'The blocks below are real and editable. In edit mode, click any of them to see their controls.'}},
-                {id: 'tut-ex-eyebrow', type: 'eyebrow', props: {text: 'This is an eyebrow', icon: 'Sparkles'}},
-                {id: 'tut-ex-h3', type: 'heading', props: {text: 'This is an H3 heading', level: 3}},
-                {id: 'tut-ex-text', type: 'text', props: {text: 'This is a paragraph block — try selecting these words to turn them into a link.'}},
-                {id: 'tut-ex-btn', type: 'button', props: {label: 'Primary button', to: '/contact', variant: 'primary', icon: 'ArrowRight'}},
-                {id: 'tut-ex-btn2', type: 'button', props: {label: 'Text link', to: '/gallery', variant: 'link', icon: ''}},
-                {id: 'tut-ex-list', type: 'list', props: {icon: 'BadgeCheck', items: [
-                    {text: 'A list item with its own icon', icon: 'BadgeCheck'},
-                    {text: 'Another item', icon: 'Star'}
+                {id: 'g-bl-ex-h', type: 'heading', props: {text: 'These are real blocks', level: 3, span: 6}},
+                {id: 'g-bl-ex-b', type: 'text', props: {text: 'In edit mode, click the example below to see its controls — every block on every page works the same way.', span: 6}},
+                {id: 'g-bl-ex', type: 'item', props: {title: 'Example item', price: 'Custom quote', description: 'Items appear here and in your dashboard’s Item tab. Add a picture, set a price, and link the whole card to a page.', image: '/placeholder.webp', span: 2}},
+                {id: 'g-bl-d', type: 'divider', props: {span: 6}},
+                {id: 'g-bl-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-bl-next', type: 'button', props: {label: 'Next: Columns', to: '/tutorial/columns', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/columns': {
+            columns: 6,
+            blocks: [
+                {id: 'g-co-eb', type: 'eyebrow', props: {text: 'Guide · Columns & placement', icon: 'Columns3', span: 6}},
+                {id: 'g-co-h1', type: 'heading', props: {text: 'Columns & placement', level: 1, span: 6}},
+                {id: 'g-co-intro', type: 'text', props: {text: 'Choose a 1–6 column grid for any page with the column buttons in the builder toolbar, then size and place each block within it. This very page uses six columns.', span: 6}},
+                {id: 'g-co-s1-h', type: 'heading', props: {text: 'Resize', level: 3, span: 3}},
+                {id: 'g-co-s2-h', type: 'heading', props: {text: 'Two placement modes', level: 3, span: 3}},
+                {id: 'g-co-s1-b', type: 'text', props: {text: 'Drag a block’s right edge to make it span more columns — from a single column up to the full width.', span: 3}},
+                {id: 'g-co-s2-b', type: 'text', props: {text: 'Flow (magnet) lets blocks shift to make room. Free (grid) lets you drop a block into any open cell and it stays put.', span: 3}},
+                {id: 'g-co-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Flow mode — blocks rearrange as you drag and resize', icon: 'Magnet'},
+                    {text: 'Free mode — place blocks anywhere there’s space', icon: 'LayoutGrid'},
+                    {text: 'Guides — overlay column and row lines to line things up', icon: 'Grid3x3'}
                 ]}},
-                {id: 'tut-ex-divider', type: 'divider', props: {}},
-                {id: 'tut-ex-item', type: 'item', props: {title: 'Example item', price: 'Custom quote', description: 'Items show here and in your dashboard’s Item tab. Add a picture, set a price (or whatever text you want), and link the whole card to a page.', image: '/placeholder.webp'}},
-
-                {id: 'tut-arrange-h', type: 'heading', props: {text: '4 · Arranging blocks', level: 2}},
-                {id: 'tut-arrange-b', type: 'text', props: {text: 'The builder toolbar has two placement modes. They change how blocks behave when you move and resize them:'}},
-                {id: 'tut-arrange-l', type: 'list', props: {icon: 'LayoutGrid', items: [
-                    {text: 'Flow (magnet icon) — the default; blocks shift to make room as you drag and resize', icon: 'Magnet'},
-                    {text: 'Free (grid icon) — drop blocks into any open cell and they stay put; you make room yourself', icon: 'LayoutGrid'},
-                    {text: 'Guides (gridlines icon) — overlay column and row lines to line blocks up', icon: 'Grid3x3'}
-                ]}},
-
-                {id: 'tut-img-h', type: 'heading', props: {text: 'Adjusting pictures', level: 3}},
-                {id: 'tut-img-b', type: 'text', props: {text: 'After adding an Image — or a picture on an Item — click “Adjust image”. Drag to reposition, scroll or use the slider to zoom, and switch between Fill (crop to the frame) and Fit (show the whole photo). The preview matches exactly how it will look.'}},
-
-                {id: 'tut-pages-h', type: 'heading', props: {text: '5 · Pages & sections', level: 2}},
-                {id: 'tut-pages-b', type: 'text', props: {text: 'Open the Pages panel (the list icon) to see every page. Navigation groups the pages in your menu; everything else is grouped by section (the part before the slash in an address like menu/pizza).'}},
-                {id: 'tut-pages-l', type: 'list', props: {icon: 'Folder', items: [
-                    {text: 'Add a page with the page (+) icon at the top of the panel', icon: 'FilePlus'},
+                {id: 'g-co-d', type: 'divider', props: {span: 6}},
+                {id: 'g-co-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-co-next', type: 'button', props: {label: 'Next: Pages', to: '/tutorial/pages', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/pages': {
+            columns: 6,
+            blocks: [
+                {id: 'g-pg-eb', type: 'eyebrow', props: {text: 'Guide · Pages & sections', icon: 'FileText', span: 6}},
+                {id: 'g-pg-h1', type: 'heading', props: {text: 'Pages & sections', level: 1, span: 6}},
+                {id: 'g-pg-intro', type: 'text', props: {text: 'Open the Pages panel (the list icon) to see every page. Navigation groups the pages in your menu; everything else is grouped by section — the part before the slash in an address like menu/pizza.', span: 6}},
+                {id: 'g-pg-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Add a page with the page (+) icon', icon: 'FilePlus'},
                     {text: 'Add a section with the folder (+) icon', icon: 'FolderPlus'},
-                    {text: 'Each section has its own + that files the new page as section/your-page automatically', icon: 'FolderPlus'},
-                    {text: 'A badge shows navigation (in the menu), linked, or unlinked', icon: 'Eye'},
-                    {text: 'The Navigation panel reorders the menu, toggles call-to-action buttons, and removes pages from the menu', icon: 'Map'},
-                    {text: 'Layout templates save a page’s layout to reuse on other pages', icon: 'LayoutTemplate'}
+                    {text: 'Each section has its own + to file a page inside it', icon: 'FolderTree'},
+                    {text: 'Move a page into a section anytime — its links follow', icon: 'FolderInput'},
+                    {text: 'Use the Navigation panel to order the menu and remove links', icon: 'Map'},
+                    {text: 'Layout templates save a page’s layout to reuse elsewhere', icon: 'LayoutTemplate'}
                 ]}},
-
-                {id: 'tut-theme-h', type: 'heading', props: {text: '6 · Theme & colors', level: 2}},
-                {id: 'tut-theme-b', type: 'text', props: {text: 'Open “Theme” to change the font; the background and its four corner glows; the button, icon, and divider colors; the card hover border; and every text color. The header can be translucent or a solid color. Save favorite combinations as named presets to reuse later.'}},
-
-                {id: 'tut-hf-h', type: 'heading', props: {text: '7 · Header & footer', level: 2}},
-                {id: 'tut-hf-b', type: 'text', props: {text: 'Your brand name, brand icon, and menu links live in the header and are edited in place. The footer at the bottom appears on every page and is edited just like a page. On phones the menu collapses into a ☰ button.'}},
-
-                {id: 'tut-dash-h', type: 'heading', props: {text: '8 · The dashboard', level: 2}},
-                {id: 'tut-dash-b', type: 'text', props: {text: 'Your private dashboard has three tabs: Item (add and manage items with photos or videos), Password (change your login), and Backup.'}},
-
-                {id: 'tut-backup-h', type: 'heading', props: {text: '9 · Backups — important!', level: 2}},
-                {id: 'tut-backup-b', type: 'text', props: {text: 'In the dashboard’s Backup tab, click “Download backup” to save one .zip containing every page, template, theme, item, image, and admin login. Keep it somewhere safe, off the server. If anything is ever lost, “Restore from backup” rebuilds the entire site from that file — even onto brand-new, empty storage. Download a fresh backup regularly.'}},
-
-                {id: 'tut-end-h', type: 'heading', props: {text: 'You’re ready', level: 2}},
-                {id: 'tut-end-b', type: 'text', props: {text: 'That’s everything. When you no longer need this guide, open Pages and uncheck “Nav” to hide it, or delete the page. Don’t forget to press Save.'}}
+                {id: 'g-pg-tip-h', type: 'heading', props: {text: 'This guide is a section', level: 3, span: 6}},
+                {id: 'g-pg-tip-b', type: 'text', props: {text: 'Every page you’re reading lives under the tutorial section. The topics list on the main guide page links straight to each one.', span: 6}},
+                {id: 'g-pg-d', type: 'divider', props: {span: 6}},
+                {id: 'g-pg-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-pg-next', type: 'button', props: {label: 'Next: Publishing', to: '/tutorial/publishing', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/publishing': {
+            columns: 6,
+            blocks: [
+                {id: 'g-pb-eb', type: 'eyebrow', props: {text: 'Guide · Publishing', icon: 'Send', span: 6}},
+                {id: 'g-pb-h1', type: 'heading', props: {text: 'Publishing & drafts', level: 1, span: 6}},
+                {id: 'g-pb-intro', type: 'text', props: {text: 'Saving keeps your work as a draft. A page only goes live to visitors once you publish it — so you can edit safely and choose exactly when changes appear.', span: 6}},
+                {id: 'g-pb-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Publish — make the current page live', icon: 'Send'},
+                    {text: 'Unpublish — take a page offline (visitors get a friendly notice)', icon: 'EyeOff'},
+                    {text: 'A badge shows Published, Edited (live, with newer drafts), or Draft', icon: 'BadgeCheck'},
+                    {text: 'The dashboard’s Publishing tab lists every page’s status', icon: 'LayoutDashboard'},
+                    {text: 'Every publish and unpublish is logged with a timestamp', icon: 'History'}
+                ]}},
+                {id: 'g-pb-d', type: 'divider', props: {span: 6}},
+                {id: 'g-pb-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-pb-next', type: 'button', props: {label: 'Next: Design', to: '/tutorial/design', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/design': {
+            columns: 6,
+            blocks: [
+                {id: 'g-de-eb', type: 'eyebrow', props: {text: 'Guide · Design & theme', icon: 'Palette', span: 6}},
+                {id: 'g-de-h1', type: 'heading', props: {text: 'Design & theme', level: 1, span: 6}},
+                {id: 'g-de-intro', type: 'text', props: {text: 'Open the Theme panel to change how the whole site looks — colors, fonts, and header style — and save your favorite combinations as presets.', span: 6}},
+                {id: 'g-de-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Pick a font for the whole site', icon: 'Type'},
+                    {text: 'Set the background and its four corner glows', icon: 'Sparkles'},
+                    {text: 'Choose button, icon, and divider colors', icon: 'Palette'},
+                    {text: 'Set every text color and the card hover border', icon: 'Brush'},
+                    {text: 'Make the header translucent or a solid color', icon: 'PanelTop'},
+                    {text: 'Save presets to reuse a look later', icon: 'Save'}
+                ]}},
+                {id: 'g-de-tip-h', type: 'heading', props: {text: 'Header & footer', level: 3, span: 6}},
+                {id: 'g-de-tip-b', type: 'text', props: {text: 'Your brand name, icon, and menu links live in the header. The footer appears on every page and is edited just like any page.', span: 6}},
+                {id: 'g-de-d', type: 'divider', props: {span: 6}},
+                {id: 'g-de-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-de-next', type: 'button', props: {label: 'Next: Images', to: '/tutorial/images', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/images': {
+            columns: 6,
+            blocks: [
+                {id: 'g-im-eb', type: 'eyebrow', props: {text: 'Guide · Images & media', icon: 'Image', span: 6}},
+                {id: 'g-im-h1', type: 'heading', props: {text: 'Images & media', level: 1, span: 6}},
+                {id: 'g-im-intro', type: 'text', props: {text: 'Add an Image block (or a picture on an Item), upload a photo, then fine-tune exactly how it sits in its frame.', span: 6}},
+                {id: 'g-im-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Upload photos — common formats and Apple HEIC are supported', icon: 'Upload'},
+                    {text: 'Click “Adjust image” to reposition and zoom', icon: 'Crop'},
+                    {text: 'Switch between Fill (crop to frame) and Fit (show all)', icon: 'Scaling'},
+                    {text: 'Add a caption and link the image to a page', icon: 'Link2'},
+                    {text: 'Videos work too, right inside a frame', icon: 'Video'}
+                ]}},
+                {id: 'g-im-ex', type: 'image', props: {url: '/build-your-site.webp', caption: 'Try clicking “Adjust image” on this one', span: 6}},
+                {id: 'g-im-d', type: 'divider', props: {span: 6}},
+                {id: 'g-im-back', type: 'button', props: {label: 'All topics', to: '/tutorial', variant: 'link', icon: 'BookOpen', span: 2}},
+                {id: 'g-im-next', type: 'button', props: {label: 'Next: Backups', to: '/tutorial/backups', variant: 'primary', icon: 'ArrowRight', span: 2}}
+            ]
+        },
+        '/tutorial/backups': {
+            columns: 6,
+            blocks: [
+                {id: 'g-bk-eb', type: 'eyebrow', props: {text: 'Guide · Backups', icon: 'Archive', span: 6}},
+                {id: 'g-bk-h1', type: 'heading', props: {text: 'Backups — important!', level: 1, span: 6}},
+                {id: 'g-bk-intro', type: 'text', props: {text: 'In the dashboard’s Backup tab, download one .zip that contains your entire site — every page, template, theme, item, image, and admin login. Keep it somewhere safe, off the server.', span: 6}},
+                {id: 'g-bk-l', type: 'list', props: {span: 6, variant: 'plain', size: 'md', icon: 'Check', items: [
+                    {text: 'Download a backup regularly — it only takes a click', icon: 'Download'},
+                    {text: 'Restore rebuilds the whole site from that one file', icon: 'Upload'},
+                    {text: 'It even works onto brand-new, empty storage', icon: 'Server'},
+                    {text: 'The dashboard also manages items and your password', icon: 'Settings'}
+                ]}},
+                {id: 'g-bk-done-h', type: 'heading', props: {text: 'You’re ready', level: 2, span: 6}},
+                {id: 'g-bk-done-b', type: 'text', props: {text: 'That’s the whole guide. When you don’t need it anymore, unpublish or delete these pages from the Pages panel.', span: 6}},
+                {id: 'g-bk-d', type: 'divider', props: {span: 6}},
+                {id: 'g-bk-back', type: 'button', props: {label: 'Back to all topics', to: '/tutorial', variant: 'primary', icon: 'BookOpen', span: 2}}
             ]
         },
         '__footer__': {
@@ -797,14 +948,43 @@ export function createApp(options = {}) {
     // One-time: surface the built-in Tutorial page in the nav for sites created before
     // it existed. Guarded by a flag so it's added at most once — deleting it later sticks.
     async function migrateSettings() {
-        const s = await readSettings();
-        if (s.tutorialMigrated) return;
-        const nav = Array.isArray(s.nav) ? [...s.nav] : [];
-        if (!nav.some(n => n.path === '/tutorial')) {
-            // Far left of the nav.
-            nav.unshift({label: 'Tutorial', path: '/tutorial', icon: 'GraduationCap'});
+        let s = await readSettings();
+        let changed = false;
+        if (!s.tutorialMigrated) {
+            const nav = Array.isArray(s.nav) ? [...s.nav] : [];
+            if (!nav.some(n => n.path === '/tutorial')) {
+                // Far left of the nav.
+                nav.unshift({label: 'Tutorial', path: '/tutorial', icon: 'GraduationCap'});
+            }
+            s = {...s, nav, tutorialMigrated: true};
+            changed = true;
         }
-        await writeSettings({...s, nav, tutorialMigrated: true});
+        if (!s.publishMigrated) {
+            // Turn on the publish workflow without anything disappearing: publish every page
+            // that already exists. New pages created after this start as drafts until published.
+            const published = {};
+            for (const [route, page] of Object.entries(s.layout || {})) published[route] = page;
+            s = {...s, published, publishMigrated: true};
+            changed = true;
+        }
+        if (!s.guideMigrated) {
+            // The built-in guide grew into a hub + topic pages. Make sure they're present in
+            // the nav (hidden) and published, even on sites that migrated before they existed.
+            const nav = Array.isArray(s.nav) ? [...s.nav] : [];
+            const published = {...(s.published || {})};
+            const guidePages = ['/tutorial', '/tutorial/editing', '/tutorial/blocks', '/tutorial/columns',
+                '/tutorial/pages', '/tutorial/publishing', '/tutorial/design', '/tutorial/images', '/tutorial/backups'];
+            for (const route of guidePages) {
+                if (!s.layout?.[route]) continue;
+                if (route !== '/tutorial' && !nav.some(n => n.path === route)) {
+                    nav.push({label: route.split('/').pop(), path: route, hidden: true});
+                }
+                if (!published[route]) published[route] = s.layout[route];
+            }
+            s = {...s, nav, published, guideMigrated: true};
+            changed = true;
+        }
+        if (changed) await writeSettings(s);
     }
 
     app.locals.init = async () => {
@@ -940,9 +1120,11 @@ export function createApp(options = {}) {
         const body = req.body || {};
         const next = deepMerge(await readSettings(), body);
         // Preset collections must be replaceable (deepMerge can't delete keys), so a
-        // removed theme/layout actually persists.
+        // removed theme/layout/published page actually persists.
         if (body.themes) next.themes = body.themes;
         if (body.layouts) next.layouts = body.layouts;
+        if (body.published) next.published = body.published;
+        if (Array.isArray(body.publishLog)) next.publishLog = body.publishLog;
         if (body.layout) await syncItemBlocks(next);
         await writeSettings(next);
         res.json(next);

@@ -200,6 +200,8 @@ export const defaultSettings = {
         }
     },
     layouts: {},
+    published: {},
+    publishLog: [],
     theme: defaultTheme,
     themes: {},
     home: {
@@ -256,6 +258,8 @@ export function mergeSettings(s) {
             }
         },
         themes: s?.themes || {},
+        published: s?.published || {},
+        publishLog: Array.isArray(s?.publishLog) ? s.publishLog : [],
         home: {...defaultSettings.home, ...(s?.home || {})},
         work: {...defaultSettings.work, ...(s?.work || {})},
         options: {...defaultSettings.options, ...(s?.options || {})},

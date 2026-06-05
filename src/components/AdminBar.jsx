@@ -246,7 +246,9 @@ function DeletePageModal({page, links, onConfirm, onClose}) {
 
 // Top admin banner + top-left icon toolbar. Out of edit mode it shows only Edit site /
 // Dashboard; in edit mode it shows the full set of editing tools.
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onAddSection, onMovePage, sections, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
+const PUBLISH_LABEL = {published: 'Published', modified: 'Edited · not live', draft: 'Draft · not live'};
+
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, staging, publishStatus, onPublish, onUnpublish, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onAddSection, onMovePage, sections, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
     const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
@@ -285,6 +287,14 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
             {currentPage && <div className="admin-bar-page" title="Current page">
                 <FileText size={15}/> <span>{currentPage}</span>
                 <TemplateBadge name={currentTemplate}/>
+                {staging && editing && <span className="publish-controls">
+                    <span className={`publish-badge ${publishStatus}`}
+                          title="Visitors only see published pages">{PUBLISH_LABEL[publishStatus]}</span>
+                    {publishStatus !== 'published' && <button type="button" className="publish-btn go"
+                                                              onClick={onPublish}>Publish</button>}
+                    {publishStatus !== 'draft' && <button type="button" className="publish-btn stop"
+                                                          onClick={onUnpublish}>Unpublish</button>}
+                </span>}
                 {canDeleteCurrent && <button type="button" className="admin-page-delete" title="Delete this page"
                                              onClick={() => setDeleteOpen(true)}>
                     <Trash2 size={14}/>
