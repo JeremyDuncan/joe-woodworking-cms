@@ -11,7 +11,8 @@ import {notify, promptDialog} from '../lib/dialog.jsx';
 import {PagePicker} from '../components/PagePicker.jsx';
 
 function Eyebrow({block, setProp, editing}) {
-    return <p className="eyebrow">
+    const size = block.props.size;
+    return <p className={`eyebrow${size ? ` txt-size-${size}` : ''}`}>
         <EditableIcon className="ui-icon" name={block.props.icon} fallback="Star" size={15} editing={editing}
                       onChange={v => setProp('icon', v)}/>{' '}
         {editing
@@ -35,11 +36,12 @@ function Heading({block, setProp, editing, pages}) {
 }
 
 function Text({block, setProp, editing, pages}) {
-    if (editing) return <RichText as="p" html={block.props.html} text={block.props.text} pages={pages}
+    const cls = block.props.size ? `txt-size-${block.props.size}` : undefined;
+    if (editing) return <RichText as="p" className={cls} html={block.props.html} text={block.props.text} pages={pages}
                                   placeholder="Paragraph" onChange={h => setProp('html', h)}/>;
     return block.props.html != null
-        ? <RichHtml as="p" html={block.props.html}/>
-        : <p>{block.props.text}</p>;
+        ? <RichHtml as="p" className={cls} html={block.props.html}/>
+        : <p className={cls}>{block.props.text}</p>;
 }
 
 function ButtonBlock({block, setProp, editing}) {
@@ -357,6 +359,31 @@ function ItemLinkCtl({to = '', pages, onChange}) {
     </>;
 }
 
+// Wide, absolute text-size scale shared by the eyebrow and paragraph blocks. '' = the
+// block's natural size (so existing content is untouched).
+const TEXT_SIZES = [
+    {value: '', label: 'Default'},
+    {value: 'xs', label: 'Extra small'},
+    {value: 'sm', label: 'Small'},
+    {value: 'md', label: 'Medium'},
+    {value: 'lg', label: 'Large'},
+    {value: 'xl', label: 'Extra large'},
+    {value: '2xl', label: 'Huge'},
+    {value: '3xl', label: 'Display'},
+    {value: '4xl', label: 'Jumbo'},
+    {value: '5xl', label: 'Giant'},
+];
+const TEXT_SIZE_BADGE = {
+    '': 'A', xs: 'XS', sm: 'S', md: 'M', lg: 'L', xl: 'XL', '2xl': '2X', '3xl': '3X', '4xl': '4X', '5xl': '5X'
+};
+
+function textSizeControls({block, setProp}) {
+    const size = block.props.size || '';
+    return <CtlMenu icon={<Type size={15}/>} title="Text size" value={size}
+                    badge={TEXT_SIZE_BADGE[size] || 'A'} options={TEXT_SIZES}
+                    onChange={v => setProp('size', v)}/>;
+}
+
 function headingControls({block, setProp, pages}) {
     const lvl = block.props.level || 2;
     return <>
@@ -447,9 +474,9 @@ function savedItemControls({block, setProp, items, pages}) {
 export const blockRegistry = {
     spacer: {label: 'Spacer', defaults: {text: 'Spacer'}},
     divider: {label: 'Divider', defaults: {}, render: Divider},
-    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow},
+    eyebrow: {label: 'Eyebrow', defaults: {text: 'Eyebrow', icon: 'Star'}, render: Eyebrow, controls: textSizeControls},
     heading: {label: 'Heading', defaults: {text: 'Heading', level: 2}, render: Heading, controls: headingControls},
-    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text},
+    text: {label: 'Paragraph', defaults: {text: 'Paragraph text.'}, render: Text, controls: textSizeControls},
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck', variant: 'chips', size: 'md'}, render: ListBlock, controls: listControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},

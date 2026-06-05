@@ -1118,13 +1118,18 @@ export function createApp(options = {}) {
 
     app.put('/api/admin/settings', requireAdmin, async (req, res) => {
         const body = req.body || {};
-        const next = deepMerge(await readSettings(), body);
+        const current = await readSettings();
+        const next = deepMerge(current, body);
         // Preset collections must be replaceable (deepMerge can't delete keys), so a
         // removed theme/layout/published page actually persists.
         if (body.themes) next.themes = body.themes;
         if (body.layouts) next.layouts = body.layouts;
         if (body.published) next.published = body.published;
         if (Array.isArray(body.publishLog)) next.publishLog = body.publishLog;
+        // Monotonic revision counter, bumped server-side on every save so the admin UI can
+        // show an iterative version (v<major>.<rev>). Based on the stored value, not the
+        // request body, so it never goes backwards even if a client posts a stale number.
+        next.rev = (Number(current.rev) || 0) + 1;
         if (body.layout) await syncItemBlocks(next);
         await writeSettings(next);
         res.json(next);

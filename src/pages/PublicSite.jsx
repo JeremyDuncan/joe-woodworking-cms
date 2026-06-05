@@ -10,6 +10,7 @@ import {EditProvider} from '../lib/edit.jsx';
 import {applyTheme} from '../lib/theme.js';
 import {navigate} from '../lib/navigation.jsx';
 import {confirmDialog, notify, promptDialog} from '../lib/dialog.jsx';
+import {siteVersion} from '../lib/version.js';
 import {BuilderPage} from './BuilderPage.jsx';
 
 function newId() {
@@ -421,6 +422,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                           onDeletePage={deletePage}
                           onUndo={undo} canUndo={undoCount > 0}
                           onTogglePreview={() => setPreview(p => !p)}
+                          version={siteVersion(settings.rev)}
                           pagesProps={{
                               pages: view.nav, route, layout: view.layout, templates: view.layouts,
                               currentTemplate: view.layout?.[route]?.templateName,

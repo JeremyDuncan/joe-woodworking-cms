@@ -248,7 +248,7 @@ function DeletePageModal({page, links, onConfirm, onClose}) {
 // Dashboard; in edit mode it shows the full set of editing tools.
 const PUBLISH_LABEL = {published: 'Published', modified: 'Edited · not live', draft: 'Draft · not live'};
 
-export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, staging, publishStatus, onPublish, onUnpublish, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onAddSection, onMovePage, sections, onDeletePage, onTogglePreview, pagesProps, themeProps}) {
+export function AdminBar({editing, preview, saveState, adminPath, currentPage, currentTemplate, linkSources, staging, publishStatus, onPublish, onUnpublish, onEnter, onSave, onDiscard, onUndo, canUndo, onAddPage, onAddSection, onMovePage, sections, onDeletePage, onTogglePreview, version, pagesProps, themeProps}) {
     const [panel, setPanel] = useState(null); // 'nav' | 'sitemap' | 'templates' | 'theme'
     const [deleteOpen, setDeleteOpen] = useState(false);
     const toggle = p => setPanel(cur => (cur === p ? null : p));
@@ -281,6 +281,9 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
                     <span className="admin-bar-sep"/>
                     <IconBtn title={preview ? 'Back to editing' : 'Web view (preview)'} active={preview}
                              onClick={onTogglePreview}><Eye size={19}/></IconBtn>
+                    {/* The page builder portals its column / placement / guide controls here. */}
+                    {!preview && <span className="admin-bar-sep"/>}
+                    {!preview && <div id="admin-builder-slot" className="admin-builder-slot"/>}
                 </>}
             </div>
 
@@ -330,5 +333,10 @@ export function AdminBar({editing, preview, saveState, adminPath, currentPage, c
                                  setPanel(null);
                                  onDeletePage(current.path);
                              }}/>}
+
+        {/* Small iterative version tag, admin-only, tucked in the corner. Bumps on every save. */}
+        {version && <span className="admin-version" title="Site version — increases with every save">
+            {version}
+        </span>}
     </>;
 }

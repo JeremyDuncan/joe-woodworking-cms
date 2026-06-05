@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Copyright, Grid3x3, Heading, Image as ImageIcon, LayoutGrid, List, Magnet, Minus, MousePointerClick, Pilcrow, Plus, Star} from 'lucide-react';
+import {Check, Columns3, Copyright, Grid3x3, Heading, Image as ImageIcon, LayoutGrid, List, Magnet, Minus, MousePointerClick, Pilcrow, Plus, Star} from 'lucide-react';
 import {DndContext, DragOverlay, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors} from '@dnd-kit/core';
 import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
 import {useEdit} from '../lib/edit.jsx';
@@ -29,6 +29,56 @@ function BlockPicker({registry, anchor, onPick, onClose}) {
                 </div>
             </div>
         </div>, document.body);
+}
+
+// One icon showing the current column count; click to pick 1–6 from a popover.
+function ColumnsMenu({columns, setColumns}) {
+    const ref = useRef(null);
+    const [pos, setPos] = useState(null);
+    const open = () => {
+        if (pos) return setPos(null);
+        const r = ref.current.getBoundingClientRect();
+        setPos({top: r.bottom + 6, left: Math.max(8, Math.min(r.left, window.innerWidth - 180))});
+    };
+    return <>
+        <button ref={ref} type="button" className="builder-ctl-btn block-ctl-btn has-badge"
+                data-tip={`Columns: ${columns}`} aria-label="Page columns" onClick={open}>
+            <Columns3 size={15}/><span className="builder-ctl-badge">{columns}</span>
+        </button>
+        {pos && createPortal(
+            <div className="ctl-menu-backdrop" onMouseDown={() => setPos(null)}>
+                <div className="ctl-menu-pop" style={pos} onMouseDown={e => e.stopPropagation()}>
+                    <div className="ctl-menu-head">Columns</div>
+                    {[1, 2, 3, 4, 5, 6].map(n =>
+                        <button key={n} type="button" className="ctl-menu-item"
+                                onClick={() => {
+                                    setColumns(n);
+                                    setPos(null);
+                                }}>
+                            <span>{n} column{n > 1 ? 's' : ''}</span>{n === columns && <Check size={14}/>}
+                        </button>)}
+                </div>
+            </div>, document.body)}
+    </>;
+}
+
+// The compact builder controls (columns + placement + guides) shared by the admin bar
+// (main page) and the inline footer toolbar.
+function BuilderControls({columns, setColumns, free, enableFlow, enableFree, guides, setGuides}) {
+    return <div className="builder-controls">
+        <ColumnsMenu columns={columns} setColumns={setColumns}/>
+        <span className="builder-ctl-sep"/>
+        <button type="button" className={`builder-ctl-btn block-ctl-btn${!free ? ' active' : ''}`}
+                data-tip="Flow placement — blocks shift to make room" aria-label="Flow placement"
+                onClick={enableFlow}><Magnet size={15}/></button>
+        <button type="button" className={`builder-ctl-btn block-ctl-btn${free ? ' active' : ''}`}
+                data-tip="Free placement — drop blocks in any open cell" aria-label="Free placement"
+                onClick={enableFree}><LayoutGrid size={15}/></button>
+        <span className="builder-ctl-sep"/>
+        <button type="button" className={`builder-ctl-btn block-ctl-btn${guides ? ' active' : ''}`}
+                data-tip={guides ? 'Hide column & row guides' : 'Show column & row guides'}
+                aria-label="Toggle layout guides" onClick={() => setGuides(g => !g)}><Grid3x3 size={15}/></button>
+    </div>;
 }
 
 function spanOf(block, columns) {
@@ -130,6 +180,14 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const [resizingId, setResizingId] = useState(null);
     const [guides, setGuides] = useState(false);
     const [rowTops, setRowTops] = useState([]);
+    // The main page's builder controls live in the admin bar (a portal target it renders).
+    // The footer builder keeps them inline, next to the footer.
+    const [controlSlot, setControlSlot] = useState(null);
+    useLayoutEffect(() => {
+        if (context === 'footer') return;
+        const el = document.getElementById('admin-builder-slot');
+        setControlSlot(prev => (prev === el ? prev : el));
+    });
     const rowKey = useRef('');
     const dragLeft = useRef(null);
     const dragTop = useRef(null);
@@ -393,25 +451,14 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     }
 
     const isFooter = context === 'footer';
-    const columnsLabel = isFooter ? 'Footer Columns:' : 'Main Page Columns:';
+    const controls = <BuilderControls columns={columns} setColumns={setColumns} free={free}
+                                      enableFlow={enableFlow} enableFree={enableFree}
+                                      guides={guides} setGuides={setGuides}/>;
     return <div className="page-builder">
+        {/* Main page: render the controls into the admin bar. Footer: keep them inline. */}
+        {!isFooter && controlSlot && createPortal(controls, controlSlot)}
         <div className="builder-toolbar">
-            <span>{columnsLabel}</span>
-            {[1, 2, 3, 4, 5, 6].map(n => <button key={n} type="button" className={columns === n ? 'active' : ''}
-                                                 onClick={() => setColumns(n)}>{n}</button>)}
-            <span className="builder-sep"/>
-            <span>Placement:</span>
-            <button type="button" className={`builder-toggle block-ctl-btn${!free ? ' active' : ''}`}
-                    aria-label="Flow placement" data-tip="Flow: blocks shift to make room (default)"
-                    onClick={enableFlow}><Magnet size={16}/></button>
-            <button type="button" className={`builder-toggle block-ctl-btn${free ? ' active' : ''}`}
-                    aria-label="Free placement" data-tip="Free: place blocks in any open cell; they stay put"
-                    onClick={enableFree}><LayoutGrid size={16}/></button>
-            <span className="builder-sep"/>
-            <button type="button" className={`builder-toggle block-ctl-btn${guides ? ' active' : ''}`}
-                    aria-pressed={guides} aria-label="Toggle layout guides"
-                    data-tip={guides ? 'Hide column & row guides' : 'Show column & row guides'}
-                    onClick={() => setGuides(g => !g)}><Grid3x3 size={16}/></button>
+            {isFooter && controls}
             <span className="builder-hint">{free
                 ? 'Drag a block into any open cell · drag its side edge to resize into the space'
                 : 'Drag the ⠿ handle to reorder · drag a block’s side edge to resize'}</span>

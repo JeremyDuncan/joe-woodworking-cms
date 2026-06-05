@@ -1,34 +1,57 @@
 import React from 'react';
-import {
-    Activity, AlarmClock, Anchor, Apple, Armchair, ArrowRight, AtSign, Award, Axe, Baby, Backpack, BadgeCheck,
-    Banknote, Battery, Bed, Bell, Bike, Bird, Book, BookOpen, Bookmark, Box, Briefcase, Bug, Building, Cake,
-    Calculator, Calendar, Camera, Car, Cat, Check, Clock, Cloud, Code, Coffee, Coins, Compass, Cookie, CreditCard,
-    Crown, Database, Diamond, Dog, DollarSign, Download, Droplet, Dumbbell, Egg, Eye, Factory, Feather, Film, Fish,
-    Flag, Flame, Flower, Folder, Gamepad2, Gauge, Gem, Ghost, Gift, Globe, GraduationCap, Guitar, Hammer, Hand, Heart,
-    Hexagon, Home, Image, Key, Keyboard, Landmark, Laptop, Leaf, Lightbulb, Link, Lock, Magnet, Mail, Map, MapPin,
-    Medal, Megaphone, MessageCircle, MessageSquare, Mic, Monitor, Moon, Mountain, Music, Navigation, Newspaper,
-    Package, Paintbrush, Palette, Paperclip, Pencil, Phone, PiggyBank, Pizza, Plane, Printer, Puzzle, Rabbit, Radio,
-    Rocket, Ruler, Scissors, Search, Send, Settings, Shield, Ship, ShoppingBag, ShoppingCart, Shovel, Smile,
-    Snowflake, Sofa, Sparkles, Speaker, Sprout, Star, Store, Sun, Sword, Tag, Target, Tent, ThumbsUp, Ticket, Timer,
-    Train, Trash2, TreePine, TrendingUp, Trophy, Truck, Tv, Umbrella, Upload, User, Users, Utensils, Video, Wallet,
-    Watch, Waves, Wifi, Wind, Wine, Wrench, Zap
-} from 'lucide-react';
+import * as Lucide from 'lucide-react';
+import * as FontAwesome from 'react-icons/fa6';
+import * as Material from 'react-icons/md';
+import * as Bootstrap from 'react-icons/bs';
 
-// Curated, searchable icon set used everywhere icons are configurable.
-export const ICONS = {
-    Star, Sparkles, Heart, Flag, Shield, Award, Medal, Trophy, Crown, Gem, Flame, Zap, Target, BadgeCheck, Check,
-    ThumbsUp, Smile, Gift, Ticket, Tag, Sun, Moon, Snowflake, Cloud, Droplet, Waves, Wind, Leaf, Flower, Sprout,
-    TreePine, Mountain, Feather, Bird, Fish, Cat, Dog, Rabbit, Bug, Anchor, Compass, Navigation, Map, MapPin, Globe,
-    Home, Building, Landmark, Store, Factory, Tent, Hammer, Wrench, Shovel, Axe, Sword, Ruler, Paintbrush, Pencil,
-    Palette, Scissors, Package, Truck, Ship, Plane, Train, Car, Bike, Rocket, ShoppingBag, ShoppingCart, CreditCard,
-    Wallet, Banknote, Coins, DollarSign, PiggyBank, Briefcase, GraduationCap, Book, BookOpen, Bookmark, Newspaper,
-    Folder, Image, Camera, Film, Video, Music, Guitar, Speaker, Mic, Radio, Gamepad2, Puzzle, Lightbulb, Key, Lock,
-    Magnet, Gauge, Activity, TrendingUp, Database, Code, Keyboard, Laptop, Monitor, Tv, Phone, Mail, MessageCircle,
-    MessageSquare, Megaphone, Bell, Send, Link, Paperclip, Settings, Search, Calendar, Clock, AlarmClock, Timer,
-    Watch, Eye, Hand, User, Users, Baby, Coffee, Cookie, Cake, Pizza, Apple, Egg, Utensils, Wine, Dumbbell, Bed,
-    Sofa, Armchair, Backpack, Umbrella, Battery, Wifi, Box, Diamond, Hexagon, Ghost, Calculator, AtSign, Printer,
-    Trash2, Download, Upload, ArrowRight
-};
+// Icons come from several free libraries. Each glyph is stored by its component name
+// (Lucide names are bare like "Star"; react-icons names are prefixed: "FaInstagram",
+// "MdHome", "BsHeart"), so the sets never collide and old saved icons keep resolving.
+
+// Lucide ships ~1,500 icons plus a few non-icon exports and duplicate "<Name>Icon" /
+// "Lucide<Name>" aliases — drop those so each glyph appears once.
+const LUCIDE_SKIP = new Set(['createLucideIcon', 'Icon', 'icons', 'default']);
+
+function collectLucide() {
+    const out = {};
+    for (const [name, val] of Object.entries(Lucide)) {
+        if (LUCIDE_SKIP.has(name)) continue;
+        if (!/^[A-Z]/.test(name)) continue;
+        if (name.endsWith('Icon') || name.startsWith('Lucide')) continue;
+        if (val && (typeof val === 'function' || typeof val === 'object')) out[name] = val;
+    }
+    return out;
+}
+
+// react-icons sets export one function component per icon (PascalCase, set-prefixed).
+function collectReactIcons(mod) {
+    const out = {};
+    for (const [name, val] of Object.entries(mod)) {
+        if (/^[A-Z]/.test(name) && typeof val === 'function') out[name] = val;
+    }
+    return out;
+}
+
+const SOURCES = [
+    {id: 'lucide', label: 'Lucide', icons: collectLucide()},
+    {id: 'fa', label: 'Font Awesome', icons: collectReactIcons(FontAwesome)},
+    {id: 'md', label: 'Material', icons: collectReactIcons(Material)},
+    {id: 'bs', label: 'Bootstrap', icons: collectReactIcons(Bootstrap)},
+];
+
+export const ICONS = {};      // name -> component
+export const ICON_LIB = {};   // name -> library id
+for (const s of SOURCES) {
+    for (const [name, cmp] of Object.entries(s.icons)) {
+        if (!ICONS[name]) {
+            ICONS[name] = cmp;
+            ICON_LIB[name] = s.id;
+        }
+    }
+}
+
+export const ICON_NAMES = Object.keys(ICONS).sort((a, b) => a.localeCompare(b));
+export const ICON_LIBRARIES = SOURCES.map(s => ({id: s.id, label: s.label}));
 
 export function DynamicIcon({name, ...props}) {
     const Cmp = ICONS[name] || ICONS.Star;

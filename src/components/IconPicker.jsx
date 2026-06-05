@@ -1,28 +1,49 @@
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Plus} from 'lucide-react';
-import {ICONS, DynamicIcon} from '../lib/icons.jsx';
+import {ICONS, ICON_NAMES, ICON_LIB, ICON_LIBRARIES, DynamicIcon} from '../lib/icons.jsx';
+
+// With thousands of icons across several libraries we can't paint them all at once, so we
+// cap the grid and nudge the user to keep typing (or pick a library) when there are more
+// matches than we show.
+const CAP = 500;
 
 export function IconPicker({value, onSelect, onClose, allowNone}) {
     const [q, setQ] = useState('');
-    const names = Object.keys(ICONS).filter(n => n.toLowerCase().includes(q.toLowerCase()));
+    const [lib, setLib] = useState('all');
+    const term = q.trim().toLowerCase();
+    const base = lib === 'all' ? ICON_NAMES : ICON_NAMES.filter(n => ICON_LIB[n] === lib);
+    const matches = term ? base.filter(n => n.toLowerCase().includes(term)) : base;
+    const shown = matches.slice(0, CAP);
     // Portal to <body> so an ancestor with backdrop-filter/transform (e.g. the
     // fixed site header) can't clip the fixed modal.
     return createPortal(<div className="icon-modal-backdrop" onClick={onClose}>
         <div className="icon-modal" onClick={e => e.stopPropagation()}>
             <div className="icon-modal-head">
-                <input autoFocus placeholder="Search icons" value={q} onChange={e => setQ(e.target.value)}/>
+                <input autoFocus placeholder={`Search ${ICON_NAMES.length} icons…`} value={q}
+                       onChange={e => setQ(e.target.value)}/>
                 <button type="button" className="theme-close" onClick={onClose}>×</button>
+            </div>
+            <div className="icon-libs">
+                <button type="button" className={`icon-lib ${lib === 'all' ? 'active' : ''}`}
+                        onClick={() => setLib('all')}>All</button>
+                {ICON_LIBRARIES.map(l => <button key={l.id} type="button"
+                                                 className={`icon-lib ${lib === l.id ? 'active' : ''}`}
+                                                 onClick={() => setLib(l.id)}>{l.label}</button>)}
             </div>
             <div className="icon-grid">
                 {allowNone && <button type="button" className={`icon-cell ${!value ? 'active' : ''}`}
                                       title="No icon" onClick={() => onSelect('')}>∅</button>}
-                {names.map(n => {
+                {shown.map(n => {
                     const Cmp = ICONS[n];
                     return <button key={n} type="button" className={`icon-cell ${value === n ? 'active' : ''}`}
                                    title={n} onClick={() => onSelect(n)}><Cmp size={20}/></button>;
                 })}
             </div>
+            {matches.length === 0
+                ? <p className="icon-modal-note">No icons match “{q}”.</p>
+                : matches.length > CAP &&
+                <p className="icon-modal-note">Showing {CAP} of {matches.length} — keep typing or pick a library.</p>}
         </div>
     </div>, document.body);
 }
