@@ -1,9 +1,35 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {Grid3x3, LayoutGrid, Magnet, Plus} from 'lucide-react';
+import {createPortal} from 'react-dom';
+import {Copyright, Grid3x3, Heading, Image as ImageIcon, LayoutGrid, List, Magnet, Minus, MousePointerClick, Pilcrow, Plus, Star} from 'lucide-react';
 import {DndContext, DragOverlay, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors} from '@dnd-kit/core';
 import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
 import {useEdit} from '../lib/edit.jsx';
 import {BlockFrame} from './BlockFrame.jsx';
+
+const BLOCK_ICONS = {
+    divider: Minus, eyebrow: Star, heading: Heading, text: Pilcrow, button: MousePointerClick,
+    list: List, image: ImageIcon, item: LayoutGrid, copyright: Copyright
+};
+
+// A popover of block types, opened from any "+" trigger so blocks can be added exactly
+// where you want them instead of only at the bottom of the page.
+function BlockPicker({registry, anchor, onPick, onClose}) {
+    const types = Object.keys(registry).filter(t => !registry[t].legacy && registry[t].render);
+    return createPortal(
+        <div className="ctl-menu-backdrop" onMouseDown={onClose}>
+            <div className="block-picker" style={anchor} onMouseDown={e => e.stopPropagation()}>
+                <div className="block-picker-head">Add a block</div>
+                <div className="block-picker-grid">
+                    {types.map(t => {
+                        const Icon = BLOCK_ICONS[t] || Plus;
+                        return <button key={t} type="button" className="block-picker-item" onClick={() => onPick(t)}>
+                            <Icon size={18}/><span>{registry[t].label}</span>
+                        </button>;
+                    })}
+                </div>
+            </div>
+        </div>, document.body);
+}
 
 function spanOf(block, columns) {
     return Math.min(Math.max(1, block.props?.span || 1), columns);
@@ -50,7 +76,7 @@ function packFree(blocks, columns) {
 
 // One draggable block. In flow mode it sizes by the .span-N class and the grid packs it; in
 // free mode it's placed explicitly via CSS custom properties (overridable on mobile).
-function SortableBlock({block, columns, free, col, span, row, label, extra, onRemove, onResizeStart, resizing, children}) {
+function SortableBlock({block, columns, free, col, span, row, label, extra, onRemove, onResizeStart, onInsert, resizing, children}) {
     const {attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging} = useSortable({id: block.id});
     const style = free
         ? {opacity: isDragging ? 0.4 : 1, '--bcol': col || 1, '--bspan': span, '--brow': row}
@@ -59,6 +85,9 @@ function SortableBlock({block, columns, free, col, span, row, label, extra, onRe
         ? `page-block free${resizing ? ' is-resizing' : ''}`
         : `page-block span-${span}${resizing ? ' is-resizing' : ''}`;
     return <div className={cls} ref={setNodeRef} style={style} data-bid={block.id}>
+        {/* Flow mode: hover "+" to insert a new block right before this one. */}
+        {!free && onInsert && <button type="button" className="block-insert" data-tip="Add a block here"
+                                      aria-label="Add a block here" onClick={onInsert}><Plus size={14}/></button>}
         <BlockFrame label={label} handleRef={setActivatorNodeRef} handleProps={{...attributes, ...listeners}}
                     onRemove={onRemove} extra={extra} wrapActions={block.type === 'list'}>
             {children}
@@ -296,17 +325,33 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
         window.addEventListener('pointerup', onUp);
     }
 
-    function addBlock(type) {
+    // `where`: {kind:'append'} (bottom), {kind:'index', index} (flow, insert before), or
+    // {kind:'cell', col, row} (free, drop into a specific empty cell).
+    function addBlock(type, where = {kind: 'append'}) {
         const def = registry[type];
         const props = {...def.defaults};
-        // New blocks land on a fresh row at the bottom in free mode (never on top of others).
         if (free) {
-            props.col = 1;
-            props.row = maxRow + 1;
+            if (where.kind === 'cell') {
+                props.col = where.col;
+                props.row = where.row;
+            } else {
+                props.col = 1;
+                props.row = maxRow + 1;
+            }
         }
         const block = {id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, props};
-        setBlocks([...blocks, block]);
+        setBlocks(where.kind === 'index'
+            ? [...blocks.slice(0, where.index), block, ...blocks.slice(where.index)]
+            : [...blocks, block]);
     }
+
+    // The block picker: {anchor:{top,left}, where}. Opened from any "+" trigger.
+    const [picker, setPicker] = useState(null);
+    const openPicker = (where, e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - 330));
+        setPicker({anchor: {top: r.bottom + 6, left}, where});
+    };
 
     function removeBlock(idx) {
         setBlocks(blocks.filter((_, i) => i !== idx));
@@ -332,6 +377,20 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
 
     const activeIndex = blocks.findIndex(b => b.id === activeId);
     const activeBlock = activeIndex >= 0 ? blocks[activeIndex] : null;
+
+    // Free mode: every grid cell (through one row past the content) that no block occupies,
+    // so each can show an "add here" tile.
+    const emptyCells = [];
+    if (free) {
+        const taken = new Set();
+        blocks.forEach(b => {
+            const c = colOf(b, columns) || 1, s = spanOf(b, columns), r = rowOf(b);
+            for (let i = 0; i < s; i++) taken.add(`${r}:${c + i}`);
+        });
+        for (let r = 1; r <= maxRow + 1; r++)
+            for (let c = 1; c <= columns; c++)
+                if (!taken.has(`${r}:${c}`)) emptyCells.push({row: r, col: c});
+    }
 
     const isFooter = context === 'footer';
     const columnsLabel = isFooter ? 'Footer Columns:' : 'Main Page Columns:';
@@ -376,15 +435,23 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
                                               label={def?.label || b.type}
                                               onRemove={() => removeBlock(i)} resizing={resizingId === b.id}
                                               onResizeStart={e => startResize(e, i)}
+                                              onInsert={e => openPicker({kind: 'index', index: i}, e)}
                                               extra={def?.controls ? def.controls({block: b, setProp: (k, v) => setProp(i, k, v), setProps: patch => setProps(i, patch), pages, columns, items}) : null}>
                             {content(b, i)}
                         </SortableBlock>;
                     })}
-                    <div className="block-add" style={free ? {gridColumn: '1 / -1', gridRow: maxRow + 1} : {gridColumn: '1 / -1'}}>
-                        <span><Plus size={14}/> Add:</span>
-                        {Object.keys(registry).filter(type => !registry[type].legacy).map(type =>
-                            <button key={type} type="button"
-                                    onClick={() => addBlock(type)}>{registry[type].label}</button>)}
+                    {/* Free mode: a "+" tile in every empty cell, so you can add a block right
+                        where it's missing instead of only at the bottom. */}
+                    {free && emptyCells.map(({row, col}) =>
+                        <button key={`add-${row}-${col}`} type="button" className="cell-add"
+                                style={{'--bcol': col, '--brow': row}} data-tip="Add a block here"
+                                aria-label="Add a block here"
+                                onClick={e => openPicker({kind: 'cell', col, row}, e)}><Plus size={16}/></button>)}
+                    <div className="block-add"
+                         style={free ? {gridColumn: '1 / -1', gridRow: maxRow + 2} : {gridColumn: '1 / -1'}}>
+                        <button type="button" className="block-add-btn" onClick={e => openPicker({kind: 'append'}, e)}>
+                            <Plus size={16}/> Add a block
+                        </button>
                     </div>
                 </div>
             </SortableContext>
@@ -397,5 +464,12 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
                 </div> : null}
             </DragOverlay>
         </DndContext>
+
+        {picker && <BlockPicker registry={registry} anchor={picker.anchor}
+                                onPick={type => {
+                                    addBlock(type, picker.where);
+                                    setPicker(null);
+                                }}
+                                onClose={() => setPicker(null)}/>}
     </div>;
 }

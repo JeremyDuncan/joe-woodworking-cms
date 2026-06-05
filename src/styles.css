@@ -5036,3 +5036,168 @@ h6 {
     color: #ff9aa4;
     border-color: rgba(227, 52, 69, .35)
 }
+
+/* ---- Block picker + inline "add" affordances ---- */
+.block-picker {
+    position: fixed;
+    z-index: 250;
+    width: min(320px, 92vw);
+    max-height: 70vh;
+    overflow: auto;
+    padding: 10px;
+    background: rgba(10, 18, 32, .99);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow)
+}
+
+.block-picker-head {
+    padding: 2px 4px 8px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--steel)
+}
+
+.block-picker-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px
+}
+
+.block-picker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 6px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    color: var(--cream);
+    border-radius: 10px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer
+}
+
+.block-picker-item:hover {
+    border-color: var(--gold);
+    background: rgba(215, 166, 79, .14);
+    color: var(--gold)
+}
+
+/* Bottom adder: a single dashed "Add a block" button (opens the picker). */
+.block-add {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    border: 0
+}
+
+.block-add .block-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: 1px dashed rgba(215, 166, 79, .45);
+    border-radius: 14px;
+    background: rgba(215, 166, 79, .05);
+    color: var(--gold);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer
+}
+
+.block-add .block-add-btn:hover {
+    background: rgba(215, 166, 79, .14);
+    border-color: var(--gold)
+}
+
+/* Flow mode: a "+" on the top edge of a block to insert one before it. */
+.block-insert {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 7;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #14233b;
+    color: var(--gold);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s ease
+}
+
+.page-block:hover > .block-insert,
+.block-insert:focus-visible {
+    opacity: 1
+}
+
+/* Free mode: an "add here" tile in every empty grid cell. */
+.page-grid.free-grid .cell-add {
+    position: relative;
+    grid-column: var(--bcol) / span 1;
+    grid-row: var(--brow);
+    display: grid;
+    place-items: center;
+    min-height: 56px;
+    border: 1px dashed rgba(215, 166, 79, .28);
+    border-radius: 12px;
+    background: rgba(215, 166, 79, .03);
+    color: rgba(215, 166, 79, .5);
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, color .12s ease
+}
+
+.page-grid.free-grid .cell-add:hover {
+    background: rgba(215, 166, 79, .12);
+    border-color: var(--gold);
+    color: var(--gold)
+}
+
+/* Instant tooltip for the add affordances. */
+.block-insert[data-tip]::after,
+.cell-add[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    white-space: nowrap;
+    background: #0d1c31;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 6px 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease, transform .1s ease;
+    z-index: 260
+}
+
+.block-insert[data-tip]:hover::after,
+.cell-add[data-tip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0)
+}
+
+/* Empty-cell add tiles are a desktop editing aid; hide them where free placement collapses. */
+@media (max-width: 1150px) {
+    .page-grid.free-grid .cell-add {
+        display: none
+    }
+}
