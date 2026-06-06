@@ -4,6 +4,8 @@ import './styles.css';
 import {defaultSettings, mergeSettings} from './data/defaults.js';
 import {applyTheme} from './lib/theme.js';
 import {DialogHost} from './lib/dialog.jsx';
+import {ProcessingProvider} from './lib/processing.jsx';
+import {UploadProvider} from './lib/uploads.jsx';
 import {PublicSite} from './pages/PublicSite.jsx';
 import {Admin} from './admin/Admin.jsx';
 
@@ -95,14 +97,16 @@ function App() {
                 : <p className="app-loading">Loading…</p>}
         </div>;
     }
-    return <>
-        {isAdminRoute
-            ? <Admin items={items} reload={reload} onAuthChange={reloadConfig}/>
-            : <PublicSite items={items} settings={settings} route={route}
-                          isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
-                          reloadItems={reload}/>}
-        <DialogHost/>
-    </>;
+    return <ProcessingProvider active={config.isAdmin}>
+        <UploadProvider>
+            {isAdminRoute
+                ? <Admin items={items} reload={reload} onAuthChange={reloadConfig}/>
+                : <PublicSite items={items} settings={settings} route={route}
+                              isAdmin={config.isAdmin} adminPath={config.adminPath} reloadSettings={reloadSettings}
+                              reloadItems={reload}/>}
+            <DialogHost/>
+        </UploadProvider>
+    </ProcessingProvider>;
 }
 
 createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);

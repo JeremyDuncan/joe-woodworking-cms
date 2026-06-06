@@ -1,13 +1,16 @@
 import React, {useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Check, CircleDot, Crop, FolderOpen, Heading as HeadingIcon, Link2, List, RectangleHorizontal, Type, Upload} from 'lucide-react';
+import {Check, CircleDot, Crop, Film, FolderOpen, Heading as HeadingIcon, Link2, List, RectangleHorizontal, Type, Upload, Video} from 'lucide-react';
 import {isExternalUrl, Link, navigate} from '../lib/navigation.jsx';
 import {MediaPreview} from '../components/MediaPreview.jsx';
 import {ItemCard} from '../components/ItemCard.jsx';
 import {ImageAdjust} from '../components/ImageAdjust.jsx';
-import {htmlToText, InlineText, RichHtml, RichText} from '../lib/edit.jsx';
+import {htmlToText, InlineText, RichHtml, RichText, useEdit} from '../lib/edit.jsx';
 import {EditableIcon} from '../components/IconPicker.jsx';
 import {notify, promptDialog} from '../lib/dialog.jsx';
+import {useProcessing} from '../lib/processing.jsx';
+import {useUploads} from '../lib/uploads.jsx';
+import {VideoPicker} from '../components/VideoPicker.jsx';
 import {PagePicker} from '../components/PagePicker.jsx';
 
 function Eyebrow({block, setProp, editing}) {
@@ -177,6 +180,101 @@ function ImageBlock({block, setProp, editing, featured, onImageOpen}) {
         </div>}
         {adjust && src && <ImageAdjust src={src} value={placement} aspect={aspect} onApply={p => setProp('placement', p)}
                                        onClose={() => setAdjust(false)}/>}
+    </div>;
+}
+
+// Upload control for the Video block. The actual upload is handed to the global upload manager
+// so it keeps running (and showing progress in the corner dock) even if you navigate away or
+// the block unmounts. When it finishes we set the block's video and refresh the badge state.
+function VideoUpload({hasVideo, blockId, onUploaded}) {
+    const {refresh} = useProcessing();
+    const {start} = useUploads();
+
+    function onChange(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+        start(file, {
+            blockId,
+            onComplete: res => {
+                if (res?.url) {
+                    onUploaded(res.url);
+                    refresh();
+                } else {
+                    notify(res?.error || 'Upload failed.', 'error');
+                }
+            }
+        });
+    }
+
+    return <label className="button button-ghost img-act-btn">
+        <Upload size={15}/>{hasVideo ? 'Replace video' : 'Upload video'}
+        <input type="file" accept="video/*" onChange={onChange}/>
+    </label>;
+}
+
+// A Video block: upload a new video, or pick an already-uploaded one from the library.
+function VideoBlock({block, setProp, editing, route}) {
+    const [picking, setPicking] = useState(false);
+    const {uploads} = useUploads();
+    const {reload} = useEdit();
+    // Set the block's video AND persist it to the saved layout, then refresh settings so the
+    // block shows the video without a manual reload (it survives navigation/reload either way).
+    const setVideo = u => {
+        setProp('url', u);
+        if (route && block.id && u) {
+            fetch('/api/admin/block-media', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({route, blockId: block.id, url: u})
+            }).then(r => {
+                if (r.ok) reload?.(); // pull the freshly-linked URL into the rendered (non-edit) view
+            }).catch(() => {});
+        }
+    };
+    // This block's in-flight upload (if any) — drives the inline status.
+    const upload = uploads.findLast?.(u => u.blockId === block.id)
+        ?? [...uploads].reverse().find(u => u.blockId === block.id);
+    const uploading = upload?.status === 'uploading' || upload?.status === 'error';
+    const finishing = upload?.status === 'done'; // transfer done; URL is being linked/loaded
+    const url = block.props.url;
+    const caption = block.props.caption;
+    const media = url ? [{url, type: 'video/mp4'}] : [];
+    const pct = Math.round((upload?.progress || 0) * 100);
+    return <div className="home-visual">
+        {uploading
+            ? <div className={`media-frame video-uploading${upload.status === 'error' ? ' is-error' : ''}`}>
+                <Video size={34}/>
+                <span className="video-uploading-label">
+                    {upload.status === 'error' ? (upload.error || 'Upload failed') : `Uploading ${pct}%`}
+                </span>
+                {upload.status === 'uploading' &&
+                    <div className="upload-bar"><div className="upload-bar-fill" style={{width: `${pct}%`}}/></div>}
+            </div>
+            : url
+                ? <MediaPreview media={media}/>
+                : finishing
+                    ? <div className="media-frame video-uploading">
+                        <Video size={34}/><span className="video-uploading-label">Finishing up…</span>
+                    </div>
+                    : editing
+                        ? <div className="media-frame video-empty"><Video size={38}/><span>No video uploaded yet</span></div>
+                        : null}
+        {editing
+            ? <InlineText as="p" className="image-caption" value={caption || ''} placeholder="Caption (optional)"
+                          onChange={v => setProp('caption', v)}/>
+            : (caption ? <p className="image-caption">{caption}</p> : null)}
+        {editing && <div className="img-actions">
+            <VideoUpload hasVideo={!!url} blockId={block.id} onUploaded={setVideo}/>
+            <button type="button" className="button button-ghost img-act-btn" onClick={() => setPicking(true)}>
+                <Film size={15}/>Library
+            </button>
+        </div>}
+        {picking && <VideoPicker current={url}
+                                 onPick={u => {
+                                     setProp('url', u); // a deliberate pick stays in the draft until you save
+                                     setPicking(false);
+                                 }}
+                                 onClose={() => setPicking(false)}/>}
     </div>;
 }
 
@@ -480,6 +578,7 @@ export const blockRegistry = {
     button: {label: 'Button', defaults: {label: 'Button', to: '/contact', variant: 'primary'}, render: ButtonBlock, controls: buttonControls},
     list: {label: 'List', defaults: {items: ['Item one', 'Item two'], icon: 'BadgeCheck', variant: 'chips', size: 'md'}, render: ListBlock, controls: listControls},
     image: {label: 'Image', defaults: {source: 'featured'}, render: ImageBlock, controls: imageControls},
+    video: {label: 'Video', defaults: {}, render: VideoBlock},
     item: {
         label: 'Item',
         defaults: {title: 'New item', description: 'Describe this item.', price: '', image: ''},

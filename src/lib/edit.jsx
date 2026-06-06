@@ -6,12 +6,12 @@ import {promptDialog} from './dialog.jsx';
 import {PagePicker} from '../components/PagePicker.jsx';
 import {pageLabel} from './pages.js';
 
-const EditContext = createContext({editing: false, setField: () => {}});
+const EditContext = createContext({editing: false, setField: () => {}, reload: () => {}});
 
 export const useEdit = () => useContext(EditContext);
 
-export function EditProvider({editing, setField, children}) {
-    return <EditContext.Provider value={{editing, setField}}>{children}</EditContext.Provider>;
+export function EditProvider({editing, setField, reload, children}) {
+    return <EditContext.Provider value={{editing, setField, reload}}>{children}</EditContext.Provider>;
 }
 
 // A contentEditable element that won't fight React over the cursor: it only writes

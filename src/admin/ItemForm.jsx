@@ -27,7 +27,7 @@ export function ItemForm({formRef, editing, setEditing, reload, setNotice}) {
         });
         if (existingKept + selectedFiles.length < 1) return setNotice({
             type: 'error',
-            text: 'Please add at least one image or video.'
+            text: 'Please add at least one image.'
         });
         setBusy(true);
         setNotice({type: 'success', text: 'Saving...'});
@@ -105,10 +105,10 @@ export function ItemForm({formRef, editing, setEditing, reload, setNotice}) {
             )}
 
             <label className="upload">
-                <ImagePlus /> Upload images/videos
+                <ImagePlus /> Upload images
                 <input
                     type="file"
-                    accept="image/*,.heic,.heif,video/*"
+                    accept="image/*,.heic,.heif"
                     multiple
                     onChange={e => {
                         setFiles(e.target.files);

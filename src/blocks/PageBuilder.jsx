@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Check, Columns3, Copyright, Grid3x3, Heading, Image as ImageIcon, LayoutGrid, List, Magnet, Minus, MousePointerClick, Pilcrow, Plus, Star} from 'lucide-react';
+import {Check, Columns3, Copyright, Grid3x3, Heading, Image as ImageIcon, LayoutGrid, List, Magnet, Minus, MousePointerClick, Pilcrow, Plus, Star, Video} from 'lucide-react';
 import {DndContext, DragOverlay, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors} from '@dnd-kit/core';
 import {SortableContext, arrayMove, rectSortingStrategy, useSortable} from '@dnd-kit/sortable';
 import {useEdit} from '../lib/edit.jsx';
@@ -8,7 +8,7 @@ import {BlockFrame} from './BlockFrame.jsx';
 
 const BLOCK_ICONS = {
     divider: Minus, eyebrow: Star, heading: Heading, text: Pilcrow, button: MousePointerClick,
-    list: List, image: ImageIcon, item: LayoutGrid, copyright: Copyright
+    list: List, image: ImageIcon, video: Video, item: LayoutGrid, copyright: Copyright
 };
 
 // A popover of block types, opened from any "+" trigger so blocks can be added exactly
@@ -153,8 +153,16 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const blocks = layout.blocks || [];
     const free = layout.mode === 'free';
     const maxRow = blocks.reduce((m, b) => Math.max(m, rowOf(b)), 0);
-    const setLayout = patch => setField(['layout', route], {...layout, ...patch});
-    const setBlocks = next => setLayout({blocks: next});
+    // Apply against the LATEST layout (functional update) so a slow async edit — e.g. a long
+    // video upload finishing minutes later — merges its change instead of overwriting the page
+    // with a stale snapshot. `patch` / `next` may be a value or an updater fn of the current.
+    const setLayout = patch => setField(['layout', route], cur => {
+        const base = cur || layout;
+        return {...base, ...(typeof patch === 'function' ? patch(base) : patch)};
+    });
+    const setBlocks = next => setLayout(cur => ({
+        blocks: typeof next === 'function' ? next(cur.blocks || []) : next
+    }));
 
     // Changing the column count rescales blocks proportionally so they keep their relative
     // width — and, in Free mode, their relative position too (using 0-based column math so a
@@ -200,9 +208,9 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
     const prevRects = useRef(new Map());
     const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 5}}));
 
-    const setProp = (idx, key, value) => setBlocks(blocks.map((b, i) =>
+    const setProp = (idx, key, value) => setBlocks(prev => prev.map((b, i) =>
         i === idx ? {...b, props: {...b.props, [key]: value}} : b));
-    const setProps = (idx, patch) => setBlocks(blocks.map((b, i) =>
+    const setProps = (idx, patch) => setBlocks(prev => prev.map((b, i) =>
         i === idx ? {...b, props: {...b.props, ...patch}} : b));
 
     // FLIP: after a move/resize shoves blocks, let each glide from its old spot to its new
@@ -403,12 +411,19 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
             : [...blocks, block]);
     }
 
-    // The block picker: {anchor:{top,left}, where}. Opened from any "+" trigger.
+    // The block picker: {anchor, where}. Opened from any "+" trigger. Anchored below the button
+    // when there's room, otherwise above it (so the bottom "Add a block" button isn't cut off),
+    // and height-capped to the available space with its own scroll.
     const [picker, setPicker] = useState(null);
     const openPicker = (where, e) => {
         const r = e.currentTarget.getBoundingClientRect();
         const left = Math.max(8, Math.min(r.left, window.innerWidth - 330));
-        setPicker({anchor: {top: r.bottom + 6, left}, where});
+        const below = window.innerHeight - r.bottom;
+        const above = r.top;
+        const anchor = below >= above
+            ? {top: r.bottom + 6, left, maxHeight: Math.max(140, below - 16)}
+            : {bottom: window.innerHeight - r.top + 6, left, maxHeight: Math.max(140, above - 16)};
+        setPicker({anchor, where});
     };
 
     function removeBlock(idx) {
@@ -417,7 +432,7 @@ export function PageBuilder({route, layout, registry, featured, items, onImageOp
 
     function content(b, i) {
         const Comp = registry[b.type]?.render;
-        return Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing}
+        return Comp ? <Comp block={b} setProp={(k, v) => setProp(i, k, v)} editing={editing} route={route}
                             featured={featured} items={items} onImageOpen={onImageOpen} pages={pages}/> : null;
     }
 

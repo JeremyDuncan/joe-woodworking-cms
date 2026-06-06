@@ -4,10 +4,11 @@ import createFileStore from 'session-file-store';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
-import {execFile} from 'child_process';
+import {execFile, spawn} from 'child_process';
 import {promisify} from 'util';
 import {randomUUID} from 'crypto';
 import fs from 'fs';
+import {pipeline} from 'stream/promises';
 import path from 'path';
 import {fileURLToPath, pathToFileURL} from 'url';
 import os from 'os';
@@ -492,10 +493,13 @@ export function createApp(options = {}) {
     const USERS_FILE = path.join(DATA_DIR, 'admin-users.json');
     const UPLOAD_DIR = options.uploadDir ?? process.env.UPLOAD_DIR ?? path.join(DATA_DIR, 'uploads');
     const SESSION_DIR = path.join(DATA_DIR, 'sessions');
+    // Scratch space for large video uploads/transcodes (streamed here, never held in RAM).
+    const TMP_DIR = path.join(DATA_DIR, 'tmp');
 
     fs.mkdirSync(DATA_DIR, {recursive: true});
     fs.mkdirSync(UPLOAD_DIR, {recursive: true});
     fs.mkdirSync(SESSION_DIR, {recursive: true});
+    fs.mkdirSync(TMP_DIR, {recursive: true});
     // Migrate the old file-storage name (works.json → items.json) if present.
     if (!fs.existsSync(DB_FILE) && fs.existsSync(LEGACY_DB_FILE)) {
         try {
@@ -733,16 +737,196 @@ export function createApp(options = {}) {
         return file.mimetype === 'image/heic' || file.mimetype === 'image/heif' || ext === '.heic' || ext === '.heif';
     }
 
+    // ---- Video transcode settings (the video analogue of the image resize/quality knobs) ----
+    // Tuned for small files since the encode runs in the background. Every value is
+    // env-overridable (set them in .production-env / .development-env). The "↓ size" note on
+    // each one tells you which direction makes the output file SMALLER.
+
+    // Max width/height in pixels: the longest side is scaled down to fit this box (never up).
+    // ↓ size: LOWER it. 1280 = 720p (default). Try 960 (~540p) or 854 (480p) for big savings;
+    // resolution is the biggest lever after CRF. Raise to 1920 for 1080p (larger files).
+    const VIDEO_MAX_DIM = Number(options.videoMaxDim ?? process.env.VIDEO_MAX_DIM ?? 1920);
+
+    // Constant Rate Factor = quality target for H.264 (0 = lossless/huge, 51 = tiny/ugly).
+    // ↓ size: RAISE it. Each +2 ≈ ~15% smaller. 30 = default (good web quality); 32–34 = much
+    // smaller, a little softer; lower to 24–26 if you want higher quality (bigger files).
+    const VIDEO_CRF = Number(options.videoCrf ?? process.env.VIDEO_CRF ?? 30);
+
+    // x264 effort/speed preset. Slower presets compress better at the SAME quality (smaller
+    // file), they just take longer to encode. ↓ size: go SLOWER. Order: ultrafast → veryfast →
+    // fast → medium → slow → slower → veryslow. ultrafast = fastest encode (default here).
+    const VIDEO_PRESET = options.videoPreset ?? process.env.VIDEO_PRESET ?? 'ultrafast';
+
+    // Frame-rate cap. Source clips above this are reduced to it (e.g. 60 fps phone video → 30);
+    // clips already at/below it are unchanged.
+    // ↓ size: LOWER it. 30 = default; 24 looks cinematic and shaves more; the saving is biggest
+    // on 60 fps footage (roughly halves the video data).
+    const VIDEO_FPS = Number(options.videoFps ?? process.env.VIDEO_FPS ?? 30);
+
+    // Audio bitrate in kbps (AAC). Small slice of total size, but still tunable.
+    // ↓ size: LOWER it. 96 = default (good stereo); 64 is fine for speech/ambient; raise to 128
+    // for music-quality audio.
+    const VIDEO_AUDIO_KBPS = Number(options.videoAudioKbps ?? process.env.VIDEO_AUDIO_KBPS ?? 64);
+
+    // Hard limit on how long a single encode may run before we give up and keep the original.
+    // Does NOT affect file size — it just needs enough headroom for the slower preset on long
+    // clips. Raise it if very long videos are timing out (it's background work, so a big value
+    // is safe); 1800000 ms = 30 minutes.
+    const VIDEO_TIMEOUT_MS = Number(options.videoTimeoutMs ?? process.env.VIDEO_TIMEOUT_MS ?? 2800000);
+
+    // ---- Keep transcoding from starving the web server ----
+    // Encoding is CPU-heavy; without limits ffmpeg grabs every core and the site goes
+    // unresponsive while a video processes. We cap how many cores it uses and run it at a low
+    // OS priority so the web server always gets CPU first (it just encodes a bit slower).
+    // VIDEO_THREADS: max cores ffmpeg may use. Default = all but one, so the server keeps a
+    // core. Set to 1 on a small box for maximum responsiveness (slowest encode).
+    const VIDEO_THREADS = Number(options.videoThreads ?? process.env.VIDEO_THREADS
+        ?? Math.max(1, (os.cpus()?.length || 2) - 1));
+    // VIDEO_NICE: Unix "niceness" 0–19 (higher = lower priority / yields more to the website).
+    // 19 = be maximally polite. Set 0 to disable de-prioritising.
+    const VIDEO_NICE = Number(options.videoNice ?? process.env.VIDEO_NICE ?? 19);
+
+    // Probe for ffmpeg once and cache the answer. If it's not installed we skip background
+    // transcoding entirely and just keep the original upload.
+    let _ffmpegProbe = null;
+
+    function ffmpegAvailable() {
+        if (!_ffmpegProbe) {
+            _ffmpegProbe = execFileAsync('ffmpeg', ['-version'], {timeout: 5000})
+                .then(() => true).catch(() => false);
+        }
+        return _ffmpegProbe;
+    }
+
+    // Total duration of a media file in seconds (via ffprobe, which ships with ffmpeg). Used to
+    // turn ffmpeg's elapsed-time progress into a percentage. Returns 0 if it can't be read.
+    function probeDuration(inputPath) {
+        return execFileAsync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1', inputPath], {timeout: 30000})
+            .then(({stdout}) => parseFloat(String(stdout).trim()) || 0)
+            .catch(() => 0);
+    }
+
+    // Run ffmpeg, streaming its `-progress` output so we can report a 0..1 fraction as it encodes
+    // (spawn, not execFile, so we read progress live). Resolves on success; rejects with the tail
+    // of stderr attached so failures stay diagnosable.
+    function encodeVideo(args, {onProgress, durationSec, timeoutMs}) {
+        return new Promise((resolve, reject) => {
+            const proc = spawn('ffmpeg', args);
+            // Drop ffmpeg to a low OS priority so the web server keeps the event loop responsive
+            // even while the encode is CPU-bound (best effort; lowering priority needs no perms).
+            if (VIDEO_NICE > 0 && proc.pid) {
+                try {
+                    os.setPriority(proc.pid, VIDEO_NICE);
+                } catch {
+                }
+            }
+            let stderr = '';
+            let buf = '';
+            const timer = setTimeout(() => {
+                proc.kill('SIGKILL');
+                reject(Object.assign(new Error('ffmpeg timed out'), {stderr}));
+            }, timeoutMs);
+            proc.on('error', err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+            proc.stderr?.on('data', d => {
+                stderr += d.toString();
+                if (stderr.length > 200000) stderr = stderr.slice(-200000);
+            });
+            proc.stdout?.on('data', d => {
+                buf += d.toString();
+                let nl;
+                while ((nl = buf.indexOf('\n')) >= 0) {
+                    const line = buf.slice(0, nl);
+                    buf = buf.slice(nl + 1);
+                    // out_time_us / out_time_ms are both microseconds in ffmpeg's progress output.
+                    const m = durationSec > 0 && /^out_time_(?:us|ms)=(\d+)/.exec(line);
+                    if (m) onProgress?.(Math.max(0, Math.min(0.999, (Number(m[1]) / 1e6) / durationSec)));
+                }
+            });
+            proc.on('close', code => {
+                clearTimeout(timer);
+                if (code === 0) resolve();
+                else reject(Object.assign(new Error(`ffmpeg exited with code ${code}`), {stderr}));
+            });
+        });
+    }
+
+    // Transcode an uploaded video to a compact, stream-friendly MP4: H.264 + AAC, downscaled
+    // to fit a VIDEO_MAX_DIM box (handles portrait and landscape), with the moov atom moved to
+    // the front (`+faststart`) so the browser can start playing before the whole file loads.
+    // This mirrors the sharp→WebP step for images. If ffmpeg is missing or anything fails we
+    // keep the original upload, so a save never breaks because of transcoding.
+    // `file` may be {buffer} (small/in-memory) or {path} (a temp file already on disk — used
+    // for large videos so gigabytes never sit in RAM). Returns {buffer, transcoded:true} on a
+    // successful encode, or {buffer:file.buffer, transcoded:false} (keep original) on any
+    // failure / missing ffmpeg.
+    async function convertVideoBuffer(file, ext, onProgress) {
+        const original = {buffer: file.buffer, ext: ext || '.mp4', mimetype: file.mimetype || 'video/mp4', transcoded: false};
+        // Use the caller's file directly when we have a path; otherwise spill the buffer to disk.
+        const ownsInput = !file.path;
+        const tmpIn = file.path || path.join(TMP_DIR, `${randomUUID()}${ext || '.src'}`);
+        const tmpOut = path.join(TMP_DIR, `${randomUUID()}.mp4`);
+        try {
+            if (ownsInput) fs.writeFileSync(tmpIn, file.buffer);
+            // Cap the frame rate (halves data on 60 fps phone clips), fit the longest side within
+            // a box without upscaling, then force even dimensions. Commas inside min() are escaped
+            // so ffmpeg doesn't read them as filter separators.
+            const vf = `fps=${VIDEO_FPS},scale=min(${VIDEO_MAX_DIM}\\,iw):min(${VIDEO_MAX_DIM}\\,ih)`
+                + `:force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2`;
+            const durationSec = await probeDuration(tmpIn);
+            // H.264 video + AAC audio in an MP4 with the moov atom up front (`+faststart`) so it
+            // streams immediately. Universally playable and fast to encode.
+            await encodeVideo([
+                '-i', tmpIn,
+                '-threads', String(VIDEO_THREADS), // cap CPU cores so the website stays responsive
+                '-vf', vf,
+                '-c:v', 'libx264',
+                '-preset', VIDEO_PRESET,
+                '-crf', String(VIDEO_CRF),
+                '-pix_fmt', 'yuv420p',
+                '-c:a', 'aac',
+                '-b:a', `${VIDEO_AUDIO_KBPS}k`,
+                '-ac', '2',
+                '-movflags', '+faststart',
+                '-map_metadata', '-1',
+                '-nostats', '-progress', 'pipe:1',
+                '-y', tmpOut
+            ], {onProgress, durationSec, timeoutMs: VIDEO_TIMEOUT_MS});
+            const out = fs.readFileSync(tmpOut);
+            if (out.length) return {buffer: out, ext: '.mp4', mimetype: 'video/mp4', transcoded: true};
+            return original;
+        } catch (err) {
+            // Surface WHY it fell back (ffmpeg missing, decode error, etc.) — the last lines of
+            // ffmpeg's stderr are the most useful.
+            const detail = err?.code === 'ENOENT'
+                ? 'ffmpeg not installed'
+                : (err?.stderr ? String(err.stderr).trim().split('\n').slice(-2).join(' | ') : (err?.message || err));
+            console.warn(`[video] transcode failed — keeping original (${detail})`);
+            return original;
+        } finally {
+            // Only delete the input if we created it; a caller-supplied path is theirs to clean.
+            if (ownsInput) {
+                try {
+                    fs.unlinkSync(tmpIn);
+                } catch {
+                }
+            }
+            try {
+                fs.unlinkSync(tmpOut);
+            } catch {
+            }
+        }
+    }
+
     async function convertImageBuffer(file) {
         const ext = path.extname(file.originalname || file.filename || '').toLowerCase();
 
-        // Leave videos alone.
+        // Compress videos to a stream-friendly MP4 (the parallel of the image → WebP step).
         if (file.mimetype?.startsWith('video/')) {
-            return {
-                buffer: file.buffer,
-                ext: ext || '.bin',
-                mimetype: file.mimetype
-            };
+            return await convertVideoBuffer(file, ext);
         }
 
         // Only optimize image uploads.
@@ -818,7 +1002,51 @@ export function createApp(options = {}) {
         };
     }
 
-    async function saveMedia(file) {
+    // Persist a buffer under a fresh, unique key and return it (reuses putMedia for storage).
+    async function storeBuffer(buffer, ext, mimetype) {
+        const key = `${Date.now()}-${randomUUID()}${ext}`;
+        await putMedia(key, buffer, mimetype);
+        return key;
+    }
+
+    // Store a file from disk under a fresh key WITHOUT reading it into memory — locally by a
+    // move (instant) and to S3 by a streamed single-part PUT. For multi-GB video originals.
+    async function storeFile(srcPath, ext, mimetype) {
+        const key = `${Date.now()}-${randomUUID()}${ext}`;
+        if (s3) {
+            await s3.send(new PutObjectCommand({
+                Bucket: S3_BUCKET, Key: key, Body: fs.createReadStream(srcPath),
+                ContentLength: fs.statSync(srcPath).size, ContentType: mimetype
+            }));
+        } else {
+            const dest = path.join(UPLOAD_DIR, key);
+            try {
+                fs.renameSync(srcPath, dest); // same filesystem: instant, no copy
+            } catch {
+                await pipeline(fs.createReadStream(srcPath), fs.createWriteStream(dest));
+            }
+        }
+        return key;
+    }
+
+    // Give the background transcoder the original as a local file path (without buffering it):
+    // locally that's just the stored file; from S3 we stream it down to a temp file first.
+    async function originalToTempPath(key) {
+        if (!s3) return {path: path.join(UPLOAD_DIR, key), cleanup: () => {}};
+        const tmp = path.join(TMP_DIR, `${randomUUID()}${path.extname(key) || '.mp4'}`);
+        const obj = await s3.send(new GetObjectCommand({Bucket: S3_BUCKET, Key: key}));
+        await pipeline(obj.Body, fs.createWriteStream(tmp));
+        return {
+            path: tmp, cleanup: () => {
+                try {
+                    fs.unlinkSync(tmp);
+                } catch {
+                }
+            }
+        };
+    }
+
+    async function saveMedia(file, {deferVideo = false} = {}) {
         if (typeof options.convertImage === 'function') {
             const testFile = {...file, filename: file.filename || file.originalname || `${randomUUID()}.bin`};
             const convertedFile = await options.convertImage(testFile);
@@ -830,18 +1058,25 @@ export function createApp(options = {}) {
                 size: convertedFile.size || file.size || 0
             });
         }
-        const converted = await convertImageBuffer(file);
-        const key = `${Date.now()}-${randomUUID()}${converted.ext}`;
-        if (s3) {
-            await s3.send(new PutObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: key,
-                Body: converted.buffer,
-                ContentType: converted.mimetype
-            }));
-        } else {
-            fs.writeFileSync(path.join(UPLOAD_DIR, key), converted.buffer);
+        // Long videos can take minutes to transcode, which would block the upload request.
+        // When ffmpeg is available we store the original immediately under its final .mp4 URL,
+        // then optimize it in the background and overwrite the same key in place — so the URL
+        // we return stays valid forever (no record to patch, which matters for page blocks
+        // whose video isn't saved server-side until the admin clicks Save). Without ffmpeg we
+        // fall through to the synchronous path (which just keeps the original).
+        if (deferVideo && file.mimetype?.startsWith('video/') && await ffmpegAvailable()) {
+            // Stored under the final .mp4 URL; the background transcode overwrites it in place.
+            const key = await storeBuffer(file.buffer, '.mp4', 'video/mp4');
+            enqueueTranscode(key);
+            return {
+                url: `/uploads/${key}`, key,
+                type: 'video/mp4',
+                originalName: file.originalname,
+                size: file.buffer.length
+            };
         }
+        const converted = await convertImageBuffer(file);
+        const key = await storeBuffer(converted.buffer, converted.ext, converted.mimetype);
         return {
             url: `/uploads/${key}`,
             key,
@@ -916,21 +1151,248 @@ export function createApp(options = {}) {
     async function uploadedFilesToMedia(files = [], placementMap = {}) {
         const stored = [];
         for (const f of files) {
-            const saved = await saveMedia(f);
-            stored.push(mediaWithPlacement({
+            const saved = await saveMedia(f, {deferVideo: true});
+            const record = mediaWithPlacement({
                 url: saved.url,
                 key: saved.key,
                 type: saved.type,
                 originalName: saved.originalName,
                 size: saved.size
-            }, placementMap[f.originalname]));
+            }, placementMap[f.originalname]);
+            stored.push(record);
         }
         return stored;
     }
 
+    // ---- Background video transcoding ----
+    // Serialize item write sequences in the request handlers so concurrent saves don't clobber
+    // each other.
+    let itemsTail = Promise.resolve();
+
+    function withItemsLock(task) {
+        const run = itemsTail.then(task, task);
+        itemsTail = run.then(() => {}, () => {});
+        return run;
+    }
+
+    // ---- Cross-process transcode queue (so a separate worker container can do the encoding) ----
+    // Coordination is via small files on the shared data volume: `<key>.job` = queued,
+    // `<key>.work` = claimed (holds live progress). A key is "processing" while either exists.
+    // Claiming is an atomic rename, so the web process and a worker container can both run the
+    // loop and never process the same video twice. Media itself lives in S3/disk (shared too).
+    const JOBS_DIR = path.join(DATA_DIR, 'jobs');
+    try {
+        fs.mkdirSync(JOBS_DIR, {recursive: true});
+    } catch {
+    }
+    const jobFile = (key, ext) => path.join(JOBS_DIR, `${key}.${ext}`);
+
+    function writeJsonAtomic(file, data) {
+        const tmp = `${file}.${randomUUID()}.tmp`;
+        fs.writeFileSync(tmp, JSON.stringify(data));
+        fs.renameSync(tmp, file);
+    }
+
+    // Cross-process mutex via atomic mkdir (works across containers on the shared volume).
+    // Holds are brief (a JSON read+write), with a stale-lock breaker in case a holder dies.
+    async function withFileLock(name, fn) {
+        const dir = path.join(DATA_DIR, `.${name}.lock`);
+        for (let i = 0; i < 600; i++) {
+            try {
+                fs.mkdirSync(dir);
+                try {
+                    return await fn();
+                } finally {
+                    try {
+                        fs.rmdirSync(dir);
+                    } catch {
+                    }
+                }
+            } catch (e) {
+                if (e.code !== 'EEXIST') throw e;
+                try {
+                    if (Date.now() - fs.statSync(dir).mtimeMs > 30000) fs.rmdirSync(dir);
+                } catch {
+                }
+                await new Promise(r => setTimeout(r, 50));
+            }
+        }
+        return fn(); // gave up waiting — proceed best-effort
+    }
+
+    function enqueueTranscode(key) {
+        try {
+            writeJsonAtomic(jobFile(key, 'job'), {key, createdAt: Date.now()});
+        } catch {
+        }
+    }
+
+    const jobList = ext => {
+        try {
+            return fs.readdirSync(JOBS_DIR).filter(f => f.endsWith(`.${ext}`));
+        } catch {
+            return [];
+        }
+    };
+
+    function jobKeys() {
+        const keys = new Set();
+        for (const f of jobList('job')) keys.add(f.slice(0, -4));
+        for (const f of jobList('work')) keys.add(f.slice(0, -5));
+        return [...keys];
+    }
+
+    const jobExists = key => fs.existsSync(jobFile(key, 'job')) || fs.existsSync(jobFile(key, 'work'));
+
+    const readProgress = key => {
+        try {
+            return Number(readJson(jobFile(key, 'work'), {}).progress) || 0;
+        } catch {
+            return 0;
+        }
+    };
+
+    const writeProgress = (key, frac) => {
+        try {
+            writeJsonAtomic(jobFile(key, 'work'), {key, progress: frac, at: Date.now()});
+        } catch {
+        }
+    };
+
+    // Remove a job once it's done / deleted (clears it from "processing").
+    function finishJob(key) {
+        for (const ext of ['work', 'job']) {
+            try {
+                fs.unlinkSync(jobFile(key, ext));
+            } catch {
+            }
+        }
+    }
+
+    // ---- Video catalog: the "library" shown in the dashboard + the block picker ----
+    // A small persisted list of videos uploaded via the Video block, each with an editable
+    // name. Status/progress are derived live from the job files, so they're never stale.
+    const VIDEOS_FILE = path.join(DATA_DIR, 'videos.json');
+
+    function readVideoCatalog() {
+        const list = readJson(VIDEOS_FILE, []);
+        return Array.isArray(list) ? list : [];
+    }
+
+    // Catalog reads-modify-writes are serialized cross-process (web + worker) by the file lock.
+    function withVideos(mutator) {
+        return withFileLock('videos', async () => {
+            const list = readVideoCatalog();
+            const result = await mutator(list);
+            try {
+                writeJsonAtomic(VIDEOS_FILE, list);
+            } catch {
+            }
+            return result;
+        });
+    }
+
+    const videoStatus = key => (jobExists(key) ? 'processing' : 'ready');
+
+    function publicVideo(v) {
+        const status = videoStatus(v.key);
+        return {...v, status, progress: status === 'ready' ? 1 : readProgress(v.key)};
+    }
+
+    const addVideoToCatalog = entry => withVideos(list => {
+        list.unshift({createdAt: new Date().toISOString(), ...entry});
+    });
+
+    const setVideoSize = (key, size) => withVideos(list => {
+        const v = list.find(x => x.key === key);
+        if (v) v.size = size;
+    });
+
+    // Claim the oldest queued job for this process via an atomic rename (.job -> .work).
+    function claimJob() {
+        for (const f of jobList('job').sort()) {
+            const key = f.slice(0, -4);
+            try {
+                fs.renameSync(jobFile(key, 'job'), jobFile(key, 'work'));
+                writeProgress(key, 0);
+                return key;
+            } catch {
+                // Someone else claimed it first — try the next.
+            }
+        }
+        return null;
+    }
+
+    // Transcode the original stored at `key` (streamed via a temp file so multi-GB originals
+    // never load into RAM), then overwrite the SAME key in place — the optimized result is
+    // small, so buffering that is fine. The stable key means the URL never changes.
+    async function transcodeOne(key) {
+        let src = null;
+        try {
+            src = await originalToTempPath(key).catch(() => null);
+            if (!src) return;
+            const before = fs.statSync(src.path).size;
+            const ext = path.extname(key).toLowerCase() || '.mp4';
+            const converted = await convertVideoBuffer({path: src.path, mimetype: 'video/mp4'}, ext,
+                frac => writeProgress(key, frac));
+            if (converted.transcoded && converted.buffer?.length) {
+                await putMedia(key, converted.buffer, 'video/mp4');
+                await setVideoSize(key, converted.buffer.length); // no-op if not a catalog video
+                const mb = n => (n / 1048576).toFixed(1);
+                console.log(`[video] optimized ${key}: ${mb(before)}MB -> ${mb(converted.buffer.length)}MB`);
+            } else {
+                console.warn(`[video] ${key} left unoptimized (transcode unavailable/failed)`);
+            }
+        } finally {
+            src?.cleanup?.();
+        }
+    }
+
+    // The transcode loop — run in-process by the web (unless handed off) AND/OR by a worker
+    // container. Safe to run in multiple processes at once thanks to atomic claim-by-rename.
+    let loopRunning = false;
+
+    async function runTranscodeLoop() {
+        if (loopRunning) return;
+        loopRunning = true;
+        // Requeue jobs a crash left mid-flight (a live job is heart-beated below, so only ones
+        // untouched for >2 min are considered abandoned — never steals a peer's active job).
+        for (const f of jobList('work')) {
+            const key = f.slice(0, -5);
+            try {
+                if (Date.now() - fs.statSync(jobFile(key, 'work')).mtimeMs > 120000) {
+                    fs.renameSync(jobFile(key, 'work'), jobFile(key, 'job'));
+                }
+            } catch {
+            }
+        }
+        for (; ;) {
+            const key = claimJob();
+            if (!key) {
+                await new Promise(r => setTimeout(r, 1500));
+                continue;
+            }
+            // Keep the claim "fresh" during long encodes so peers don't reclaim it.
+            const hb = setInterval(() => {
+                try {
+                    fs.utimesSync(jobFile(key, 'work'), new Date(), new Date());
+                } catch {
+                }
+            }, 20000);
+            try {
+                await transcodeOne(key);
+            } catch (e) {
+                console.warn('[video] job failed', key, e?.message || e);
+            } finally {
+                clearInterval(hb);
+                finishJob(key);
+            }
+        }
+    }
+
     function validateItemInput(req, mediaCount) {
         if (!String(req.body.title || '').trim() || !String(req.body.description || '').trim()) return 'Title and description are required.';
-        if (mediaCount < 1) return 'At least one image or video is required.';
+        if (mediaCount < 1) return 'At least one image is required.';
         return null;
     }
 
@@ -990,8 +1452,17 @@ export function createApp(options = {}) {
     app.locals.init = async () => {
         await initSql();
         await ensureBucket();
-        await migrateSettings();
+        // The worker only encodes videos — it doesn't need (and shouldn't race the web on) the
+        // one-time settings migrations.
+        if ((process.env.ROLE || 'web') !== 'worker') await migrateSettings();
+        // Report whether video transcoding is actually available, so a missing ffmpeg is
+        // obvious in the logs instead of silently shipping un-optimized uploads.
+        ffmpegAvailable().then(ok => console.log(ok
+            ? '[video] ffmpeg found — uploaded videos will be compressed to streaming MP4'
+            : '[video] ffmpeg NOT found — videos will be stored as-is (install ffmpeg to enable compression)'));
     };
+    // Exposed so the entry point can run it in-process (web) or as a dedicated worker container.
+    app.locals.runTranscodeLoop = runTranscodeLoop;
 
     const FileStore = createFileStore(session);
     app.use(session({
@@ -1013,10 +1484,25 @@ export function createApp(options = {}) {
         }
     });
 
-    app.get('/api/health', (_req, res) => res.json({
+    // Large videos stream straight to a temp file on disk (never buffered in RAM like the
+    // memory-storage uploads above), so multi-gigabyte uploads don't blow up memory. Its own,
+    // much higher size cap (default 4 GB) — overridable via VIDEO_MAX_MB.
+    const VIDEO_MAX_MB = Number(options.videoMaxMb ?? process.env.VIDEO_MAX_MB ?? 4096);
+    const uploadVideo = multer({
+        storage: multer.diskStorage({
+            destination: (_req, _file, cb) => cb(null, TMP_DIR),
+            filename: (_req, file, cb) => cb(null, `${randomUUID()}${path.extname(file.originalname || '') || '.src'}`)
+        }),
+        limits: {fileSize: VIDEO_MAX_MB * 1024 * 1024, files: 1},
+        fileFilter: (_req, file, cb) => cb(null,
+            file.mimetype.startsWith('video/') || /\.(mp4|mov|m4v|webm|avi|mkv|mpg|mpeg|3gp)$/i.test(file.originalname || ''))
+    });
+
+    app.get('/api/health', async (_req, res) => res.json({
         ok: true,
         adminPath: ADMIN_PATH,
-        storage: {sql: Boolean(pool), s3: Boolean(s3)}
+        storage: {sql: Boolean(pool), s3: Boolean(s3)},
+        videoTranscoding: await ffmpegAvailable() // false ⇒ ffmpeg missing, videos kept as-is
     }));
     app.get('/api/config', (req, res) => res.json({
         adminPath: ADMIN_PATH,
@@ -1030,13 +1516,33 @@ export function createApp(options = {}) {
         const key = req.params.key;
         try {
             if (s3) {
-                const obj = await s3.send(new GetObjectCommand({Bucket: S3_BUCKET, Key: key}));
+                // Forward the browser's Range header to S3 so video can seek/stream instead of
+                // downloading whole. S3 answers a ranged GET with Content-Range + the partial
+                // length; we relay those and a 206 so the <video> element streams properly.
+                const range = req.headers.range;
+                const obj = await s3.send(new GetObjectCommand({
+                    Bucket: S3_BUCKET, Key: key, Range: range || undefined
+                }));
                 if (obj.ContentType) res.setHeader('Content-Type', obj.ContentType);
+                res.setHeader('Accept-Ranges', 'bytes');
+                if (obj.ETag) res.setHeader('ETag', obj.ETag);
+                if (obj.LastModified) res.setHeader('Last-Modified', obj.LastModified.toUTCString());
+                if (obj.CacheControl) res.setHeader('Cache-Control', obj.CacheControl);
+                if (obj.ContentLength != null) res.setHeader('Content-Length', String(obj.ContentLength));
+                if (obj.ContentRange) {
+                    res.setHeader('Content-Range', obj.ContentRange);
+                    res.status(206);
+                }
+                obj.Body.on('error', () => res.destroy());
                 obj.Body.pipe(res);
                 return;
             }
             res.sendFile(path.join(UPLOAD_DIR, key));
-        } catch {
+        } catch (err) {
+            // An unsatisfiable Range → 416 so the player can recover; anything else → 404.
+            if (err?.name === 'InvalidRange' || err?.Code === 'InvalidRange') {
+                return res.status(416).set('Content-Range', 'bytes */*').end();
+            }
             res.status(404).json({error: 'Media not found'});
         }
     });
@@ -1135,6 +1641,27 @@ export function createApp(options = {}) {
         res.json(next);
     });
 
+    // Persist one block's video URL straight into the SAVED layout, so the result of an
+    // asynchronous upload survives a page reload even before the admin re-saves the whole page.
+    // 404 if the block hasn't been saved server-side yet (then it just lives in the draft until
+    // the page is saved). Only patches that one block's url — other edits aren't committed.
+    app.post('/api/admin/block-media', requireAdmin, async (req, res) => {
+        const {route, blockId, url} = req.body || {};
+        if (!route || !blockId || typeof url !== 'string' || !url) {
+            return res.status(400).json({error: 'route, blockId and url are required'});
+        }
+        const settings = await readSettings();
+        const block = settings.layout?.[route]?.blocks?.find(b => b.id === blockId);
+        if (!block) {
+            console.warn(`[video] block-media: block ${blockId} not in saved layout ${route} yet — save the page once so it can be linked`);
+            return res.status(404).json({error: 'Block not found in the saved layout'});
+        }
+        block.props = {...(block.props || {}), url};
+        await writeSettings(settings);
+        console.log(`[video] linked block ${blockId} on ${route} -> ${url}`);
+        res.json({ok: true});
+    });
+
     app.post('/api/admin/preview-convert', requireAdmin, upload.single('file'), async (req, res) => {
         if (!req.file) return res.status(400).json({error: 'No file provided'});
         try {
@@ -1150,15 +1677,106 @@ export function createApp(options = {}) {
     app.post('/api/admin/upload', requireAdmin, upload.single('file'), async (req, res) => {
         if (!req.file) return res.status(400).json({error: 'No file provided'});
         try {
-            const saved = await saveMedia(req.file);
-            res.json({url: saved.url, key: saved.key, type: saved.type});
+            // Videos are deferred (stored now, optimized in the background) so a long upload
+            // returns instantly; the stable URL lets a page block reference it right away.
+            const saved = await saveMedia(req.file, {deferVideo: true});
+            res.json({url: saved.url, key: saved.key, type: saved.type, processing: jobExists(saved.key)});
         } catch {
             res.status(500).json({error: 'Upload failed'});
         }
     });
 
+    // Large-video upload for the Video block: streamed to disk (so gigabyte files don't sit in
+    // RAM), stored immediately under its final URL, then optimized in the background.
+    app.post('/api/admin/upload-video', requireAdmin, uploadVideo.single('file'), async (req, res) => {
+        if (!req.file) return res.status(400).json({error: 'No video provided'});
+        try {
+            const key = await storeFile(req.file.path, '.mp4', 'video/mp4');
+            // Catalog BEFORE queueing so the dashboard never sees a job without its library row.
+            // Record it in the library with a friendly default name (the filename, sans ext).
+            const name = String(req.file.originalname || 'Video').replace(/\.[^.]+$/, '').trim() || 'Video';
+            await addVideoToCatalog({
+                key, url: `/uploads/${key}`, name,
+                originalName: req.file.originalname || '', size: req.file.size || 0
+            });
+            enqueueTranscode(key); // a worker (or the web's own loop) will pick this up
+            res.json({url: `/uploads/${key}`, key, type: 'video/mp4', processing: true, name});
+        } catch (err) {
+            console.warn('[video] upload failed:', err?.message || err);
+            res.status(500).json({error: 'Upload failed'});
+        } finally {
+            // storeFile moves the temp file on local storage; on S3 (or a copy fallback) it
+            // remains, so always try to clean it up.
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch {
+            }
+        }
+    });
+
+    // Which uploaded videos are still being transcoded, plus each one's 0..1 encode progress
+    // (the client polls this to show a percentage, clear the badge, and refresh when ready).
+    app.get('/api/admin/transcode-status', requireAdmin, (_req, res) => res.json({
+        keys: jobKeys(),
+        progress: Object.fromEntries(jobKeys().map(k => [k, readProgress(k)]))
+    }));
+
+    // ---- Video library (dashboard "Video" tab + the Video block's picker) ----
+    app.get('/api/admin/videos', requireAdmin, (_req, res) =>
+        res.set('Cache-Control', 'no-store').json(readVideoCatalog().map(publicVideo)));
+
+    // Rename a video (organisation only — the URL/key never changes).
+    app.patch('/api/admin/videos/:key', requireAdmin, async (req, res) => {
+        const name = String(req.body?.name || '').trim();
+        if (!name) return res.status(400).json({error: 'A name is required.'});
+        const found = await withVideos(list => {
+            const v = list.find(x => x.key === req.params.key);
+            if (v) v.name = name;
+            return !!v;
+        });
+        if (!found) return res.status(404).json({error: 'Video not found.'});
+        res.json({ok: true, name});
+    });
+
+    // Remove every page block that points at a media URL (from the draft layout AND the
+    // published/live snapshot), so deleting a video also pulls the Video blocks that used it.
+    async function removeBlocksWithUrl(url) {
+        const settings = await readSettings();
+        let changed = false;
+        for (const layoutObj of [settings.layout, settings.published]) {
+            for (const route of Object.keys(layoutObj || {})) {
+                const pg = layoutObj[route];
+                if (!Array.isArray(pg?.blocks)) continue;
+                const next = pg.blocks.filter(b => b?.props?.url !== url);
+                if (next.length !== pg.blocks.length) {
+                    pg.blocks = next;
+                    changed = true;
+                }
+            }
+        }
+        if (changed) await writeSettings(settings);
+    }
+
+    // Delete a video from the library, storage, and any pages that used it.
+    app.delete('/api/admin/videos/:key', requireAdmin, async (req, res) => {
+        const key = req.params.key;
+        const found = await withVideos(list => {
+            const i = list.findIndex(x => x.key === key);
+            if (i >= 0) list.splice(i, 1);
+            return i >= 0;
+        });
+        if (!found) return res.status(404).json({error: 'Video not found.'});
+        finishJob(key); // drop any queued/active transcode job for it
+        // It's already out of the catalog (the part the UI cares about) — respond now, then clean
+        // up the media file and any Video blocks that referenced it in the background so a slow
+        // storage/settings write can't hold up the UI.
+        res.json({ok: true});
+        const url = `/uploads/${key}`;
+        deleteMediaByUrl(url).catch(() => {});
+        removeBlocksWithUrl(url).catch(() => {});
+    });
+
     app.post('/api/admin/items', requireAdmin, upload.array('media', 8), async (req, res) => {
-        const items = await readItems();
         const now = new Date().toISOString();
         const newMediaPlacement = safeJson(req.body.newMediaPlacement);
         const files = await uploadedFilesToMedia(req.files || [], newMediaPlacement);
@@ -1173,42 +1791,63 @@ export function createApp(options = {}) {
             createdAt: now,
             updatedAt: now
         };
-        items.unshift(item);
-        await writeItems(items);
+        await withItemsLock(async () => {
+            const items = await readItems();
+            items.unshift(item);
+            await writeItems(items);
+        });
         res.status(201).json(publicItem(item));
     });
 
     app.put('/api/admin/items/:id', requireAdmin, upload.array('media', 8), async (req, res) => {
-        const items = await readItems();
-        const idx = items.findIndex(w => w.id === req.params.id);
-        if (idx < 0) return res.status(404).json({error: 'Not found'});
+        // Cheap existence pre-check so we don't store uploads for a missing item (the common
+        // 404). The authoritative re-check happens under the lock below.
+        if (!(await readItems()).some(w => w.id === req.params.id)) return res.status(404).json({error: 'Not found'});
         const keep = new Set(String(req.body.keepMedia || '').split(',').filter(Boolean));
-        const oldMedia = items[idx].media || [];
         const mediaPlacement = safeJson(req.body.mediaPlacement);
         const newMediaPlacement = safeJson(req.body.newMediaPlacement);
-        const keptMedia = oldMedia.filter(m => keep.size === 0 ? true : keep.has(m.url)).map(m => mediaWithPlacement(m, mediaPlacement[m.url]));
         const newFiles = await uploadedFilesToMedia(req.files || [], newMediaPlacement);
-        const validationError = validateItemInput(req, keptMedia.length + newFiles.length);
-        if (validationError) return res.status(400).json({error: validationError});
-        for (const m of oldMedia.filter(m => !keptMedia.some(k => k.url === m.url) && m.url?.startsWith('/uploads/'))) await deleteMediaByUrl(m.url);
-        items[idx] = {
-            ...items[idx],
-            title: String(req.body.title).trim(),
-            price: req.body.price || '',
-            description: String(req.body.description).trim(),
-            media: [...keptMedia, ...newFiles],
-            updatedAt: new Date().toISOString()
-        };
-        await writeItems(items);
-        res.json(publicItem(items[idx]));
+        let outcome = {status: 500, body: {error: 'Server error'}};
+        await withItemsLock(async () => {
+            const items = await readItems();
+            const idx = items.findIndex(w => w.id === req.params.id);
+            if (idx < 0) {
+                outcome = {status: 404, body: {error: 'Not found'}};
+                return;
+            }
+            const oldMedia = items[idx].media || [];
+            const keptMedia = oldMedia.filter(m => keep.size === 0 ? true : keep.has(m.url)).map(m => mediaWithPlacement(m, mediaPlacement[m.url]));
+            const validationError = validateItemInput(req, keptMedia.length + newFiles.length);
+            if (validationError) {
+                outcome = {status: 400, body: {error: validationError}};
+                return;
+            }
+            for (const m of oldMedia.filter(m => !keptMedia.some(k => k.url === m.url) && m.url?.startsWith('/uploads/'))) await deleteMediaByUrl(m.url);
+            items[idx] = {
+                ...items[idx],
+                title: String(req.body.title).trim(),
+                price: req.body.price || '',
+                description: String(req.body.description).trim(),
+                media: [...keptMedia, ...newFiles],
+                updatedAt: new Date().toISOString()
+            };
+            await writeItems(items);
+            outcome = {status: 200, body: publicItem(items[idx])};
+        });
+        res.status(outcome.status).json(outcome.body);
     });
 
     app.delete('/api/admin/items/:id', requireAdmin, async (req, res) => {
-        const items = await readItems();
-        const item = items.find(w => w.id === req.params.id);
-        if (!item) return res.status(404).json({error: 'Not found'});
-        for (const m of (item.media || [])) if (m.url?.startsWith('/uploads/')) await deleteMediaByUrl(m.url);
-        await writeItems(items.filter(w => w.id !== req.params.id));
+        let found = false;
+        await withItemsLock(async () => {
+            const items = await readItems();
+            const item = items.find(w => w.id === req.params.id);
+            if (!item) return;
+            found = true;
+            for (const m of (item.media || [])) if (m.url?.startsWith('/uploads/')) await deleteMediaByUrl(m.url);
+            await writeItems(items.filter(w => w.id !== req.params.id));
+        });
+        if (!found) return res.status(404).json({error: 'Not found'});
         res.json({ok: true});
     });
 
@@ -1333,6 +1972,44 @@ export function createApp(options = {}) {
         res.sendFile(path.join(dist, 'index.html'));
     });
 
+    // Central error handler — most importantly so an upload the browser cancels (navigating away
+    // mid-upload) doesn't spew an unhandled "Request aborted" and doesn't leave a temp file.
+    app.use((err, req, res, _next) => {
+        const cleanup = f => {
+            if (f?.path) try {
+                fs.unlinkSync(f.path);
+            } catch {
+            }
+        };
+        cleanup(req.file);
+        (req.files || []).forEach(cleanup);
+        const aborted = err?.message === 'Request aborted' || err?.code === 'ECONNABORTED'
+            || err?.code === 'ECONNRESET' || req.aborted;
+        if (aborted) return; // client went away; nothing to send
+        if (res.headersSent) return;
+        if (err instanceof multer.MulterError) {
+            const msg = err.code === 'LIMIT_FILE_SIZE' ? 'That file is larger than the upload limit.' : err.message;
+            return res.status(413).json({error: msg});
+        }
+        console.error('[server] unhandled error:', err?.message || err);
+        res.status(500).json({error: 'Server error'});
+    });
+
+    // Periodically sweep abandoned upload temp files (e.g. from cancelled uploads) older than 6h.
+    setInterval(() => {
+        const cutoff = Date.now() - 6 * 3600 * 1000;
+        try {
+            for (const f of fs.readdirSync(TMP_DIR)) {
+                const p = path.join(TMP_DIR, f);
+                try {
+                    if (fs.statSync(p).mtimeMs < cutoff) fs.unlinkSync(p);
+                } catch {
+                }
+            }
+        } catch {
+        }
+    }, 3600 * 1000).unref();
+
     app.locals.cmsConfig = {PORT, ADMIN_PATH};
     return app;
 }
@@ -1342,5 +2019,17 @@ if (isMain) {
     const app = createApp();
     const {PORT, ADMIN_PATH} = app.locals.cmsConfig;
     await app.locals.init();
-    app.listen(PORT, '0.0.0.0', () => console.log(`CMS listening on ${PORT}; admin path ${ADMIN_PATH}`));
+    const role = process.env.ROLE || 'web';
+    const handoff = /^(1|true|yes)$/i.test(process.env.TRANSCODE_HANDOFF || '');
+    if (role === 'worker') {
+        // Dedicated transcoding container: no HTTP server, just process the shared job queue.
+        console.log('[worker] transcode worker started — watching the job queue');
+        app.locals.runTranscodeLoop();
+    } else {
+        // Web: serve HTTP, and also run the transcode loop in-process unless it's been handed
+        // off to a worker container (TRANSCODE_HANDOFF=1).
+        if (!handoff) app.locals.runTranscodeLoop();
+        app.listen(PORT, '0.0.0.0', () => console.log(
+            `CMS listening on ${PORT}; admin path ${ADMIN_PATH}${handoff ? '; transcoding handed off to worker' : ''}`));
+    }
 }

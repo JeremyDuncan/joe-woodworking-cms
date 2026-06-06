@@ -11,6 +11,30 @@ services:
     ports:
       - "3015:8080"
     env_file: .production-env
+    # Hand video transcoding off to the worker container so the web app never goes
+    # CPU-bound while a video is processing.
+    environment:
+      - TRANSCODE_HANDOFF=1
+    volumes:
+      - /share/Public/docker/joes-custom-flags-cms/app-data:/app/data
+
+  # Dedicated transcoder: same image, no HTTP server — just drains the shared job queue.
+  # Shares the data volume (job files + library) and the same S3/DB env. CPU-capped so even a
+  # heavy encode can't starve the host.
+  joes-custom-flags-cms-worker:
+    image: ${REGISTRY}/${IMAGE}:latest
+    container_name: joes-custom-flags-cms-worker
+    restart: unless-stopped
+    command: ["node", "server/index.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    env_file: .production-env
+    environment:
+      - ROLE=worker
+    cpus: "2"
     volumes:
       - /share/Public/docker/joes-custom-flags-cms/app-data:/app/data
 

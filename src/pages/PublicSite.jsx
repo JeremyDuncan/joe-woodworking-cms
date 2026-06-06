@@ -96,7 +96,10 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             const n = structuredClone(d);
             let cur = n;
             path.slice(0, -1).forEach(k => cur = cur[k]);
-            cur[path.at(-1)] = value;
+            const last = path.at(-1);
+            // `value` may be an updater fn so callers can derive from the LATEST state — vital for
+            // slow async edits (e.g. a long video upload) that must not clobber concurrent changes.
+            cur[last] = typeof value === 'function' ? value(cur[last]) : value;
             return n;
         });
     }, []);
@@ -395,7 +398,7 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     // that has media (no "featured" flag anymore).
     const featured = gallery.find(w => w.media?.length) || gallery[0];
 
-    return <EditProvider editing={live} setField={setField}>
+    return <EditProvider editing={live} setField={setField} reload={reloadSettings}>
         <main className={`${isAdmin ? 'admin-chrome ' : ''}${live ? 'is-editing' : ''}`.trim() || undefined}>
             <SiteHeader settings={renderView}/>
             {visitorUnavailable
