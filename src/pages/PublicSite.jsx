@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {fallbackGallery} from '../data/defaults.js';
 import {buildLinkSources, retargetLayout, unlinkLayoutTarget} from '../lib/links.js';
 import {lastSegment, pageLabel, samePage, sectionOf, slugifyPath} from '../lib/pages.js';
@@ -17,6 +18,43 @@ function newId() {
     return `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// Asked on save when some changed pages aren't published yet: pick which to publish (each
+// defaults to OFF). Resolves with the chosen routes, or null if the save is cancelled.
+function PublishPromptModal({pages, onConfirm, onCancel}) {
+    const [on, setOn] = useState({});
+    const many = pages.length > 1;
+    const chosen = pages.filter(p => on[p.path]).map(p => p.path);
+    return createPortal(
+        <div className="dialog-backdrop" onMouseDown={onCancel}>
+            <div className="dialog publish-prompt" onMouseDown={e => e.stopPropagation()}>
+                <strong>Publish {many ? 'pages' : 'this page'}?</strong>
+                <p className="dialog-text">
+                    {many ? 'These pages aren’t' : 'This page isn’t'} published yet — visitors only see published
+                    pages. Turn on the ones you want to go live now.
+                </p>
+                <ul className="publish-prompt-list">
+                    {pages.map(p => <li key={p.path}>
+                        <label className="publish-toggle">
+                            <input type="checkbox" checked={!!on[p.path]}
+                                   onChange={e => setOn(o => ({...o, [p.path]: e.target.checked}))}/>
+                            <span className="publish-toggle-track"><span className="publish-toggle-thumb"/></span>
+                            <span className="publish-toggle-name">{p.label}<small>{p.path}</small></span>
+                            <span className={`publish-toggle-state ${on[p.path] ? 'on' : 'off'}`}>
+                                {on[p.path] ? 'Publish' : 'Unpublished'}
+                            </span>
+                        </label>
+                    </li>)}
+                </ul>
+                <div className="dialog-actions">
+                    <button type="button" className="button button-ghost" onClick={onCancel}>Cancel</button>
+                    <button type="button" className="button button-primary" onClick={() => onConfirm(chosen)}>
+                        {chosen.length ? `Save & publish ${chosen.length}` : 'Save without publishing'}
+                    </button>
+                </div>
+            </div>
+        </div>, document.body);
+}
+
 export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSettings, reloadItems}) {
     const [modalImage, setModalImage] = useState(null);
     const [editing, setEditing] = useState(false);
@@ -24,6 +62,13 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
     const [draft, setDraft] = useState(settings);
     const [saveState, setSaveState] = useState(null);
     const [templateRestore, setTemplateRestore] = useState({});
+    const [publishPrompt, setPublishPrompt] = useState(null); // {pages, resolve} during save
+
+    // Show the "publish these pages?" modal and resolve with the chosen routes (or null).
+    const askPublish = routes => new Promise(resolve => setPublishPrompt({
+        pages: routes.map(r => ({path: r, label: pageLabel((draft.nav || []).find(n => n.path === r)) || lastSegment(r) || r})),
+        resolve
+    }));
 
     // The effective editing flag for rendering: in preview we show the draft in view mode.
     const live = editing && !preview;
@@ -119,12 +164,40 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
             notify('Each Item needs a picture before the page can be saved.', 'error');
             return;
         }
+
+        // Decide what to publish on save. Edited *published* pages go live automatically; *new
+        // or unpublished* pages that changed this session are offered in a modal (default off).
+        let next = draft;
+        if (staging) {
+            const routes = Object.keys(draft.layout || {}).filter(r => r !== FOOTER_KEY);
+            const autoPublish = routes.filter(r => draft.published?.[r] && !samePage(draft.published[r], draft.layout[r]));
+            const toPrompt = routes.filter(r => !draft.published?.[r] && !samePage(draft.layout[r], settings.layout?.[r]));
+            let chosen = [];
+            if (toPrompt.length) {
+                chosen = await askPublish(toPrompt);
+                if (chosen === null) return; // cancelled the save
+            }
+            const toPublish = [...new Set([...autoPublish, ...chosen])];
+            if (toPublish.length) {
+                const published = {...(draft.published || {})};
+                const entries = toPublish.map(r => {
+                    published[r] = structuredClone(draft.layout[r]);
+                    return logEntry(r, 'published');
+                });
+                next = {
+                    ...draft, published,
+                    publishLog: [...entries, ...(draft.publishLog || [])].slice(0, 1000),
+                    publishMigrated: true
+                };
+            }
+        }
+
         setSaveState('saving');
         try {
             const r = await fetch('/api/admin/settings', {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(draft)
+                body: JSON.stringify(next)
             });
             if (!r.ok) {
                 setSaveState('error');
@@ -439,6 +512,15 @@ export function PublicSite({items, settings, route, isAdmin, adminPath, reloadSe
                               theme: view.theme, themes: view.themes, setField,
                               onSavePreset: saveThemePreset, onDeletePreset: deleteThemePreset
                           }}/>}
+            {publishPrompt && <PublishPromptModal pages={publishPrompt.pages}
+                                                  onConfirm={chosen => {
+                                                      publishPrompt.resolve(chosen);
+                                                      setPublishPrompt(null);
+                                                  }}
+                                                  onCancel={() => {
+                                                      publishPrompt.resolve(null);
+                                                      setPublishPrompt(null);
+                                                  }}/>}
         </main>
     </EditProvider>;
 }

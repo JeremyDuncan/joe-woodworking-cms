@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import {Lock} from 'lucide-react';
+import {SectionHeader} from './SectionHeader.jsx';
 
 export function PasswordForm() {
     const [form, setForm] = useState({currentPassword: '', newPassword: '', confirm: ''}), [msg, setMsg] = useState('');
@@ -21,7 +22,10 @@ export function PasswordForm() {
         }
     }
 
-    return <form className="item-form" onSubmit={save}><p className="eyebrow"><Lock size={15}/> Change your password</p>
+    return <><SectionHeader icon={Lock} title="Password">
+        Change the password you use to sign in to this dashboard.
+    </SectionHeader>
+        <form className="item-form" onSubmit={save}>
         <input type="password" placeholder="Current password" value={form.currentPassword}
                onChange={e => setForm({...form, currentPassword: e.target.value})}/><input type="password"
                                                                                            placeholder="New password"
@@ -40,4 +44,5 @@ export function PasswordForm() {
             <p className={msg.includes('updated') ? 'success' : 'error'}>{msg}</p>}
         <button className="button button-primary">Update password</button>
     </form>
+    </>;
 }

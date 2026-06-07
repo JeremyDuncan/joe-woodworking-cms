@@ -3055,11 +3055,22 @@ main.is-editing {
 
 /* ---- Admin backup & restore ---- */
 .backup-panel {
-    max-width: 720px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    justify-self: center;
+    gap: 16px
+}
+
+/* Each dashboard tab's content lives in this one consistent centered column so every section
+   lines up with the header/tabs above it. */
+.dash-section {
+    max-width: 1120px;
+    margin: 0 auto
+}
+
+/* The actions/warning in Backup don't need to stretch the full width. */
+.backup-panel .backup-actions,
+.backup-panel .backup-warning {
+    max-width: 760px
 }
 
 .backup-panel h2 {
@@ -5709,4 +5720,136 @@ h6 {
 
 .media-frame.video-uploading.is-error .video-uploading-label {
     color: #ff8a8a
+}
+
+/* ---- Consistent admin dashboard section headers ---- */
+.dash-head {
+    margin: 0
+}
+
+.dash-head-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-size: 21px;
+    font-weight: 900;
+    color: var(--white)
+}
+
+.dash-head-title svg {
+    color: var(--gold);
+    flex-shrink: 0
+}
+
+.dash-head-intro {
+    color: var(--muted);
+    margin: 7px 0 18px;
+    max-width: 760px;
+    line-height: 1.6
+}
+
+/* ---- "Publish these pages?" modal (shown on save for unpublished pages) ---- */
+.dialog.publish-prompt {
+    width: min(460px, 94vw);
+    text-align: left
+}
+
+.publish-prompt-list {
+    list-style: none;
+    margin: 14px 0 4px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow: auto
+}
+
+.publish-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .03);
+    cursor: pointer
+}
+
+.publish-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0
+}
+
+.publish-toggle-track {
+    flex-shrink: 0;
+    width: 40px;
+    height: 23px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    border: 1px solid var(--line);
+    position: relative;
+    transition: background .15s ease
+}
+
+.publish-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    background: #cdd6e4;
+    transition: transform .15s ease, background .15s ease
+}
+
+.publish-toggle input:checked + .publish-toggle-track {
+    background: rgba(67, 214, 138, .55);
+    border-color: rgba(67, 214, 138, .6)
+}
+
+.publish-toggle input:checked + .publish-toggle-track .publish-toggle-thumb {
+    transform: translateX(17px);
+    background: #fff
+}
+
+.publish-toggle-name {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    font-weight: 800;
+    color: var(--white)
+}
+
+.publish-toggle-name small {
+    font-weight: 600;
+    color: var(--steel);
+    font-family: ui-monospace, monospace;
+    word-break: break-all
+}
+
+.publish-toggle-state {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 1px solid var(--line)
+}
+
+.publish-toggle-state.off {
+    color: var(--steel);
+    background: rgba(255, 255, 255, .05)
+}
+
+.publish-toggle-state.on {
+    color: #6ee7a8;
+    background: rgba(67, 214, 138, .14);
+    border-color: rgba(67, 214, 138, .4)
 }

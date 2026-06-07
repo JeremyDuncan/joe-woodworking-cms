@@ -1,6 +1,7 @@
 import React, {useRef, useState} from 'react';
-import {Download, ShieldAlert, Upload} from 'lucide-react';
+import {Archive, Download, ShieldAlert, Upload} from 'lucide-react';
 import {confirmDialog, notify} from '../lib/dialog.jsx';
+import {SectionHeader} from './SectionHeader.jsx';
 
 // Download a full site backup (settings + items + every image) as one zip, and
 // restore the whole site from such a zip.
@@ -37,10 +38,11 @@ export function BackupPanel({reload}) {
     }
 
     return <section className="backup-panel">
-        <h2>Backup &amp; Restore</h2>
-        <p>Download a single <code>.zip</code> that contains every page, page template, saved theme, saved item,
-            uploaded image, and admin login. Keep it somewhere safe — you can rebuild the whole site from it later,
-            even onto brand-new, empty storage.</p>
+        <SectionHeader icon={Archive} title="Backup & Restore">
+            Download a single <code>.zip</code> with every page, page template, saved theme, saved item, uploaded
+            image, and admin login. Keep it somewhere safe — you can rebuild the whole site from it later, even onto
+            brand-new, empty storage.
+        </SectionHeader>
 
         <div className="backup-actions">
             <a className="button button-primary" href="/api/admin/backup" download>

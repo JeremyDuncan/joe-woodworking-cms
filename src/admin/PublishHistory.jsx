@@ -3,6 +3,7 @@ import {ArrowDown, ArrowUp, ExternalLink, History, Search} from 'lucide-react';
 import {lastSegment, pageLabel, samePage} from '../lib/pages.js';
 import {buildLinkSources, pageStatus} from '../lib/links.js';
 import {navigate} from '../lib/navigation.jsx';
+import {SectionHeader} from './SectionHeader.jsx';
 
 // Published (live), modified (live but has newer unpublished edits), or unpublished (not live).
 function pubStatus(path, published, layout) {
@@ -68,9 +69,9 @@ export function PublishHistory() {
     </th>;
 
     return <div className="publish-history">
-        <h2 className="ph-title"><History size={18}/> Publishing</h2>
-        <p className="ph-intro">Visitors only see published pages. Click a page to open it; publish or unpublish from the
-            site editor.</p>
+        <SectionHeader icon={History} title="Publishing">
+            Visitors only see published pages. Click a page to open it; publish or unpublish from the site editor.
+        </SectionHeader>
 
         <div className="ph-search">
             <Search size={15}/>

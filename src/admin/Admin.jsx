@@ -7,6 +7,7 @@ import {PasswordForm} from './PasswordForm.jsx';
 import {BackupPanel} from './BackupPanel.jsx';
 import {PublishHistory} from './PublishHistory.jsx';
 import {VideoLibrary} from './VideoLibrary.jsx';
+import {SectionHeader} from './SectionHeader.jsx';
 
 export function Admin({items, reload, onAuthChange}) {
     const [me, setMe] = useState(null), [login, setLogin] = useState({
@@ -89,12 +90,17 @@ export function Admin({items, reload, onAuthChange}) {
                 size={16}/> Backup
             </button>
         </div>
-        {tab === 'item' && <><ItemForm formRef={formRef} editing={editing} setEditing={setEditing} reload={reload}
-                                       setNotice={setNotice}/><ItemList items={items} setEditing={setEditing}
-                                                                        reload={reload} startEdit={startEdit}/></>}
-        {tab === 'password' && <PasswordForm/>}
-        {tab === 'videos' && <VideoLibrary/>}
-        {tab === 'history' && <PublishHistory/>}
-        {tab === 'backup' && <BackupPanel reload={reload}/>}
+        {tab === 'item' && <div className="dash-section">
+            <SectionHeader icon={ImagePlus} title="Items">
+                Add and manage the photos, prices, and descriptions for the pieces shown on your site.
+            </SectionHeader>
+            <ItemForm formRef={formRef} editing={editing} setEditing={setEditing} reload={reload}
+                      setNotice={setNotice}/>
+            <ItemList items={items} setEditing={setEditing} reload={reload} startEdit={startEdit}/>
+        </div>}
+        {tab === 'password' && <div className="dash-section"><PasswordForm/></div>}
+        {tab === 'videos' && <div className="dash-section"><VideoLibrary/></div>}
+        {tab === 'history' && <div className="dash-section"><PublishHistory/></div>}
+        {tab === 'backup' && <div className="dash-section"><BackupPanel reload={reload}/></div>}
     </main>
 }

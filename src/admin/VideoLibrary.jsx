@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Check, Film, Pencil, Trash2, X} from 'lucide-react';
 import {confirmDialog, notify} from '../lib/dialog.jsx';
+import {SectionHeader} from './SectionHeader.jsx';
 
 function fmtSize(bytes) {
     if (!bytes) return '—';
@@ -101,9 +102,10 @@ export function VideoLibrary() {
 
     if (videos === null) return <p className="ph-empty">Loading…</p>;
     return <div className="video-library">
-        <h2 className="ph-title"><Film size={18}/> Videos</h2>
-        <p className="ph-intro">Every video uploaded to a Video block. Rename them to stay organized; the status shows
-            background optimization progress, and you can reuse any of these from a Video block's library picker.</p>
+        <SectionHeader icon={Film} title="Video">
+            Every video uploaded to a Video block. Rename them to stay organized; the status shows background
+            optimization progress, and you can reuse any of these from a Video block's library picker.
+        </SectionHeader>
         {videos.length === 0
             ? <p className="ph-empty">No videos yet — add a Video block to a page and upload one.</p>
             : <div className="video-list">{videos.map(v => <VideoRow key={v.key} v={v} onRename={rename} onDelete={remove}/>)}</div>}
