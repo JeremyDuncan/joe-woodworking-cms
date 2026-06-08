@@ -77,9 +77,6 @@ export function Admin({items, reload, onAuthChange}) {
             <button className={tab === 'item' ? 'active' : ''} onClick={() => setTab('item')}><ImagePlus
                 size={16}/> Items
             </button>
-            <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
-                size={16}/> Password
-            </button>
             <button className={tab === 'videos' ? 'active' : ''} onClick={() => setTab('videos')}><Film
                 size={16}/> Video
             </button>
@@ -88,6 +85,9 @@ export function Admin({items, reload, onAuthChange}) {
             </button>
             <button className={tab === 'backup' ? 'active' : ''} onClick={() => setTab('backup')}><Archive
                 size={16}/> Backup
+            </button>
+            <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}><Lock
+                size={16}/> Password
             </button>
         </div>
         {tab === 'item' && <div className="dash-section">

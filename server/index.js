@@ -1450,11 +1450,13 @@ export function createApp(options = {}) {
     }
 
     app.locals.init = async () => {
-        await initSql();
+        // Only the web process owns DB schema creation + one-time settings migrations. The worker
+        // only encodes videos (it never writes to the DB), so it skips both — otherwise the two
+        // containers race each other on CREATE TABLE, which Postgres can't do concurrently.
+        const isWorker = (process.env.ROLE || 'web') === 'worker';
+        if (!isWorker) await initSql();
         await ensureBucket();
-        // The worker only encodes videos — it doesn't need (and shouldn't race the web on) the
-        // one-time settings migrations.
-        if ((process.env.ROLE || 'web') !== 'worker') await migrateSettings();
+        if (!isWorker) await migrateSettings();
         // Report whether video transcoding is actually available, so a missing ffmpeg is
         // obvious in the logs instead of silently shipping un-optimized uploads.
         ffmpegAvailable().then(ok => console.log(ok
